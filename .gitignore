@@ -3,5 +3,4 @@
 .remote-sync.json
 /experiments/
 /data/
-!/data/scripts/*.py
-!/data/scripts/*.sh
+/scripts/_cached
