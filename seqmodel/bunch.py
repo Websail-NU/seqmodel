@@ -6,14 +6,13 @@ import neobunch
 
 
 class Bunch(neobunch.Bunch):
-    """ Just like Bunch,
-        but return None if a requested attribute is not defined.
+    """ Just like Bunch with more stuffs and less safe
     """
     def __getattr__(self, k):
-        try:
-            return super(Bunch, self).__getattr__(k)
-        except AttributeError:
-            return None
+        if dict.__contains__(self, k):
+            return self[k]
+        else:
+            return object.__getattribute__(self, k)
 
     def to_pretty(self, delimiter=' ', _level=0):
         _indent_str = ' ' * (_level * 2)
@@ -34,6 +33,9 @@ class Bunch(neobunch.Bunch):
 
     def to_pretty_json(self, indent=2, sort_keys=True):
         return json.dumps(self.toDict(), indent=indent, sort_keys=sort_keys)
+
+    def is_attr_set(self, key):
+        return key in self and self[key] is not None
 
     def __copy__(self):
         return Bunch.from_dict(self)
@@ -76,5 +78,5 @@ class Bunch(neobunch.Bunch):
 
     @staticmethod
     def from_json_file(filepath):
-        with codecs.open(filepath, 'w', 'utf-8') as ifp:
+        with codecs.open(filepath, 'r', 'utf-8') as ifp:
             return Bunch.from_dict(json.load(ifp))

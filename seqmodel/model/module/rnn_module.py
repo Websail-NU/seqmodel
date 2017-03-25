@@ -124,7 +124,7 @@ class BasicRNNModule(GraphModule):
         final_output = Bunch(cell_output=cell_output, final_state=final_state)
         if self.initial_state is not None:
             final_output.initial_state = self.initial_state
-        if self.opt.logit is not None:
+        if self.opt.is_attr_set('logit'):
             logit_fn = kwargs.get('logit_fn', graph_util.create_logit_layer)
             self.logit, self.logit_temp = logit_fn(
                 self.opt.logit, cell_output, *args, **kwargs)

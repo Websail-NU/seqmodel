@@ -58,6 +58,7 @@ class BasicAgent(agent.Agent):
             info = self._run_epoch(self.training_model, training_data_iter,
                                    batch_size, train_op=self.train_op,
                                    training_loss_denom=batch_size)
+            print(info)
             if valid_data_iter is not None:
                 info = self.evaluate(valid_data_iter, valid_batch_size)
             self.update_training_state(training_state, info)

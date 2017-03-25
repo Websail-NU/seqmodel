@@ -1,0 +1,83 @@
+{
+  "agent_class": "seqmodel.experiment.basic_agent.BasicAgent",
+  "agent_opt": {
+    "checkpoint_dir": "model/",
+    "debug": false,
+    "experiment_dir": "experiment/out",
+    "load_checkpoint_dir": null,
+    "log_file": "experiment.log",
+    "model": {
+      "model_class": "seqmodel.model.seq_model.BasicSeqModel",
+      "model_opt": {
+        "data_io": {
+          "in_vocab_size": 10000
+        },
+        "decoder": {
+          "class_name": "seqmodel.model.decoder.RNNDecoder",
+          "opt": {
+            "init_with_encoder_state": false
+          },
+          "rnn_class_name": "seqmodel.model.rnn_module.BasicRNNModule",
+          "rnn_opt": {
+            "create_zero_initial_state": true,
+            "logit": {
+              "name_prefix": "logit",
+              "out_vocab_size": 10000,
+              "trainable": true,
+              "use_bias": true
+            },
+            "rnn_cell": {
+              "cell_class": "BasicLSTMCell",
+              "cell_opt": {
+                "num_units": 128
+              },
+              "input_keep_prob": 1.0,
+              "num_layers": 1,
+              "output_keep_prob": 1.0
+            },
+            "time_major": true
+          },
+          "share": {
+            "logit_weight_tying": false
+          }
+        },
+        "embedding": {
+          "dim": 128,
+          "trainable": true
+        }
+      }
+    },
+    "optim": {
+      "clip_gradients": 5.0,
+      "learning_rate": 0.0001,
+      "lr_decay_every": -1,
+      "lr_decay_factor": 0.8,
+      "lr_decay_imp_ratio": 0.96,
+      "lr_decay_wait": 4,
+      "lr_min": 1e-06,
+      "lr_start_decay_at": 1,
+      "max_epochs": 10,
+      "name": "AdamOptimizer"
+    },
+    "resume_state": "training_state.json"
+  },
+  "data_dir": "../../data/ptb/",
+  "data_files": {
+    "test": "test.txt",
+    "train": "train.txt",
+    "valid": "valid.txt"
+  },
+  "iterator_class": "seqmodel.data.TokenIterator",
+  "iterator_opt": {
+    "add_end_seq": true,
+    "add_start_seq": false,
+    "data_source": "",
+    "sequence_length": 10,
+    "shuffle": true,
+    "time_major": true
+  },
+  "vocab_files": {
+    "in_vocab": "vocab.txt",
+    "out_vocab": "vocab.txt"
+  }
+}
