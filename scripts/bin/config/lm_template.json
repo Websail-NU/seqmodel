@@ -49,15 +49,15 @@
     },
     "optim": {
       "clip_gradients": 5.0,
-      "learning_rate": 0.0001,
+      "learning_rate": 0.8,
       "lr_decay_every": -1,
       "lr_decay_factor": 0.8,
       "lr_decay_imp_ratio": 0.96,
       "lr_decay_wait": 4,
-      "lr_min": 1e-06,
+      "lr_min": 0.01,
       "lr_start_decay_at": 1,
       "max_epochs": 10,
-      "name": "AdamOptimizer"
+      "name": "GradientDescentOptimizer"
     },
     "resume_state": "training_state.json"
   },

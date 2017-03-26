@@ -38,30 +38,36 @@ class BasicAgent(agent.Agent):
             if 'losses' in result and 'eval_loss' in result.losses:
                 info.cost += result.losses.eval_loss * batch.num_tokens
             info.num_tokens += batch.num_tokens
+            self.report_step(info, **kwargs)
         info.end_time = time.time()
         return info
 
     def evaluate(self, data_iter, batch_size=1, *args, **kwargs):
         return self._run_epoch(self.eval_model, data_iter, batch_size,
-                               training_loss_denom=batch_size)
+                               training_loss_denom=batch_size,
+                               report_mode='evaluating', **kwargs)
 
     def train(self, training_data_iter, batch_size, valid_data_iter=None,
               valid_batch_size=1, *args, **kwargs):
         assert hasattr(self, 'train_op'),\
             "Agent is not initialized for training."
-        training_state = self.initial_training_state()
+        training_state = self._training_state
+        tr_info, val_info = None, None
         while True:
             new_lr = self.update_learning_rate(self.opt.optim, training_state)
             if self.is_training_done(self.opt.optim, training_state):
                 break
+            self.report_epoch(training_state, tr_info, val_info)
             self.sess.run(tf.assign(self.lr, new_lr))
-            info = self._run_epoch(self.training_model, training_data_iter,
-                                   batch_size, train_op=self.train_op,
-                                   training_loss_denom=batch_size)
-            print(info)
+            tr_info = self._run_epoch(self.training_model, training_data_iter,
+                                      batch_size, train_op=self.train_op,
+                                      training_loss_denom=batch_size,
+                                      report_mode='training', **kwargs)
+            info = tr_info
             if valid_data_iter is not None:
-                info = self.evaluate(valid_data_iter, valid_batch_size)
-            self.update_training_state(training_state, info)
+                val_info = self.evaluate(valid_data_iter, valid_batch_size)
+                info = val_info
+            training_state = self.update_training_state(training_state, info)
         return training_state
 
     def _sample_a_batch(self, model, batch, fetch, max_decoding_len,
