@@ -1,7 +1,7 @@
 """
 A base agent class and a collection functions for training and evaluating.
 
-An agent defines a running procedure i.e. maximum loglikelihood training.
+An agent defines a running procedure i.e. xent training.
 """
 import time
 import abc
