@@ -10,8 +10,8 @@ from seqmodel import model
 
 
 class BasicAgent(agent.Agent):
-    def __init__(self, opt, sess, name='basic_agent'):
-        super(BasicAgent, self).__init__(opt, sess, name)
+    def __init__(self, opt, sess, logger=None, name='basic_agent'):
+        super(BasicAgent, self).__init__(opt, sess, logger, name)
 
     @staticmethod
     def default_opt():
@@ -57,7 +57,7 @@ class BasicAgent(agent.Agent):
             new_lr = self.update_learning_rate(self.opt.optim, training_state)
             if self.is_training_done(self.opt.optim, training_state):
                 break
-            self.report_epoch(training_state, tr_info, val_info)
+            self.report_epoch(training_state, tr_info, val_info, **kwargs)
             self.sess.run(tf.assign(self.lr, new_lr))
             tr_info = self._run_epoch(self.training_model, training_data_iter,
                                       batch_size, train_op=self.train_op,

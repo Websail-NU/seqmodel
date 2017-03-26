@@ -84,11 +84,13 @@ class Agent(object):
         sess: a tensorflow session
         name: a string to define tensorflow graph scope for models in the agent
     """
-    def __init__(self, opt, sess, name='agent'):
+    def __init__(self, opt, sess, logger=None, name='agent'):
         self.name = name
         self.opt = opt
         self.sess = sess
-        self._logger = get_logger(log_file_path=None, name=name)
+        self._logger = logger
+        if self._logger is None:
+            self._logger = get_logger(log_file_path=None, name=name)
 
     @staticmethod
     def default_opt():
@@ -103,13 +105,7 @@ class Agent(object):
                         lr_decay_imp_ratio=0.96,
                         lr_start_decay_at=1,
                         clip_gradients=5.0,
-                        max_epochs=10),
-            experiment_dir="experiment/out",
-            resume_state="training_state.json",
-            load_checkpoint_dir=None,
-            checkpoint_dir="model/",
-            log_file="experiment.log",
-            debug=False)
+                        max_epochs=10))
 
     @staticmethod
     def initial_training_state():
@@ -200,14 +196,21 @@ class Agent(object):
         return optim_op, lr
 
     def report_step(self, info, report_mode='training',
-                    report_step_every=1000, **kwargs):
+                    report_step_every=1000, context=None, **kwargs):
+        if context is not None:
+            context.report_step(info, report_mode, **kwargs)
+            return
         if info.step % report_step_every == 0 and info.step > 0:
             self._logger.info('@{} cost: {:.5f}, wps: {:.1f}'.format(
                 info.step, info.cost / info.num_tokens,
                 info.num_tokens / (time.time() - info.start_time)))
 
     def report_epoch(self, training_state, training_info=None,
-                     validation_info=None, **kwargs):
+                     validation_info=None, context=None, **kwargs):
+        if context is not None:
+            context.report_epoch(training_state, training_info,
+                                 validation_info, **kwargs)
+            return
         report = ['ep: {} lr: {:.6f}'.format(
             training_state.cur_epoch, training_state.learning_rate)]
         if training_info is not None:

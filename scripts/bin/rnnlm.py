@@ -27,7 +27,8 @@ with tf.Session() as sess:
         print('{}, {}'.format(v.name, v.get_shape()))
     sess.run(tf.global_variables_initializer())
     context.agent.train(context.iterators.train, 20,
-                        context.iterators.valid, 20)
+                        context.iterators.valid, 20,
+                        context=context)
     info = context.agent.evaluate(context.iterators.valid, 20)
     print(info)
     # print(info.cost/info.num_tokens, info.end_time - info.start_time)

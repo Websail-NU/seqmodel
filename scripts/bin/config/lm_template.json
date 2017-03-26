@@ -1,11 +1,6 @@
 {
   "agent_class": "seqmodel.experiment.basic_agent.BasicAgent",
   "agent_opt": {
-    "checkpoint_dir": "model/",
-    "debug": false,
-    "experiment_dir": "experiment/out",
-    "load_checkpoint_dir": null,
-    "log_file": "experiment.log",
     "model": {
       "model_class": "seqmodel.model.seq_model.BasicSeqModel",
       "model_opt": {
@@ -58,8 +53,7 @@
       "lr_start_decay_at": 1,
       "max_epochs": 10,
       "name": "GradientDescentOptimizer"
-    },
-    "resume_state": "training_state.json"
+    }
   },
   "data_dir": "../../data/ptb/",
   "data_files": {
@@ -79,5 +73,12 @@
   "vocab_files": {
     "in_vocab": "vocab.txt",
     "out_vocab": "vocab.txt"
+  },
+  "writeout_opt": {
+    "checkpoint_dir": "model/",
+    "experiment_dir": "experiment/out",
+    "log_file": "experiment.log",
+    "training_state": "training_state.json",
+    "report_step_every": 1000
   }
 }
