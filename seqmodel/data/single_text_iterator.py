@@ -5,6 +5,7 @@ A single text iterator reads input from data source(s) and
 create a running batch of text data. Any token will be map to id.
 """
 import codecs
+import six
 
 import numpy as np
 
@@ -89,13 +90,15 @@ class TokenIterator(TextIterator):
             self.in_vocab.special_symbols.end_seq)
         self.out_pad_id = self.out_vocab.w2i(
             self.out_vocab.special_symbols.end_seq)
-        if isinstance(self.opt.data_source, str):
+        if isinstance(self.opt.data_source, six.string_types):
             lines = read_text_file(self.opt.data_source)
         else:
             lines = read_text_list(self.opt.data_source)
         input_data = [self.in_pad_id] + self._read_lines(lines, self.in_vocab)
         output_data = self._read_lines(lines, self.out_vocab)
-        self.data = zip(input_data[0:-1], output_data)
+        self.data = output_data
+        self._input_data = input_data[0:-1]
+        self._output_data = output_data
 
     def init_batch(self, batch_size):
         if not hasattr(self, 'bbatch') or self._batch_size != batch_size:
@@ -146,18 +149,12 @@ class TokenIterator(TextIterator):
 
     def _get_data(self, pos, i_batch):
         bb = self.bbatch
-        input_data, output_data = [], []
-        for i in range(self.opt.sequence_length):
-            if (bb.read[i_batch] + i < bb.distances[i_batch] and
-                    pos < len(self.data)):
-                input_data.append(self.data[pos][0])
-                output_data.append(self.data[pos][1])
-            else:
-                break
-            pos += 1
-        if len(input_data) > 0 and len(output_data) > 0:
-            return [input_data, output_data]
-        return [None, None]
+        end_pos = min(pos + self.opt.sequence_length,
+                      pos + (bb.distances[i_batch] - bb.read[i_batch]),
+                      len(self.data))
+        if pos == end_pos:
+            return None, None
+        return self._input_data[pos:end_pos], self._output_data[pos:end_pos]
 
     def next_batch(self):
         if all(self.bbatch.read >= self.bbatch.distances):
@@ -202,7 +199,7 @@ class TokenIterator(TextIterator):
 
     def is_all_end(self, batch, outputs):
         return all(np.logical_or(outputs == self.out_pad_id,
-                                 batch.features.seq_len == 0))
+                                 batch.features.input_seq_len == 0))
 
     def update_last_input(self, batch, outputs, **kwargs):
         o_batch_size = len(outputs)

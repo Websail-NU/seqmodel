@@ -4,7 +4,7 @@ import codecs
 import os
 import operator
 
-sys.path.insert(0, '../')
+sys.path.insert(0, '../../')
 from seqmodel.data.vocab import _special_symbols  # noqa
 
 

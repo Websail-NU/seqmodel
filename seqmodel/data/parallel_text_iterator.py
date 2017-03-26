@@ -6,6 +6,7 @@ create parallel batches of inputs and labels. Any token will
 be map to id.
 """
 import codecs
+import six
 
 import numpy as np
 
@@ -86,7 +87,7 @@ class Seq2SeqIterator(TextIterator):
             return 1
 
     def initialize(self, **kwargs):
-        if isinstance(self.opt.data_source, str):
+        if isinstance(self.opt.data_source, six.string_types):
             enc_text, dec_text = read_parallel_text_file(
                 self.opt.data_source, self.opt.seq_delimiter)
         else:

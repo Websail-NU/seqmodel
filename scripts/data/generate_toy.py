@@ -5,7 +5,7 @@ import os
 import copy
 import numpy as np
 
-sys.path.insert(0, '../')
+sys.path.insert(0, '../../')
 from seqmodel.data.vocab import _special_symbols  # noqa
 
 # simple state-transition matrix

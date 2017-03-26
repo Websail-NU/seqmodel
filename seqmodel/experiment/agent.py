@@ -3,7 +3,7 @@ A base agent class and a collection functions for training and evaluating.
 
 An agent defines a running procedure i.e. maximum loglikelihood training.
 """
-
+import time
 import abc
 from pydoc import locate
 
@@ -12,6 +12,7 @@ import numpy as np
 import tensorflow as tf
 
 from seqmodel.bunch import Bunch
+from seqmodel.log_util import get_logger
 from seqmodel import model
 
 
@@ -83,10 +84,13 @@ class Agent(object):
         sess: a tensorflow session
         name: a string to define tensorflow graph scope for models in the agent
     """
-    def __init__(self, opt, sess, name='agent'):
+    def __init__(self, opt, sess, logger=None, name='agent'):
         self.name = name
         self.opt = opt
         self.sess = sess
+        self._logger = logger
+        if self._logger is None:
+            self._logger = get_logger(log_file_path=None, name=name)
 
     @staticmethod
     def default_opt():
@@ -101,13 +105,7 @@ class Agent(object):
                         lr_decay_imp_ratio=0.96,
                         lr_start_decay_at=1,
                         clip_gradients=5.0,
-                        max_epochs=10),
-            experiment_dir="experiment/out",
-            resume_state="training_state.json",
-            load_checkpoint_dir=None,
-            checkpoint_dir="model/",
-            log_file="experiment.log",
-            debug=False)
+                        max_epochs=10))
 
     @staticmethod
     def initial_training_state():
@@ -158,11 +156,24 @@ class Agent(object):
             return True
         return False
 
+    @staticmethod
+    def update_training_state(training_state, info):
+        cur_eval = info.cost / info.num_tokens
+        if training_state.best_eval > cur_eval:
+            training_state.best_eval = cur_eval
+            training_state.best_epoch = training_state.cur_epoch
+        training_state.cur_epoch += 1
+        training_state.cur_eval = cur_eval
+        return training_state
+
     def initialize(self, with_training=False):
         with tf.variable_scope(self.name):
             self.eval_model, self.training_model = create_model_from_opt(
                 self.opt.model, create_training_model=with_training)
             if with_training:
+                self._training_state = self.initial_training_state()
+                self._training_state.learning_rate =\
+                    self.opt.optim.learning_rate
                 self.train_op, self.lr = self._build_train_op(
                     self.training_model.losses.training_loss)
 
@@ -184,14 +195,31 @@ class Agent(object):
             global_step=global_step)
         return optim_op, lr
 
-    def update_training_state(self, training_state, info):
-        cur_eval = info.cost / info.num_tokens
-        if training_state.best_eval > cur_eval:
-            training_state.best_eval = cur_eval
-            training_state.best_epoch = training_state.cur_epoch
-        training_state.cur_epoch += 1
-        training_state.cur_eval = cur_eval
-        return training_state
+    def report_step(self, info, report_mode='training',
+                    report_step_every=1000, context=None, **kwargs):
+        if context is not None:
+            context.report_step(info, report_mode, **kwargs)
+            return
+        if info.step % report_step_every == 0 and info.step > 0:
+            self._logger.info('@{} cost: {:.5f}, wps: {:.1f}'.format(
+                info.step, info.cost / info.num_tokens,
+                info.num_tokens / (time.time() - info.start_time)))
+
+    def report_epoch(self, training_state, training_info=None,
+                     validation_info=None, context=None, **kwargs):
+        if context is not None:
+            context.report_epoch(training_state, training_info,
+                                 validation_info, **kwargs)
+            return
+        report = ['ep: {} lr: {:.6f}'.format(
+            training_state.cur_epoch, training_state.learning_rate)]
+        if training_info is not None:
+            report.append('train: {:.5f}'.format(
+                training_info.cost / training_info.num_tokens))
+        if validation_info is not None:
+            report.append('val: {:.5f}'.format(
+                validation_info.cost / validation_info.num_tokens))
+        self._logger.info(' '.join(report))
 
     @abc.abstractmethod
     def train(self, *args, **kwargs):

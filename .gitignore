@@ -3,4 +3,5 @@
 .remote-sync.json
 /experiments/
 /data/
-/scripts/_cached
+/scripts/data/_cached
+/scripts/bin/experiment
