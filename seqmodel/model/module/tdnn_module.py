@@ -48,13 +48,21 @@ class TDNNModule(GraphModule):
         kwargs:
             activation_fn: a function for activation to apply before pooling
                            (Default: tf.tanh)
+            sequence_length: If provided, mask the extra sequence with zero
+                             before applying TDNN (Default: None)
         return:
             A TDNN graph that outputs a tensor of [batch, sum num_filters]
         """
-        activation_fn = kwargs.get('activation_fn', tf.tanh)
-        embedding_dim = inputs.get_shape()[-1]
         filter_widths = self.opt.filter_widths
         num_filters = self.opt.num_filters
+        embedding_dim = inputs.get_shape()[-1]
+        activation_fn = kwargs.get('activation_fn', tf.tanh)
+        sequence_length = kwargs.get('sequence_length', None)
+        if sequence_length is not None:
+            max_len = tf.shape(inputs)[1]
+            mask = tf.expand_dims(tf.sequence_mask(
+                sequence_length, max_len, tf.float32), -1)
+            inputs = tf.multiply(inputs, mask)
         inputs = tf.expand_dims(inputs, 1)
         layers = []
         for width, out_channels in zip(filter_widths, num_filters):
