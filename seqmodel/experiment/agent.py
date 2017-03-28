@@ -89,6 +89,7 @@ class Agent(object):
         self.opt = opt
         self.sess = sess
         self._logger = logger
+        # fix duplicate logger
         if self._logger is None:
             self._logger = get_logger(log_file_path=None, name=name)
 

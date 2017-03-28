@@ -39,7 +39,8 @@ class TDNNModule(GraphModule):
         return Bunch(filter_widths=[2, 3, 4, 5, 6],
                      num_filters=[10, 30, 40, 40, 40])
 
-    def _build(self, inputs, *args, **kwargs):
+    def _build(self, inputs, activation_fn=tf.tanh,
+               sequence_length=None, *args, **kwargs):
         """
         Create a conv1d for each filter width and max pool to reduce sequence
         length to 1.
@@ -56,8 +57,6 @@ class TDNNModule(GraphModule):
         filter_widths = self.opt.filter_widths
         num_filters = self.opt.num_filters
         embedding_dim = inputs.get_shape()[-1]
-        activation_fn = kwargs.get('activation_fn', tf.tanh)
-        sequence_length = kwargs.get('sequence_length', None)
         if sequence_length is not None:
             max_len = tf.shape(inputs)[1]
             mask = tf.expand_dims(tf.sequence_mask(
@@ -70,8 +69,9 @@ class TDNNModule(GraphModule):
                 'filter_{}'.format(width),
                 [1, width, embedding_dim, out_channels], dtype=tf.float32)
             conv2d = tf.nn.conv2d(inputs, filters, [1, 1, 1, 1], 'SAME')
-            max_pool = tf.squeeze(tf.reduce_max(activation_fn(conv2d), 2),
-                                  axis=1)
+            if activation_fn is not None:
+                conv2d = activation_fn(conv2d)
+            max_pool = tf.squeeze(tf.reduce_max(conv2d, 2), axis=1)
             layers.append(max_pool)
         if len(layers) > 1:
             return tf.concat(layers, axis=1)

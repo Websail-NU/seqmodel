@@ -82,7 +82,8 @@ class SeqModel(ModelBase):
         return loss, training_loss, loss_denom, mean_loss
 
     @staticmethod
-    def map_feeddict(model, data, **kwargs):
+    def map_feeddict(model, data, is_sampling=False, training_loss_denom=None,
+                     **kwargs):
         """ Create a generic feed dict by matching keys
             in data and model.feed
             kwargs:
@@ -92,16 +93,13 @@ class SeqModel(ModelBase):
             Returns:
                 feed_dict
         """
-        is_sampling = kwargs.get('is_sampling', False)
-        feed_dict = ModelBase.map_feeddict(model, data,
-                                           no_labels=is_sampling)
+        feed_dict = ModelBase.map_feeddict(
+            model, data, no_labels=is_sampling)
         if is_sampling:
             return feed_dict
-        if ('training_loss_denom' in kwargs and
-                kwargs['training_loss_denom'] is not None and
-                'losses' in model):
+        if training_loss_denom is not None and 'losses' in model:
             feed_dict[model.losses.training_loss_denom] =\
-                kwargs['training_loss_denom']
+                training_loss_denom
         return feed_dict
 
 
@@ -112,9 +110,8 @@ class BasicSeqModel(SeqModel):
     @staticmethod
     def default_opt():
         return Bunch(
-            data_io=Bunch(
-                in_vocab_size=15),
             embedding=Bunch(
+                in_vocab_size=15,
                 dim=100,
                 trainable=True),
             decoder=Bunch(
@@ -127,14 +124,14 @@ class BasicSeqModel(SeqModel):
                 share=Bunch(logit_weight_tying=False)))
 
     @staticmethod
-    def get_fetch(model, **kwargs):
+    def get_fetch(model, is_sampling=False, **kwargs):
         """ Create a generic fetch dictionary
 
             Returns:
                 fetch
         """
         fetch = Bunch()
-        if kwargs.get('is_sampling', False):
+        if is_sampling:
             fetch.logit = model.decoder_output.logit
             fetch.distribution = model.decoder_output.distribution
         else:
@@ -143,7 +140,8 @@ class BasicSeqModel(SeqModel):
         return fetch
 
     @staticmethod
-    def map_feeddict(model, data, **kwargs):
+    def map_feeddict(model, data, prev_result=None,
+                     logit_temperature=1.0, **kwargs):
         """ Create a generic feed dict by matching keys
             in data and model.feed
 
@@ -151,21 +149,17 @@ class BasicSeqModel(SeqModel):
                 feed_dict
         """
         feed_dict = SeqModel.map_feeddict(model, data, **kwargs)
-        decoder_logit_temp = kwargs.get('logit_temperature', 1.0)
-        feed_dict[model.decoder_output.logit_temperature] = decoder_logit_temp
-        kw_initial_state = kwargs.get('initial_state', None)
-        result = kwargs.get('prev_result', None)
-        initial_state = None
+        feed_dict[model.decoder_output.logit_temperature] = logit_temperature
+        state = None
         if not data.new_seq:
-            initial_state = kw_initial_state
-            if initial_state is None and result is not None:
-                initial_state = result.state
-            assert initial_state is not None,\
-                "data.new_seq is False, but no initial state provided."
-        if initial_state is not None:
+            if prev_result.state is not None:
+                state = prev_result.state
+            assert state is not None,\
+                "data.new_seq is False, but no state provided."
+        if state is not None:
             rnn_module.feed_state(
                 feed_dict, model.decoder_output.initial_state,
-                initial_state)
+                state)
         return feed_dict
 
     def _prepare_input(self):
@@ -182,7 +176,7 @@ class BasicSeqModel(SeqModel):
         self._feed.features = features.shallow_clone()
         self._feed.labels = labels.shallow_clone()
         embedding_vars = tf.get_variable(
-            'embedding', [self.opt.data_io.in_vocab_size,
+            'embedding', [self.opt.embedding.in_vocab_size,
                           self.opt.embedding.dim],
             trainable=self.opt.embedding.trainable)
         features.lookup = tf.nn.embedding_lookup(

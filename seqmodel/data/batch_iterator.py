@@ -23,7 +23,7 @@ class BatchIterator(object):
         self.opt = opt
 
     @staticmethod
-    def default_options():
+    def default_opt():
         return Bunch(
             shuffle=True)
 
@@ -94,7 +94,7 @@ class TextIterator(BatchIterator):
 
     @staticmethod
     def default_opt():
-        default_opt = BatchIterator.default_options()
+        default_opt = BatchIterator.default_opt()
         return Bunch(
             default_opt,
             add_start_seq=False,

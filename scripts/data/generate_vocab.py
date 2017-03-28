@@ -24,12 +24,12 @@ def collect_vocab_from_file(vocabs, filepath, is_parallel=False):
     with codecs.open(filepath, 'r', 'utf-8') as ifp:
         for line in ifp:
             if is_parallel:
-                parts = line.split('\t')
+                parts = line.strip().split('\t')
                 parts = (parts[0], parts[-1])
             else:
                 parts = [line]
             for i, part in enumerate(parts):
-                tokens = line.strip().split()
+                tokens = part.strip().split()
                 for token in tokens:
                     vocabs[i][token] = vocabs[i].get(token, 0) + 1
 

@@ -4,9 +4,6 @@
     "model": {
       "model_class": "seqmodel.model.seq_model.BasicSeqModel",
       "model_opt": {
-        "data_io": {
-          "in_vocab_size": 10000
-        },
         "decoder": {
           "class_name": "seqmodel.model.decoder.RNNDecoder",
           "opt": {
@@ -37,6 +34,7 @@
           }
         },
         "embedding": {
+          "in_vocab_size": 10000,
           "dim": 128,
           "trainable": true
         }

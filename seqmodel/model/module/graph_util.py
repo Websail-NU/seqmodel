@@ -1,4 +1,5 @@
 """ A collections of useful functions to create common graphs """
+import numpy as np
 import tensorflow as tf
 
 from seqmodel.bunch import Bunch
@@ -13,7 +14,7 @@ def default_logit_opt():
                  trainable=True)
 
 
-def create_logit_layer(opt, inputs, *args, **kwargs):
+def create_logit_layer(opt, inputs, logit_w=None, *args, **kwargs):
     """
     Args:
         opt: Option to create logit layer
@@ -21,9 +22,7 @@ def create_logit_layer(opt, inputs, *args, **kwargs):
         kwargs:
             logit_w: A tensor of logit weight to use [output_dim, input_dim]
     """
-    if 'logit_w' in kwargs:
-        logit_w = kwargs['logit_w']
-    else:
+    if logit_w is None:
         input_dim = int(inputs.get_shape()[-1])
         logit_w = tf.get_variable('{}_w'.format(opt.name_prefix),
                                   [opt.out_vocab_size, input_dim],
@@ -38,6 +37,52 @@ def create_logit_layer(opt, inputs, *args, **kwargs):
         1.0, shape=None, name="{}_temperature".format(opt.name_prefix))
     logit = logit / temperature
     return logit, temperature
+
+
+def create_update_layer(transform, extra, carried):
+    transform_dim = int(transform.get_shape()[-1])
+    carried_dim = int(carried.get_shape()[-1])
+    extra_dim = int(extra.get_shape()[-1])
+    in_size = transform_dim + extra_dim
+    out_size = carried_dim * 2
+    gate_w = tf.get_variable("gate_w", [in_size, out_size])
+    _arr = np.zeros((out_size))
+    _arr[:] = -1
+    gate_b = tf.get_variable("gate_b", initializer=tf.constant(
+        _arr, dtype=tf.float32))
+    z = matmul(tf.concat([transform, extra], -1), gate_w) + gate_b
+    t = tf.sigmoid(tf.slice(z, [0, 0, 0], [-1, -1, carried_dim]))
+    h = tf.tanh(tf.slice(z, [0, 0, carried_dim], [-1, -1, -1]))
+    return tf.multiply(h - carried, t) + carried
+
+
+# def create_update_layer(self, transform, extra, carried):
+#         dim = len(transform.get_shape())
+#         transform_dim = int(transform.get_shape()[-1])
+#         carried_dim = int(carried.get_shape()[-1])
+#         extra_dim = int(extra.get_shape()[-1])
+#         in_size = transform_dim + extra_dim
+#         out_size = carried_dim * 2
+#         gate_w = tf.get_variable("gate_w", [in_size, out_size])
+#         _arr = np.zeros((out_size))
+#         _arr[:] = self._init_gate_bias
+#         gate_b = tf.get_variable("gate_b", initializer=tf.constant(
+#             _arr, dtype=tf.float32))
+#         if dim == 3:
+#             z = self.helper.fancy_matmul(
+#                 tf.concat([transform, extra], -1), gate_w) + gate_b
+#             t = tf.sigmoid(tf.slice(z, [0, 0, 0], [-1, -1, carried_dim]))
+#             h = tf.tanh(tf.slice(z, [0, 0, carried_dim], [-1, -1, -1]))
+#         else:
+#             z = tf.matmul(tf.concat([transform, extra], -1), gate_w) + gate_b
+#             t = tf.sigmoid(tf.slice(z, [0, 0], [-1, carried_dim]))
+#             h = tf.tanh(tf.slice(z, [0, carried_dim], [-1, -1]))
+#         self._transform_gate = t
+#         o = tf.multiply(h - carried, t) + carried
+#         self._final_rnn_output = o
+#         if self._opt.keep_prob < 1.0 and self.is_training:
+#             o = tf.nn.dropout(o, self._opt.keep_prob)
+#         return o
 
 
 def matmul(mat, mat2d, transpose_b=False):

@@ -55,9 +55,9 @@ class BasicAgent(agent.Agent):
         tr_info, val_info = None, None
         while True:
             new_lr = self.update_learning_rate(self.opt.optim, training_state)
+            self.report_epoch(training_state, tr_info, val_info, **kwargs)
             if self.is_training_done(self.opt.optim, training_state):
                 break
-            self.report_epoch(training_state, tr_info, val_info, **kwargs)
             self.sess.run(tf.assign(self.lr, new_lr))
             tr_info = self._run_epoch(self.training_model, training_data_iter,
                                       batch_size, train_op=self.train_op,
@@ -73,15 +73,15 @@ class BasicAgent(agent.Agent):
     def _sample_a_batch(self, model, batch, fetch, max_decoding_len,
                         temperature, update_input_fn, is_seq_end_fn,
                         *args, **kwargs):
-        state, result = None, None
+        result = None
         samples = []
         likelihoods = []
         for t_step in range(max_decoding_len):
             feed_dict = self.eval_model.model_obj.map_feeddict(
                 self.eval_model, batch, sess=self.sess, prev_result=result,
-                initial_state=state, fetch=fetch, is_sampling=True, **kwargs)
+                fetch=fetch, is_sampling=True, **kwargs)
             result = self.sess.run(fetch, feed_dict)
-            state, dist = result.state, result.distribution
+            dist = result.distribution
             choices, likelihood = agent.select_from_distribution(
                 dist, **kwargs)
             likelihoods.append(likelihood)

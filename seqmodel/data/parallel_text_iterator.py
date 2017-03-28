@@ -14,14 +14,14 @@ from seqmodel.data.batch_iterator import *
 from seqmodel.data.vocab import Vocabulary
 
 
-def read_parallel_text_file(filepath, delimiter):
+def read_parallel_text_file(filepath, delimiter='\t'):
     enc_data = []
     dec_data = []
     with codecs.open(filepath, 'r', 'utf-8') as ifp:
         for line in ifp:
             parts = line.strip().split(delimiter)
             enc_data.append(parts[0].split())
-            dec_data.append(parts[1].split())
+            dec_data.append(parts[-1].split())
     return enc_data, dec_data
 
 
@@ -86,7 +86,7 @@ class Seq2SeqIterator(TextIterator):
         else:
             return 1
 
-    def initialize(self, **kwargs):
+    def initialize(self, _return_text=False, **kwargs):
         if isinstance(self.opt.data_source, six.string_types):
             enc_text, dec_text = read_parallel_text_file(
                 self.opt.data_source, self.opt.seq_delimiter)
@@ -113,6 +113,8 @@ class Seq2SeqIterator(TextIterator):
             self.in_vocab.special_symbols.end_encode)
         self.dec_pad_id = self.out_vocab.w2i(
             self.out_vocab.special_symbols.end_seq)
+        if _return_text:
+            return enc_text, dec_text
 
     def init_batch(self, batch_size):
         if not hasattr(self, 'bbatch') or self._batch_size != batch_size:
@@ -178,9 +180,9 @@ class Seq2SeqIterator(TextIterator):
                 pos < len(self.data)):
             idx = bb.data_perm[pos]
             return self.data[idx]
-        return [None, None]
+        return None, None
 
-    def next_batch(self):
+    def _prepare_batch(self):
         if all(self.bbatch.read_sentences >= self.bbatch.distances):
             return None
         bb = self._reset_batch_data(self.bbatch)
@@ -199,9 +201,20 @@ class Seq2SeqIterator(TextIterator):
                 bb.dec_output[i_batch, 0:-1] = bb.dec_input[i_batch, 1:]
                 bb.weight[i_batch, 0:dec_end] = 1
                 bb.dec_seq_len[i_batch] = dec_end
-            bb.pointers[i_batch] += 1
-            bb.read_sentences[i_batch] += 1
-        return self.format_batch(bb)
+        return bb
+
+    def _increment_batch(self, bb):
+        bb.pointers[:] += 1
+        bb.read_sentences[:] += 1
+        return bb
+
+    def next_batch(self):
+        bb = self._prepare_batch()
+        if bb is None:
+            return None
+        bb = self._increment_batch(bb)
+        batch = self.format_batch(bb)
+        return self._postprocess(batch)
 
     def _truncate_to_seq_len(self, batch):
         """Must be called before transpose truncate
@@ -245,7 +258,7 @@ class Seq2SeqIterator(TextIterator):
                        decoder_label_weight=bb.weight)
         batch = Bunch(features=inputs, labels=labels,
                       num_tokens=bb.weight.sum())
-        return self._postprocess(batch)
+        return batch
 
     def is_all_end(self, batch, outputs):
         return all(np.logical_or(outputs == self.dec_pad_id,
