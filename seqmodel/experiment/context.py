@@ -148,7 +148,7 @@ class Context(object):
         if validation_info is not None:
             report.append('val: {:.5f} ({:.5f})'.format(
                 validation_info.cost / validation_info.num_tokens,
-                np.exp(training_info.cost / training_info.num_tokens)))
+                np.exp(validation_info.cost / validation_info.num_tokens)))
             info = validation_info
         self._logger.info(' '.join(report))
         if not hasattr(self, 'tf_saver'):

@@ -17,6 +17,7 @@ This is handled statically in the code, no configuration needed.
 """
 import codecs
 
+import six
 import numpy as np
 
 from seqmodel.bunch import Bunch
@@ -107,9 +108,12 @@ class Word2DefIterator(Seq2SeqIterator):
         enc_char = [tokens2chars(tokens) for tokens in enc_text]
         self.max_enc_char_len = len(max(enc_char, key=len))
         enc_char = self.char_vocab.w2i(enc_char)
-        # TODO: handle feature_souce from list
-        enc_features, feature_len = read_feature_file(self.opt.feature_source,
-                                                      self.opt.seq_delimiter)
+        if isinstance(self.opt.feature_source, six.string_types):
+
+            enc_features, feature_len = read_feature_file(
+                self.opt.feature_source, self.opt.seq_delimiter)
+        else:
+            enc_features, feature_len = self.opt.feature_source, 1
         self.feature_len = feature_len
         self.extra_data = zip(enc_char, enc_features)
         self.enc_char_pad_id = 1
