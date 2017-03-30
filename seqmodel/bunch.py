@@ -4,6 +4,23 @@ import copy
 
 import neobunch
 
+# XXX: default __dir__(Bunch). This is a hack.
+_bunch_dir_ = ['__class__', '__cmp__', '__contains__', '__copy__',
+               '__deepcopy__', '__delattr__', '__delitem__', '__dict__',
+               '__doc__', '__eq__', '__format__', '__ge__', '__getattr__',
+               '__getattribute__', '__getitem__', '__gt__', '__hash__',
+               '__init__', '__iter__', '__le__', '__len__', '__lt__',
+               '__module__', '__ne__', '__new__', '__reduce__',
+               '__reduce_ex__', '__repr__', '__setattr__', '__setitem__',
+               '__sizeof__', '__str__', '__subclasshook__', '__weakref__',
+               '_deepcopy_values', '_from_neobunch', 'clear', 'copy',
+               'fromDict', 'from_dict', 'from_json_file', 'from_namespace',
+               'fromkeys', 'get', 'has_key', 'is_attr_set', 'items',
+               'iteritems', 'iterkeys', 'itervalues', 'keys', 'pop', 'popitem',
+               'setdefault', 'shallow_clone', 'toDict', 'toJSON', 'to_pretty',
+               'to_pretty_json', 'update', 'values', 'viewitems', 'viewkeys',
+               'viewvalues']
+
 
 class Bunch(neobunch.Bunch):
     """ Just like Bunch with more stuffs and less safe
@@ -25,6 +42,12 @@ class Bunch(neobunch.Bunch):
         clone = self.__copy__()
         clone = Bunch._deepcopy_values(clone)
         return clone
+
+    def __dir__(self):
+        attrs = _bunch_dir_
+        for key in self:
+            attrs.append(key)
+        return attrs
 
     def to_pretty(self, delimiter=' ', _level=0):
         _indent_str = ' ' * (_level * 2)
