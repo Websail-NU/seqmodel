@@ -98,11 +98,12 @@ class BasicAgent(agent.Agent):
         batch_outputs = []
         for b_step, batch in enumerate(data_iter.iterate_epoch(batch_size)):
             batch_ = copy.deepcopy(batch)
+            out_batch_ = copy.deepcopy(batch)
             samples, likelihoods = self._sample_a_batch(
                 self.eval_model, batch_, fetch, max_decoding_len, temperature,
                 data_iter.update_last_input, data_iter.is_all_end,
                 greedy=greedy)
             samples = np.stack(samples)
             likelihoods = np.stack(likelihoods)
-            batch_outputs.append((batch, samples, likelihoods))
+            batch_outputs.append((out_batch_, samples, likelihoods))
         return batch_outputs
