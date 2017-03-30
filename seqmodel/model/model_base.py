@@ -48,7 +48,8 @@ class ModelBase(object):
         return Bunch(model_obj=self, feed=self._feed)
 
     @staticmethod
-    def map_feeddict(model, data, **kwargs):
+    def map_feeddict(model, data, no_features=False, no_labels=False,
+                     **kwargs):
         """ Create a generic feed dict by matching keys
             in data and model.feed
             kwargs:
@@ -58,11 +59,11 @@ class ModelBase(object):
                 feed_dict
         """
         feed_dict = {}
-        if not kwargs.get('no_features', False):
+        if not no_features:
             for k in model.feed.features:
                 if k in data.features:
                     feed_dict[model.feed.features[k]] = data.features[k]
-        if not kwargs.get('no_labels', False):
+        if not no_labels:
             for k in model.labels:
                 if k in data.labels:
                     feed_dict[model.feed.labels[k]] = data.labels[k]

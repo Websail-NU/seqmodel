@@ -1,5 +1,6 @@
 """ A collections of useful functions to create RNN graphs """
 import copy
+import warnings
 
 import tensorflow as tf
 
@@ -87,14 +88,15 @@ class BasicRNNModule(GraphModule):
                      time_major=True,
                      logit=graph_util.default_logit_opt())
 
-    def _build(self, inputs, sequence_length, *args, **kwargs):
+    def _build(self, inputs, sequence_length,
+               logit_fn=graph_util.create_logit_layer,
+               *args, **kwargs):
         """
         Create unrolled RNN graph. Return Decoder output and states.
         args:
             inputs: a tensor for inputs
             sequence_length: a tensor for length of the inputs
         kwargs:
-            cell: a RNN cell (Default: create a new one)
             initial_state: a tensor for initial_state (Default: None or zero)
             rnn_fn: a function or template to unroll RNN cell
                     (Default: tf.nn.dynamic_rnn)
@@ -102,16 +104,16 @@ class BasicRNNModule(GraphModule):
             logit_fn: a function or template to create logit
                       (Default: graph_util.create_logit_layer)
         """
-        return self.step(inputs, sequence_length, *args, **kwargs)
+        final_output = self.step(inputs, sequence_length, *args, **kwargs)
+        if self.opt.is_attr_set('logit'):
+            final_output = self._add_logit(logit_fn, final_output.cell_output,
+                                           final_output, *args, **kwargs)
+        return final_output
 
-    def _initialize(self, inputs, *args, **kwargs):
-        if 'cell' in kwargs:
-            self.cell = kwargs['cell']
-        else:
-            self.cell = get_rnn_cell(self.opt.rnn_cell)
-        self.initial_state = kwargs.get('initial_state', None)
-        create_zero_initial_state = kwargs.get(
-            'create_zero_initial_state', False)
+    def _initialize(self, inputs, initial_state=None,
+                    create_zero_initial_state=False, *args, **kwargs):
+        self.cell = get_rnn_cell(self.opt.rnn_cell)
+        self.initial_state = initial_state
         create_zero_initial_state = (create_zero_initial_state or
                                      self.opt.create_zero_initial_state)
         if (self.initial_state is None and
@@ -119,29 +121,31 @@ class BasicRNNModule(GraphModule):
             batch_dim = 1 if self.opt.time_major else 0
             batch_size = tf.shape(inputs)[batch_dim]
             self.initial_state = self.cell.zero_state(batch_size, tf.float32)
+        return inputs, self.cell, self.initial_state
 
     def _finalize(self, cell_output, final_state, *args, **kwargs):
         final_output = Bunch(cell_output=cell_output, final_state=final_state)
         if self.initial_state is not None:
             final_output.initial_state = self.initial_state
-        if self.opt.is_attr_set('logit'):
-            logit_fn = kwargs.get('logit_fn', graph_util.create_logit_layer)
-            self.logit, self.logit_temp = logit_fn(
-                self.opt.logit, cell_output, *args, **kwargs)
-            self.prob = tf.nn.softmax(self.logit)
-            final_output.logit = self.logit
-            final_output.logit_temperature = self.logit_temp
-            final_output.distribution = self.prob
         return final_output
 
-    def step(self, inputs, sequence_length, *args, **kwargs):
-        self._initialize(inputs, *args, **kwargs)
-        rnn_fn = kwargs.get('rnn_fn', tf.nn.dynamic_rnn)
+    def _add_logit(self, logit_fn, cell_output, final_output, *args, **kwargs):
+        self.logit, self.logit_temp = logit_fn(
+            self.opt.logit, cell_output, *args, **kwargs)
+        self.prob = tf.nn.softmax(self.logit)
+        final_output.logit = self.logit
+        final_output.logit_temperature = self.logit_temp
+        final_output.distribution = self.prob
+        return final_output
+
+    def step(self, inputs, sequence_length, rnn_fn=tf.nn.dynamic_rnn,
+             *args, **kwargs):
+        inputs, cell, initial_state = self._initialize(inputs, *args, **kwargs)
         cell_output, final_state = rnn_fn(
-            cell=self.cell,
+            cell=cell,
             inputs=inputs,
             sequence_length=sequence_length,
-            initial_state=self.initial_state,
+            initial_state=initial_state,
             time_major=self.opt.time_major,
             dtype=tf.float32)
         return self._finalize(cell_output, final_state)
@@ -149,3 +153,72 @@ class BasicRNNModule(GraphModule):
     @property
     def output_time_major(self):
         return self.opt.time_major
+
+
+class FixedContextRNNModule(BasicRNNModule):
+    """
+    A RNN graph that uses an additional context vector to transform input or
+    output (before logit)
+    opt:
+        rnn_cell: Option to create RNN cell.
+        time_major: If true, inputs and outputs are
+                    in time major [time, batch ,..].
+                    Internal calculations take [time, batch, depth], so it is
+                    recommended to use time_major=True.
+        create_zero_initial_state: If true, create zero state and return.
+        batch_size: None, only required for create_zero_initial_state.
+
+        logit: (Optional) Options to create output logit.
+    """
+
+    def __init__(self, opt, name='fix_context_rnn', is_training=False):
+        super(FixedContextRNNModule, self).__init__(opt, name, is_training)
+
+    @staticmethod
+    def default_opt():
+        return Bunch(BasicRNNModule.default_opt(),
+                     transform_input_mode='ignored',
+                     transform_output_mode='highway')
+
+    def _build(self, inputs, sequence_length, context,
+               logit_fn=graph_util.create_logit_layer,
+               *args, **kwargs):
+        """ See BasicRNNModule """
+        time_dim = 1
+        if self.opt.time_major:
+            time_dim = 0
+        _multiples = [1, 1]
+        _multiples.insert(time_dim, tf.shape(inputs)[time_dim])
+        tiled_context = tf.tile(tf.expand_dims(context, time_dim), _multiples)
+        # TODO: transform input
+        final_output = self.step(inputs, sequence_length, *args, **kwargs)
+        # transform output
+        _carried_output_cell = final_output.cell_output
+        if self.opt.rnn_cell.output_keep_prob < 1.0:
+            final_output.cell_output = tf.nn.dropout(
+                final_output.cell_output, self.opt.rnn_cell.output_keep_prob)
+        updated_output = graph_util.create_update_layer(
+            final_output.cell_output, tiled_context, _carried_output_cell)
+        if self.opt.rnn_cell.output_keep_prob < 1.0:
+            updated_output = tf.nn.dropout(
+                updated_output, self.opt.rnn_cell.output_keep_prob)
+        final_output.updated_output = updated_output
+        if self.opt.is_attr_set('logit'):
+            final_output = self._add_logit(logit_fn, updated_output,
+                                           final_output, *args, **kwargs)
+        return final_output
+
+    def _initialize(self, inputs, initial_state=None,
+                    create_zero_initial_state=False, *args, **kwargs):
+
+        self.cell = get_rnn_cell(Bunch(self.opt.rnn_cell,
+                                       output_keep_prob=1.0))
+        self.initial_state = initial_state
+        create_zero_initial_state = (create_zero_initial_state or
+                                     self.opt.create_zero_initial_state)
+        if (self.initial_state is None and
+                create_zero_initial_state):
+            batch_dim = 1 if self.opt.time_major else 0
+            batch_size = tf.shape(inputs)[batch_dim]
+            self.initial_state = self.cell.zero_state(batch_size, tf.float32)
+        return inputs, self.cell, self.initial_state

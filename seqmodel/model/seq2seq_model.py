@@ -14,6 +14,7 @@ import six
 import tensorflow as tf
 
 from seqmodel.bunch import Bunch
+from seqmodel.model import graph_util
 from seqmodel.model import rnn_module as rnn_module
 from seqmodel.model import encoder as encoder_module
 from seqmodel.model import decoder as decoder_module
@@ -48,6 +49,7 @@ class Seq2SeqModel(seq_model.SeqModel):
         features, labels = self._prepare_input()
         encoder_output = self.encode(features, labels)
         decoder_output = self.decode(encoder_output, features, labels)
+        model.encoder_output = encoder_output
         model.decoder_output = decoder_output
         model.features = features
         model.labels = labels
@@ -72,14 +74,15 @@ class BasicSeq2SeqModel(Seq2SeqModel):
     @staticmethod
     def default_opt():
         return Bunch(
-            data_io=Bunch(
-                encoder_vocab_size=15,
-                decoder_vocab_size=15),
             embedding=Bunch(
-                encoder_dim=100,
+                encoder_vocab_size=15,
+                encoder_dim=128,
                 encoder_trainable=True,
-                decoder_dim=100,
-                decoder_trainable=True),
+                encoder_init_filepath=None,
+                decoder_vocab_size=15,
+                decoder_dim=128,
+                decoder_trainable=True,
+                decoder_init_filepath=None),
             encoder=Bunch(
                 class_name="seqmodel.model.encoder.RNNEncoder",
                 opt=encoder_module.RNNEncoder.default_opt(),
@@ -97,19 +100,33 @@ class BasicSeq2SeqModel(Seq2SeqModel):
                     encoder_rnn_params=False)))
 
     @staticmethod
-    def get_fetch(model, **kwargs):
-        """ Create a generic fetch dictionary
+    def get_fetch(model, is_sampling=False, **kwargs):
+        """ Create a generic fetch dictionary.
+            No need for state, if not sampling.
+            Overwrite state to include encoder context if sampling.
 
             Returns:
                 fetch
         """
-        fetch = seq_model.BasicSeqModel.get_fetch(model, **kwargs)
-        if not kwargs.get('is_sampling', False):
-            del fetch['state']
+        fetch = seq_model.BasicSeqModel.get_fetch(
+            model, is_sampling=is_sampling, **kwargs)
+        del fetch['state']
+        if is_sampling:
+            # cached
+            if model.is_attr_set('_fetch_state'):
+                fetch.state = model._fetch_state
+            else:
+                encoder_output = model.encoder_output.shallow_clone()
+                del encoder_output.rnn
+                fetch.state = Bunch(
+                    encoder_context=encoder_output,
+                    decoder_state=model.decoder_output.final_state)
+                model._fetch_state = fetch.state
         return fetch
 
     @staticmethod
-    def map_feeddict(model, data, **kwargs):
+    def map_feeddict(model, data, logit_temperature=1.0,
+                     prev_result=None, **kwargs):
         """ Create a generic feed dict by matching keys
             in data and model.feed
 
@@ -117,15 +134,22 @@ class BasicSeq2SeqModel(Seq2SeqModel):
                 feed_dict
         """
         feed_dict = seq_model.SeqModel.map_feeddict(model, data, **kwargs)
-        decoder_logit_temp = kwargs.get('logit_temperature', 1.0)
-        feed_dict[model.decoder_output.logit_temperature] = decoder_logit_temp
-        if ('initial_state' in kwargs and
-                kwargs['initial_state'] is not None):
-            rnn_module.feed_state(
-                feed_dict, model.decoder_output.initial_state,
-                kwargs['initial_state'])
+        feed_dict[model.decoder_output.logit_temperature] = logit_temperature
+
+        if prev_result is not None and prev_result.is_attr_set('state'):
+            # cached
+            feed_state = None
+            if model.is_attr_set('_feed_state'):
+                feed_state = model._feed_state
+            else:
+                encoder_output = model.encoder_output.shallow_clone()
+                del encoder_output.rnn
+                feed_state = Bunch(
+                    encoder_context=encoder_output,
+                    decoder_state=model.decoder_output.initial_state)
+                model._feed_state = feed_state
+            rnn_module.feed_state(feed_dict, feed_state, prev_result.state)
             del feed_dict[model.features.encoder_input]
-            del feed_dict[model.features.encoder_seq_len]
         return feed_dict
 
     def _prepare_input(self):
@@ -146,25 +170,27 @@ class BasicSeq2SeqModel(Seq2SeqModel):
         self._feed.features = features.shallow_clone()
         self._feed.labels = labels.shallow_clone()
         embedding_name = 'encoder_embedding'
+        emb_opt = self.opt.embedding
         if self.opt.decoder.share.encoder_embedding:
             embedding_name = 'shared_embedding'
-        embedding_vars = tf.get_variable(
-            embedding_name, [self.opt.data_io.encoder_vocab_size,
-                             self.opt.embedding.encoder_dim],
-            trainable=self.opt.embedding.encoder_trainable)
+        embedding_vars = graph_util.create_embedding_var(
+            emb_opt.encoder_vocab_size, emb_opt.encoder_dim,
+            trainable=emb_opt.encoder_trainable, name=embedding_name,
+            init_filepath=emb_opt.encoder_init_filepath)
+        self._encoder_emb_vars = embedding_vars
         features.encoder_lookup = tf.nn.embedding_lookup(
             embedding_vars, features.encoder_input, name='encoder_lookup')
         if not self.opt.decoder.share.encoder_embedding:
-            embedding_vars = tf.get_variable(
-                'decoder_embedding', [self.opt.data_io.decoder_vocab_size,
-                                      self.opt.embedding.decoder_dim],
-                trainable=self.opt.embedding.decoder_trainable)
+            embedding_vars = graph_util.create_embedding_var(
+                emb_opt.decoder_vocab_size, emb_opt.decoder_dim,
+                trainable=emb_opt.decoder_trainable, name='decoder_embedding',
+                init_filepath=emb_opt.decoder_init_filepath)
         self._decoder_emb_vars = embedding_vars
         features.decoder_lookup = tf.nn.embedding_lookup(
             embedding_vars, features.decoder_input, name='decoder_lookup')
-        return (features, labels)
+        return features, labels
 
-    def encode(self, features, labels):
+    def _encoder_kwargs(self, features, labels):
         self.shared_rnn_fn = None
         kwargs = {}
         if self.opt.decoder.share.encoder_rnn_params:
@@ -172,27 +198,39 @@ class BasicSeq2SeqModel(Seq2SeqModel):
                 'shared_rnn', tf.nn.dynamic_rnn, create_scope_now_=True)
             kwargs['rnn_fn'] = self.shared_rnn_fn
         kwargs['_features'] = features
+        return kwargs
+
+    def encode(self, features, labels):
+        kwargs = self._encoder_kwargs(features, labels)
         enc_cls = locate(self.opt.encoder.class_name)
         rnn_cls = locate(self.opt.encoder.rnn_class_name)
         rnn = rnn_cls(self.opt.encoder.rnn_opt, name='encoder_rnn',
                       is_training=self.is_training)
-        encoder = enc_cls(self.opt.encoder.opt, is_training=self.is_training)(
+        self.encoder = enc_cls(self.opt.encoder.opt,
+                               is_training=self.is_training)(
             features.encoder_lookup, features.encoder_seq_len,
             rnn, **kwargs)
-        return encoder
+        return self.encoder
 
-    def decode(self, encoder_output, features, labels):
+    def _decoder_kwargs(self, encoder_output, features, labels):
         kwargs = {}
         if self.shared_rnn_fn is not None:
             kwargs['rnn_fn'] = self.shared_rnn_fn
         if self.opt.decoder.share.logit_weight_tying:
             kwargs['logit_w'] = self._decoder_emb_vars
+        if encoder_output.is_attr_set('context'):
+            kwargs['context_for_rnn'] = encoder_output.context
         kwargs['_features'] = features
+        return kwargs
+
+    def decode(self, encoder_output, features, labels):
+        kwargs = self._decoder_kwargs(encoder_output, features, labels)
         dec_cls = locate(self.opt.decoder.class_name)
         rnn_cls = locate(self.opt.decoder.rnn_class_name)
         rnn = rnn_cls(self.opt.decoder.rnn_opt, name='decoder_rnn',
                       is_training=self.is_training)
-        decoder = dec_cls(self.opt.decoder.opt, is_training=self.is_training)(
+        _decoder = dec_cls(self.opt.decoder.opt, is_training=self.is_training)
+        self.decoder = _decoder(
             features.decoder_lookup, encoder_output, features.decoder_seq_len,
             rnn, **kwargs)
-        return decoder
+        return self.decoder

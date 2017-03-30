@@ -1,7 +1,7 @@
 """
 A base agent class and a collection functions for training and evaluating.
 
-An agent defines a running procedure i.e. maximum loglikelihood training.
+An agent defines a running procedure i.e. xent training.
 """
 import time
 import abc
@@ -89,6 +89,7 @@ class Agent(object):
         self.opt = opt
         self.sess = sess
         self._logger = logger
+        # fix duplicate logger
         if self._logger is None:
             self._logger = get_logger(log_file_path=None, name=name)
 

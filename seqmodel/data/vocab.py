@@ -1,5 +1,6 @@
 import collections
 import codecs
+import six
 
 from seqmodel.bunch import Bunch
 
@@ -41,7 +42,7 @@ class Vocabulary(object):
         self._vocab_size += 1
 
     def w2i(self, word):
-        if isinstance(word, str) or isinstance(word, unicode):
+        if isinstance(word, six.string_types):
             if self.special_symbols.unknown in self._w2i:
                 unk_id = self._w2i[self.special_symbols.unknown]
                 return self._w2i.get(word, unk_id)
@@ -51,6 +52,10 @@ class Vocabulary(object):
             return [self.w2i(_w) for _w in word]
 
     def i2w(self, index):
+        if isinstance(index, six.string_types):
+            raise ValueError(
+                ('index must be an integer, recieved `{}`. '
+                 'Call `w2i()` for converting word to id').format(index))
         if isinstance(index, collections.Iterable):
             return [self.i2w(_idx) for _idx in index]
         return self._i2w[index]

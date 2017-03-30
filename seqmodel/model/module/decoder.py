@@ -42,8 +42,8 @@ class RNNDecoder(Decoder):
     def default_opt():
         return Bunch(init_with_encoder_state=True)
 
-    def decode(self, inputs, context,
-               sequence_length, rnn_module, *args, **kwargs):
+    def decode(self, inputs, context, sequence_length, rnn_module,
+               context_for_rnn=None, *args, **kwargs):
         """ Create RNN graph for decoding.
             Args:
                 inputs: A tensor for inputs
@@ -58,9 +58,11 @@ class RNNDecoder(Decoder):
         if self.opt.init_with_encoder_state:
             initial_state = context.final_state
             self.rnn = rnn_module(inputs, sequence_length,
+                                  context=context_for_rnn,
                                   initial_state=initial_state, *args, **kwargs)
         else:
             self.rnn = rnn_module(inputs, sequence_length,
+                                  context=context_for_rnn,
                                   create_zero_initial_state=True,
                                   *args, **kwargs)
         return Bunch(rnn=self.rnn,
