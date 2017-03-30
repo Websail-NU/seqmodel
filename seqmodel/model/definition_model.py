@@ -1,6 +1,7 @@
 import tensorflow as tf
 
 from seqmodel.bunch import Bunch
+from seqmodel.model import graph_util
 from seqmodel.model import tdnn_module
 from seqmodel.model import rnn_module
 from seqmodel.model import encoder as encoder_module
@@ -36,9 +37,11 @@ class DefinitionModel(BasicSeq2SeqModel):
             char_vocab_size=28,
             char_dim=28,
             char_trainable=True,
+            char_init_filepath=None,
             char_one_hot=False,
             word_feature_vocab_size=15,
             word_feature_dim=128,
+            word_feature_init_filepath=None,
             word_feature_trainable=True)
         opt.word_context = Bunch(
             use_word=True,
@@ -62,11 +65,12 @@ class DefinitionModel(BasicSeq2SeqModel):
         if self.opt.word_context.share_feature_dec_embedding:
             embedding_vars = self._decoder_emb_vars
         else:
-            embedding_vars = tf.get_variable(
-                'feature_embedding',
-                [self.opt.embedding.word_feature_vocab_size,
-                 self.opt.embedding.word_feature_dim],
-                trainable=self.opt.embedding.word_feature_trainable)
+            emb_opt = self.opt.embedding
+            embedding_vars = graph_util.create_embedding_var(
+                emb_opt.word_feature_vocab_size, emb_opt.word_feature_dim,
+                trainable=emb_opt.word_feature_trainable,
+                name='feature_embedding',
+                init_filepath=emb_opt.word_feature_init_filepath)
         features.extra_feature = tf.nn.embedding_lookup(
             embedding_vars, features.encoder_feature,
             name='feature_lookup')
@@ -83,11 +87,11 @@ class DefinitionModel(BasicSeq2SeqModel):
                 features.encoder_char, self.opt.embedding.char_vocab_size,
                 axis=-1, dtype=tf.float32, name="char_lookup")
         else:
-            embedding_vars = tf.get_variable(
-                'char_embedding',
-                [self.opt.embedding.char_vocab_size,
-                 self.opt.embedding.char_dim],
-                trainable=self.opt.embedding.char_trainable)
+            emb_opt = self.opt.embedding
+            embedding_vars = graph_util.create_embedding_var(
+                emb_opt.char_vocab_size, emb_opt.char_dim,
+                trainable=emb_opt.char_trainable, name='char_embedding',
+                init_filepath=emb_opt.char_init_filepath)
             features.char_lookup = tf.nn.embedding_lookup(
                 embedding_vars, features.encoder_char,
                 name='char_lookup')

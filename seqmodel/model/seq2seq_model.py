@@ -14,6 +14,7 @@ import six
 import tensorflow as tf
 
 from seqmodel.bunch import Bunch
+from seqmodel.model import graph_util
 from seqmodel.model import rnn_module as rnn_module
 from seqmodel.model import encoder as encoder_module
 from seqmodel.model import decoder as decoder_module
@@ -75,11 +76,13 @@ class BasicSeq2SeqModel(Seq2SeqModel):
         return Bunch(
             embedding=Bunch(
                 encoder_vocab_size=15,
-                decoder_vocab_size=15,
                 encoder_dim=128,
                 encoder_trainable=True,
+                encoder_init_filepath=None,
+                decoder_vocab_size=15,
                 decoder_dim=128,
-                decoder_trainable=True),
+                decoder_trainable=True,
+                decoder_init_filepath=None),
             encoder=Bunch(
                 class_name="seqmodel.model.encoder.RNNEncoder",
                 opt=encoder_module.RNNEncoder.default_opt(),
@@ -167,20 +170,21 @@ class BasicSeq2SeqModel(Seq2SeqModel):
         self._feed.features = features.shallow_clone()
         self._feed.labels = labels.shallow_clone()
         embedding_name = 'encoder_embedding'
+        emb_opt = self.opt.embedding
         if self.opt.decoder.share.encoder_embedding:
             embedding_name = 'shared_embedding'
-        embedding_vars = tf.get_variable(
-            embedding_name, [self.opt.embedding.encoder_vocab_size,
-                             self.opt.embedding.encoder_dim],
-            trainable=self.opt.embedding.encoder_trainable)
+        embedding_vars = graph_util.create_embedding_var(
+            emb_opt.encoder_vocab_size, emb_opt.encoder_dim,
+            trainable=emb_opt.encoder_trainable, name=embedding_name,
+            init_filepath=emb_opt.encoder_init_filepath)
         self._encoder_emb_vars = embedding_vars
         features.encoder_lookup = tf.nn.embedding_lookup(
             embedding_vars, features.encoder_input, name='encoder_lookup')
         if not self.opt.decoder.share.encoder_embedding:
-            embedding_vars = tf.get_variable(
-                'decoder_embedding', [self.opt.embedding.decoder_vocab_size,
-                                      self.opt.embedding.decoder_dim],
-                trainable=self.opt.embedding.decoder_trainable)
+            embedding_vars = graph_util.create_embedding_var(
+                emb_opt.decoder_vocab_size, emb_opt.decoder_dim,
+                trainable=emb_opt.decoder_trainable, name='decoder_embedding',
+                init_filepath=emb_opt.decoder_init_filepath)
         self._decoder_emb_vars = embedding_vars
         features.decoder_lookup = tf.nn.embedding_lookup(
             embedding_vars, features.decoder_input, name='decoder_lookup')

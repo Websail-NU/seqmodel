@@ -14,6 +14,7 @@ import six
 import tensorflow as tf
 
 from seqmodel.bunch import Bunch
+from seqmodel.model import graph_util
 from seqmodel.model import rnn_module as rnn_module
 from seqmodel.model import decoder as decoder_module
 from seqmodel.model.model_base import ModelBase
@@ -113,7 +114,8 @@ class BasicSeqModel(SeqModel):
             embedding=Bunch(
                 in_vocab_size=15,
                 dim=100,
-                trainable=True),
+                trainable=True,
+                init_filepath=None),
             decoder=Bunch(
                 class_name="seqmodel.model.decoder.RNNDecoder",
                 opt=Bunch(decoder_module.RNNDecoder.default_opt(),
@@ -175,10 +177,10 @@ class BasicSeqModel(SeqModel):
             tf.float32, [None, None], name='label_weight')
         self._feed.features = features.shallow_clone()
         self._feed.labels = labels.shallow_clone()
-        embedding_vars = tf.get_variable(
-            'embedding', [self.opt.embedding.in_vocab_size,
-                          self.opt.embedding.dim],
-            trainable=self.opt.embedding.trainable)
+        emb_opt = self.opt.embedding
+        embedding_vars = graph_util.create_embedding_var(
+            emb_opt.in_vocab_size, emb_opt.dim, trainable=emb_opt.trainable,
+            init_filepath=emb_opt.init_filepath)
         features.lookup = tf.nn.embedding_lookup(
             embedding_vars, features.inputs, name='lookup')
         self._decoder_emb_vars = embedding_vars

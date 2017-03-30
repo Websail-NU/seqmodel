@@ -1,4 +1,5 @@
 """ A collections of useful functions to create common graphs """
+import cPickle
 import numpy as np
 import tensorflow as tf
 
@@ -37,6 +38,18 @@ def create_logit_layer(opt, inputs, logit_w=None, *args, **kwargs):
         1.0, shape=None, name="{}_temperature".format(opt.name_prefix))
     logit = logit / temperature
     return logit, temperature
+
+
+def create_embedding_var(vocab_size, dim, trainable=True, name='embedding',
+                         init_filepath=None):
+    if init_filepath is None:
+        return tf.get_variable(name, [vocab_size, dim], trainable=trainable)
+    else:
+        with open(init_filepath) as ifp:
+            init_emb = cPickle.load(ifp)
+        return tf.get_variable(
+            name, trainable=trainable, initializer=tf.constant(
+                init_emb, dtype=tf.float32))
 
 
 def create_update_layer(transform, extra, carried):
