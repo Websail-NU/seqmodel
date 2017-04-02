@@ -15,7 +15,8 @@ def default_logit_opt():
                  trainable=True)
 
 
-def create_logit_layer(opt, inputs, logit_w=None, *args, **kwargs):
+def create_logit_layer(opt, inputs, logit_w=None, logit_b=None,
+                       temperature=None, *args, **kwargs):
     """
     Args:
         opt: Option to create logit layer
@@ -30,14 +31,16 @@ def create_logit_layer(opt, inputs, logit_w=None, *args, **kwargs):
                                   dtype=tf.float32, trainable=opt.trainable)
     logit = matmul(inputs, logit_w, transpose_b=True)
     if opt.use_bias:
-        logit_b = tf.get_variable('{}_b'.format(opt.name_prefix),
-                                  [opt.out_vocab_size],
-                                  dtype=tf.float32)
+        if logit_b is None:
+            logit_b = tf.get_variable('{}_b'.format(opt.name_prefix),
+                                      [opt.out_vocab_size],
+                                      dtype=tf.float32)
         logit = logit + logit_b
-    temperature = tf.placeholder_with_default(
-        1.0, shape=None, name="{}_temperature".format(opt.name_prefix))
+    if temperature is None:
+        temperature = tf.placeholder_with_default(
+            1.0, shape=None, name="{}_temperature".format(opt.name_prefix))
     logit = logit / temperature
-    return logit, temperature
+    return logit, temperature, logit_w, logit_b
 
 
 def create_embedding_var(vocab_size, dim, trainable=True, name='embedding',

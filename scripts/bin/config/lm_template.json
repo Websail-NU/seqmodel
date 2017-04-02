@@ -19,7 +19,7 @@
               "use_bias": true
             },
             "rnn_cell": {
-              "cell_class": "BasicLSTMCell",
+              "cell_class": "tf.contrib.rnn.BasicLSTMCell",
               "cell_opt": {
                 "num_units": 128
               },

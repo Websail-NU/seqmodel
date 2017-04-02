@@ -118,7 +118,8 @@ class TokenIterator(TextIterator):
         self.data, self._input_data, self._output_data =\
             self._format_data(lines)
 
-    def init_batch(self, batch_size):
+    def init_batch(self, batch_size, no_label_seq=False):
+        self._no_label_seq = no_label_seq
         if not hasattr(self, 'bbatch') or self._batch_size != batch_size:
             self._batch_size = batch_size
             self.bbatch = self._reset_batch_data(Bunch())

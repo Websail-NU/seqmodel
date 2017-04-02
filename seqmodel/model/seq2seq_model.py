@@ -216,6 +216,9 @@ class BasicSeq2SeqModel(Seq2SeqModel):
         kwargs = {}
         if self.shared_rnn_fn is not None:
             kwargs['rnn_fn'] = self.shared_rnn_fn
+        else:
+            kwargs['rnn_fn'] = tf.make_template(
+                'decoder_rnn', tf.nn.dynamic_rnn, create_scope_now_=True)
         if self.opt.decoder.share.logit_weight_tying:
             kwargs['logit_w'] = self._decoder_emb_vars
         if encoder_output.is_attr_set('context'):

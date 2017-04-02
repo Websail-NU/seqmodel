@@ -27,6 +27,7 @@ transitions[0:9, -1] = ending
 transitions = transitions / np.reshape(
     transitions.sum(axis=1), [max_seq_len, 1])
 choices = 'a b c d e f g h i j'.split()
+valid_choices = list(choices)
 choices.append(_special_symbols.end_seq)
 
 
@@ -45,10 +46,18 @@ def generate_sample():
     return tokens
 
 
-def write_samples(path, n, mode):
+def generate_random_sample():
+    rand_len = int(np.random.uniform(high=max_seq_len, low=2))
+    return np.random.choice(valid_choices, size=rand_len)
+
+
+def write_samples(path, n, mode, random_seq=False):
     with open(path, 'w') as ofp:
         for i in range(n):
-            sample = generate_sample()
+            if random_seq:
+                sample = generate_random_sample()
+            else:
+                sample = generate_sample()
             in_sample = ' '.join(sample)
             if mode == 'single':
                 ofp.write('{}\n'.format(in_sample))
@@ -76,12 +85,13 @@ parser.add_argument("--mode", type=str, default="copy",
 parser.add_argument("--num_train", type=int, default=10000)
 parser.add_argument("--num_valid", type=int, default=1000)
 parser.add_argument("--num_test", type=int, default=1000)
+parser.add_argument("--random_seq", action="store_true")
 args = parser.parse_args()
 ensure_dir(args.output_dir)
 write_samples(os.path.join(args.output_dir, 'train.txt'),
-              args.num_train, args.mode)
+              args.num_train, args.mode, args.random_seq)
 write_samples(os.path.join(args.output_dir, 'valid.txt'),
-              args.num_valid, args.mode)
+              args.num_valid, args.mode, args.random_seq)
 write_samples(os.path.join(args.output_dir, 'test.txt'),
-              args.num_test, args.mode)
+              args.num_test, args.mode, args.random_seq)
 write_vocab(os.path.join(args.output_dir, 'vocab.txt'))

@@ -97,8 +97,9 @@ class Context(object):
             for s_key in opt:
                 if s_key.endswith('_source') and s_key != 'data_source':
                     file_key = s_key[0:-7] + '_files'
-                    opt[s_key] = os.path.join(
-                        data_dir, kwargs[file_key][key])
+                    if file_key in kwargs:
+                        opt[s_key] = os.path.join(
+                            data_dir, kwargs[file_key][key])
             iterators[key] = iter_class_(opt, **vocab_kwargs)
         return iterators
 

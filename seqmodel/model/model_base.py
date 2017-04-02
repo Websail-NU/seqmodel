@@ -49,7 +49,7 @@ class ModelBase(object):
 
     @staticmethod
     def map_feeddict(model, data, no_features=False, no_labels=False,
-                     **kwargs):
+                     _custom_feed=None, **kwargs):
         """ Create a generic feed dict by matching keys
             in data and model.feed
             kwargs:
@@ -58,7 +58,9 @@ class ModelBase(object):
             Returns:
                 feed_dict
         """
-        feed_dict = {}
+        feed_dict = _custom_feed
+        if feed_dict is None:
+            feed_dict = {}
         if not no_features:
             for k in model.feed.features:
                 if k in data.features:

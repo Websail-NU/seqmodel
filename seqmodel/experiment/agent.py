@@ -150,7 +150,7 @@ class Agent(object):
     @staticmethod
     def is_training_done(optim_opt, training_state):
         # current epoch reaches max epochs
-        if training_state.cur_epoch == optim_opt.max_epochs:
+        if training_state.cur_epoch >= optim_opt.max_epochs:
             return True
         # early stopping
         if training_state.imp_wait >= optim_opt.lr_decay_wait:
@@ -221,6 +221,9 @@ class Agent(object):
             report.append('val: {:.5f}'.format(
                 validation_info.cost / validation_info.num_tokens))
         self._logger.info(' '.join(report))
+
+    def increase_max_epoch(self, increment):
+        self.opt.optim.max_epochs += increment
 
     @abc.abstractmethod
     def train(self, *args, **kwargs):

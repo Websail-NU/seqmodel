@@ -6,12 +6,13 @@ import tensorflow as tf
 
 from seqmodel.bunch import Bunch
 from seqmodel.model.module import graph_util
+from seqmodel.model.module import rnn_cells
 from seqmodel.model.module.graph_module import GraphModule
 
 
 def default_rnn_cell_opt():
     """ Create a default options for RNN cell. """
-    return Bunch(cell_class="BasicLSTMCell",
+    return Bunch(cell_class="tf.contrib.rnn.BasicLSTMCell",
                  cell_opt=Bunch(num_units=128),
                  input_keep_prob=1.0,
                  output_keep_prob=1.0,
@@ -28,17 +29,17 @@ def no_dropout_if_not_training(rnn_cell_opt, is_training):
     return rnn_cell_opt
 
 
-def create_rnn_cell_from_opt(opt, module):
+def create_rnn_cell_from_opt(opt):
     """ Create an RNN cell from module name. """
-    cell_class = eval("{}.{}".format(module, opt.cell_class))
+    cell_class = eval(opt.cell_class)
     return cell_class(**opt.cell_opt)
 
 
-def get_rnn_cell(opt, module="tf.contrib.rnn"):
+def get_rnn_cell(opt):
     """ Create a homogenous RNN cell. """
     cells = []
     for _ in range(opt.num_layers):
-        cell = create_rnn_cell_from_opt(opt, module)
+        cell = create_rnn_cell_from_opt(opt)
         if opt.input_keep_prob < 1.0 or opt.output_keep_prob < 1.0:
             cell = tf.contrib.rnn.DropoutWrapper(
                cell=cell,
@@ -46,8 +47,13 @@ def get_rnn_cell(opt, module="tf.contrib.rnn"):
                output_keep_prob=opt.output_keep_prob)
         cells.append(cell)
     if opt.num_layers > 1:
-        return tf.contrib.rnn.MultiRNNCell(cells)
-    return cells[0]
+        final_cell = tf.contrib.rnn.MultiRNNCell(cells)
+    else:
+        final_cell = cells[0]
+    if opt.is_attr_set("o2i") and opt.o2i.add_o2i:
+        final_cell = rnn_cells.OutputToInputWrapper(
+            final_cell, opt.o2i.use_input)
+    return final_cell
 
 
 def feed_state(feed_dict, state_vars, state_vals):
@@ -130,12 +136,14 @@ class BasicRNNModule(GraphModule):
         return final_output
 
     def _add_logit(self, logit_fn, cell_output, final_output, *args, **kwargs):
-        self.logit, self.logit_temp = logit_fn(
+        self.logit, self.logit_temp, logit_w, logit_b = logit_fn(
             self.opt.logit, cell_output, *args, **kwargs)
         self.prob = tf.nn.softmax(self.logit)
         final_output.logit = self.logit
         final_output.logit_temperature = self.logit_temp
         final_output.distribution = self.prob
+        final_output._logit_w = logit_w
+        final_output._logit_b = logit_b
         return final_output
 
     def step(self, inputs, sequence_length, rnn_fn=tf.nn.dynamic_rnn,
@@ -173,6 +181,8 @@ class FixedContextRNNModule(BasicRNNModule):
 
     def __init__(self, opt, name='fix_context_rnn', is_training=False):
         super(FixedContextRNNModule, self).__init__(opt, name, is_training)
+        self._output_keep_prob = self.opt.rnn_cell.output_keep_prob
+        self.opt.rnn_cell.output_keep_prob = 1.0  # manual dropout
 
     @staticmethod
     def default_opt():
@@ -194,12 +204,12 @@ class FixedContextRNNModule(BasicRNNModule):
         final_output = self.step(inputs, sequence_length, *args, **kwargs)
         # transform output
         _carried_output_cell = final_output.cell_output
-        if self.opt.rnn_cell.output_keep_prob < 1.0:
+        if self._output_keep_prob < 1.0:
             final_output.cell_output = tf.nn.dropout(
                 final_output.cell_output, self.opt.rnn_cell.output_keep_prob)
         updated_output = graph_util.create_update_layer(
             final_output.cell_output, tiled_context, _carried_output_cell)
-        if self.opt.rnn_cell.output_keep_prob < 1.0:
+        if self._output_keep_prob < 1.0:
             updated_output = tf.nn.dropout(
                 updated_output, self.opt.rnn_cell.output_keep_prob)
         final_output.updated_output = updated_output

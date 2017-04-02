@@ -47,7 +47,7 @@ class BatchIterator(object):
         raise NotImplementedError('Not implemented.')
 
     @abc.abstractmethod
-    def init_batch(self, batch_size):
+    def init_batch(self, batch_size, no_label_seq=False):
         """
         Prepare data into batches of size batch_size and shuffle the data
         if opt.shuffle is True
@@ -66,8 +66,8 @@ class BatchIterator(object):
     def update_last_input(self, batch, input, **kwargs):
         raise NotImplementedError
 
-    def iterate_epoch(self, batch_size):
-        self.init_batch(batch_size)
+    def iterate_epoch(self, batch_size, no_label_seq=False):
+        self.init_batch(batch_size, no_label_seq)
         while True:
             batch = self.next_batch()
             if batch is None:

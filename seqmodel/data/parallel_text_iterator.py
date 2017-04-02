@@ -14,24 +14,56 @@ from seqmodel.data.batch_iterator import *
 from seqmodel.data.vocab import Vocabulary
 
 
-def read_parallel_text_file(filepath, delimiter='\t'):
+def read_parallel_text_file(data_filepath, token_weight_filepath,
+                            seq_weight_source, delimiter='\t',
+                            add_end_seq=True):
     enc_data = []
     dec_data = []
-    with codecs.open(filepath, 'r', 'utf-8') as ifp:
+    token_weights = []
+    seq_weights = []
+    add_end = 1 if add_end_seq else 0
+    with codecs.open(data_filepath, 'r', 'utf-8') as ifp:
         for line in ifp:
             parts = line.strip().split(delimiter)
             enc_data.append(parts[0].split())
             dec_data.append(parts[-1].split())
-    return enc_data, dec_data
+            token_weights.append([1.0] * (len(dec_data[-1]) + add_end))
+            seq_weights.append(1.0)
+    if token_weight_filepath != "" and not token_weight_filepath.endswith('/'):
+        with codecs.open(token_weight_filepath, 'r', 'utf-8') as ifp:
+            for i, line in enumerate(ifp):
+                parts = line.strip().split()
+                for j, p in enumerate(parts):
+                    token_weights[i][j] = float(p)
+    if seq_weight_source != "" and not token_weight_filepath.endswith('/'):
+        with codecs.open(seq_weight_source, 'r', 'utf-8') as ifp:
+            for i, line in enumerate(ifp):
+                seq_weights[i] = float(line.strip())
+    return enc_data, dec_data, token_weights, seq_weights
 
 
-def read_parallel_text_list(data_source):
+def read_parallel_text_list(data_source, token_weight_source=None,
+                            seq_weight_source=None, add_end_seq=True):
     enc_data = []
     dec_data = []
+    token_weights = []
+    seq_weights = []
+    add_end = 1 if add_end_seq else 0
     for i in range(len(data_source)):
         enc_data.append(data_source[i][0].split())
         dec_data.append(data_source[i][1].split())
-    return enc_data, dec_data
+        token_weights.append([1.0] * (len(dec_data[-1]) + add_end))
+        seq_weights.append(1.0)
+    if (token_weight_source is not None and
+            isinstance(token_weight_source, six.string_types)):
+        for i, line in enumerate(token_weight_source):
+            for j, p in enumerate(line):
+                token_weights[i][j] = p
+    if (seq_weight_source is not None and
+            isinstance(seq_weight_source, six.string_types)):
+        for i, line in enumerate(seq_weight_source):
+            seq_weights[i] = float(line.strip())
+    return enc_data, dec_data, token_weights, seq_weights
 
 
 class Seq2SeqIterator(TextIterator):
@@ -51,6 +83,11 @@ class Seq2SeqIterator(TextIterator):
                      the start of decoding sequence
         data_source: a path (str) to a data file,
                      or a list of tuple of (enc seq, dec seq)
+        token_weight_source: (optional) a path (str) to a token weight file,
+                             or a list of float sequences
+                             (same order as data_source)
+        seq_weight_source: (optional) a path (str) to a sequence weight file,
+                           or a list of float (same order as data_source)
         seq_delimiter: a character that separates encoding and decoding seqs
         truncate_batch: If true, return batch as long as the longest seqs in
                         a current batch
@@ -62,6 +99,8 @@ class Seq2SeqIterator(TextIterator):
         return Bunch(
             default_opt,
             data_source='',
+            token_weight_source='',
+            seq_weight_source='',
             seq_delimiter='\t',
             add_start_seq=True,
             add_end_seq=True,
@@ -77,7 +116,8 @@ class Seq2SeqIterator(TextIterator):
 
     @property
     def label_keys(self):
-        return set(['decoder_label', 'decoder_label_weight'])
+        return set(['decoder_label', 'decoder_label_weight',
+                    'decoder_seq_weight'])
 
     @property
     def batch_size(self):
@@ -88,13 +128,17 @@ class Seq2SeqIterator(TextIterator):
 
     def initialize(self, _return_text=False, **kwargs):
         if isinstance(self.opt.data_source, six.string_types):
-            enc_text, dec_text = read_parallel_text_file(
-                self.opt.data_source, self.opt.seq_delimiter)
+            enc_text, dec_text, tk_w, seq_w = read_parallel_text_file(
+                self.opt.data_source, self.opt.token_weight_source,
+                self.opt.seq_weight_source, self.opt.seq_delimiter,
+                self.opt.add_end_seq)
         else:
-            enc_text, dec_text = read_parallel_text_list(self.opt.data_source)
+            enc_text, dec_text, tk_w, seq_w = read_parallel_text_list(
+                self.opt.data_source, self.opt.token_weight_source,
+                self.opt.seq_weight_source, self.opt.add_end_seq)
         enc_data = self.in_vocab.w2i(enc_text)
         dec_data = self.out_vocab.w2i(dec_text)
-        self.data = zip(enc_data, dec_data)
+        self.data = zip(enc_data, dec_data, tk_w, seq_w)
         self.max_enc_len = len(max(enc_data, key=len))
         self.max_in_dec_len = len(max(dec_data, key=len))
         self.max_out_dec_len = self.max_in_dec_len
@@ -116,7 +160,8 @@ class Seq2SeqIterator(TextIterator):
         if _return_text:
             return enc_text, dec_text
 
-    def init_batch(self, batch_size):
+    def init_batch(self, batch_size, no_label_seq=False):
+        self._no_label_seq = no_label_seq
         if not hasattr(self, 'bbatch') or self._batch_size != batch_size:
             self._batch_size = batch_size
             self.bbatch = self._reset_batch_data(Bunch())
@@ -148,6 +193,8 @@ class Seq2SeqIterator(TextIterator):
             'dec_output', np.zeros(size + [self.max_out_dec_len], np.int32))
         batch_bunch.weight = batch_bunch.get(
             'weight', np.zeros(size + [self.max_out_dec_len], np.float32))
+        batch_bunch.seq_weight = batch_bunch.get(
+            'seq_weight', np.zeros(size, np.float32))
         batch_bunch.enc_seq_len = batch_bunch.get(
             'enc_seq_len', np.zeros(size, np.int32))
         batch_bunch.dec_seq_len = batch_bunch.get(
@@ -164,6 +211,7 @@ class Seq2SeqIterator(TextIterator):
         batch_bunch.dec_output[:] = self.dec_pad_id
         batch_bunch.dec_input[:] = self.dec_pad_id
         batch_bunch.weight[:] = 0
+        batch_bunch.seq_weight[:] = 0
         batch_bunch.enc_seq_len[:] = 0
         batch_bunch.dec_seq_len[:] = 0
         if self.opt.add_start_seq:
@@ -179,8 +227,11 @@ class Seq2SeqIterator(TextIterator):
         if (bb.read_sentences[i_batch] < bb.distances[i_batch] and
                 pos < len(self.data)):
             idx = bb.data_perm[pos]
+            if self._no_label_seq:
+                enc_data, _x, tk_w, seq_w = self.data[idx]
+                return enc_data, [], tk_w, seq_w
             return self.data[idx]
-        return None, None
+        return None, None, None, None
 
     def _prepare_batch(self):
         if all(self.bbatch.read_sentences >= self.bbatch.distances):
@@ -189,7 +240,7 @@ class Seq2SeqIterator(TextIterator):
         # populating new data
         for i_batch in range(self._batch_size):
             cur_pos = bb.pointers[i_batch]
-            enc_data, dec_data = self._get_data(cur_pos, i_batch)
+            enc_data, dec_data, tk_w, seq_w = self._get_data(cur_pos, i_batch)
             if enc_data is not None and dec_data is not None:
                 enc_end = len(enc_data) + self.start_enc
                 bb.enc_input[i_batch, self.start_enc:enc_end] = enc_data
@@ -199,8 +250,9 @@ class Seq2SeqIterator(TextIterator):
                 dec_end = len(dec_data) + self.start_dec
                 bb.dec_input[i_batch, self.start_dec:dec_end] = dec_data
                 bb.dec_output[i_batch, 0:-1] = bb.dec_input[i_batch, 1:]
-                bb.weight[i_batch, 0:dec_end] = 1
+                bb.weight[i_batch, 0:dec_end] = tk_w[0:dec_end]
                 bb.dec_seq_len[i_batch] = dec_end
+                bb.seq_weight[i_batch] = seq_w
         return bb
 
     def _increment_batch(self, bb):
@@ -255,7 +307,8 @@ class Seq2SeqIterator(TextIterator):
                        encoder_seq_len=bb.enc_seq_len,
                        decoder_seq_len=bb.dec_seq_len)
         labels = Bunch(decoder_label=bb.dec_output,
-                       decoder_label_weight=bb.weight)
+                       decoder_label_weight=bb.weight,
+                       decoder_seq_weight=bb.seq_weight)
         batch = Bunch(features=inputs, labels=labels,
                       num_tokens=bb.weight.sum())
         return batch

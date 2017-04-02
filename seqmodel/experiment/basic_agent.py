@@ -65,7 +65,8 @@ class BasicAgent(agent.Agent):
                                       report_mode='training', **kwargs)
             info = tr_info
             if valid_data_iter is not None:
-                val_info = self.evaluate(valid_data_iter, valid_batch_size)
+                val_info = self.evaluate(valid_data_iter, valid_batch_size,
+                                         **kwargs)
                 info = val_info
             training_state = self.update_training_state(training_state, info)
         return training_state
@@ -79,7 +80,8 @@ class BasicAgent(agent.Agent):
         for t_step in range(max_decoding_len):
             feed_dict = self.eval_model.model_obj.map_feeddict(
                 self.eval_model, batch, sess=self.sess, prev_result=result,
-                fetch=fetch, is_sampling=True, **kwargs)
+                fetch=fetch, is_sampling=True, logit_temperature=temperature,
+                **kwargs)
             result = self.sess.run(fetch, feed_dict)
             dist = result.distribution
             choices, likelihood = agent.select_from_distribution(
@@ -96,7 +98,8 @@ class BasicAgent(agent.Agent):
         fetch = self.eval_model.model_obj.get_fetch(
             self.eval_model, is_sampling=True)
         batch_outputs = []
-        for b_step, batch in enumerate(data_iter.iterate_epoch(batch_size)):
+        for b_step, batch in enumerate(
+                data_iter.iterate_epoch(batch_size, no_label_seq=True)):
             batch_ = copy.deepcopy(batch)
             out_batch_ = copy.deepcopy(batch)
             samples, likelihoods = self._sample_a_batch(

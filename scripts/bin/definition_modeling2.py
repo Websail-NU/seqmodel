@@ -17,7 +17,8 @@ from seqmodel import data
 
 def main():
     start_time = time.time()
-    context_config_filepath = 'config/dm_w2v_train_dec.json'
+    context_config_filepath = 'config/dm_w2v_o2i.json'
+    model_path = 'experiment/lemma_senses/m6/model/best'
     # sess_config = tf.ConfigProto(device_count={'GPU': 0})
     # sess = tf.Session(config = sess_config)
     with tf.Session() as sess:
@@ -31,6 +32,9 @@ def main():
         for v in tf.trainable_variables():
             context.logger.info('{}, {}'.format(v.name, v.get_shape()))
         sess.run(tf.global_variables_initializer())
+        context.logger.info('Initializing model...')
+        tf_saver = tf.train.Saver()
+        tf_saver.restore(sess, model_path)
         context.agent.train(context.iterators.train, 64,
                             context.iterators.valid, 64,
                             context=context)
