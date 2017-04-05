@@ -178,10 +178,11 @@ class Agent(object):
                 self.train_op, self.lr = self._build_train_op(
                     self.training_model.losses.training_loss)
 
-    def _build_train_op(self, loss):
+    def _build_train_op(self, loss, lr=None):
         """ Create training operation and learning rate variable"""
-        lr = tf.Variable(self.opt.optim.learning_rate, trainable=False,
-                         name='learning_rate')
+        if lr is None:
+            lr = tf.Variable(self.opt.optim.learning_rate, trainable=False,
+                             name='learning_rate')
         global_step = tf.contrib.framework.get_or_create_global_step()
         optimizer = get_optimizer(lr, self.opt.optim.name)
         # l2_loss_weight = opt.get('l2_loss_weight', 0.0)

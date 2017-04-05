@@ -126,7 +126,7 @@
     "train": "train_features.txt",
     "valid": "valid_features.txt"
   },
-  "seq_weight_files": {
+  "seq_label_files": {
     "test": "",
     "train": "",
     "valid": ""
@@ -145,7 +145,7 @@
     "data_source": "",
     "feature_source": "",
     "token_weight_source": "",
-    "seq_weight_source": "",
+    "seq_label_source": "",
     "seq_delimiter": "\t",
     "shuffle": true,
     "time_major": true,

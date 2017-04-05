@@ -17,7 +17,7 @@ from seqmodel import data
 
 def main():
     start_time = time.time()
-    context_config_filepath = sys.argv[1]
+    context_config_filepath = 'config/dm_w2v.json'
     # sess_config = tf.ConfigProto(device_count={'GPU': 0})
     # sess = tf.Session(config = sess_config)
     with tf.Session() as sess:
@@ -27,6 +27,7 @@ def main():
         context.initialize_agent(with_training=True)
         context.logger.info('Initializing data...')
         context.initialize_iterators()
+
         context.logger.info('Trainable variables:')
         for v in tf.trainable_variables():
             context.logger.info('{}, {}'.format(v.name, v.get_shape()))

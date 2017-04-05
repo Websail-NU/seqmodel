@@ -66,12 +66,14 @@ class RNNDecoder(Decoder):
                               context=context_for_rnn,
                               create_zero_initial_state=zero_initial_state,
                               initial_state=initial_state, *args, **kwargs)
-        return Bunch(rnn=self.rnn,
-                     initial_state=self.rnn.initial_state,
-                     final_state=self.rnn.final_state,
-                     logit=self.rnn.logit,
-                     logit_temperature=self.rnn.logit_temperature,
-                     distribution=self.rnn.distribution)
+        outputs = Bunch(rnn=self.rnn,
+                        initial_state=self.rnn.initial_state,
+                        final_state=self.rnn.final_state)
+        if self.rnn.is_attr_set('logit'):
+            outputs.logit = self.rnn.logit,
+            outputs.logit_temperature = self.rnn.logit_temperature,
+            outputs.distribution = self.rnn.distribution
+        return outputs
 
 
 class SplitSeqRNNDecoder(RNNDecoder):

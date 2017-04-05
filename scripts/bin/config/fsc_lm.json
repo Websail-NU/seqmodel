@@ -19,12 +19,36 @@
               "use_bias": true
             },
             "rnn_cell": {
-              "cell_class": "tf.contrib.rnn.BasicLSTMCell",
-              "cell_opt": {
-                "num_units": 100
+              "fast_slow": true,
+              "fast": {
+                "cell_class": "tf.contrib.rnn.BasicLSTMCell",
+                "cell_opt": {
+                  "num_units": 100
+                },
+                "input_keep_prob": 1.0,
+                "num_layers": 1,
+                "output_keep_prob": 1.0
+              },
+              "slow": {
+                "cell_class": "tf.contrib.rnn.BasicLSTMCell",
+                "cell_opt": {
+                  "num_units": 100
+                },
+                "input_keep_prob": 1.0,
+                "num_layers": 1,
+                "output_keep_prob": 1.0
+              },
+              "control": {
+                "cell_class": "tf.contrib.rnn.BasicLSTMCell",
+                "cell_opt": {
+                  "num_units": 100
+                },
+                "input_keep_prob": 1.0,
+                "num_layers": 1,
+                "output_keep_prob": 1.0
               },
               "input_keep_prob": 1.0,
-              "num_layers": 2,
+              "num_layers": 1,
               "output_keep_prob": 1.0
             },
             "time_major": true
@@ -76,7 +100,7 @@
   },
   "writeout_opt": {
     "checkpoint_dir": "model/",
-    "experiment_dir": "experiment/tmp",
+    "experiment_dir": "experiment/out",
     "log_file": "experiment.log",
     "training_state": "training_state.json",
     "report_step_every": 1000
