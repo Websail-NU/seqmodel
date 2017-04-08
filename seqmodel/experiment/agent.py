@@ -222,15 +222,17 @@ class Agent(object):
             context.report_epoch(training_state, training_info,
                                  validation_info, **kwargs)
             return
-        report = ['ep: {} lr: {:.6f}'.format(
-            training_state.cur_epoch, training_state.learning_rate)]
+        report = []
         if training_info is not None:
             report.append('train: {:.5f}'.format(
                 training_info.cost / training_info.num_tokens))
         if validation_info is not None:
             report.append('val: {:.5f}'.format(
                 validation_info.cost / validation_info.num_tokens))
-        self._logger.info(' '.join(report))
+        if len(report) > 0:
+            self._logger.info(' '.join(report))
+        self._logger.info('ep: {} lr: {:.6f}'.format(
+            training_state.cur_epoch, training_state.learning_rate))
 
     def increase_max_epoch(self, increment):
         self.opt.optim.max_epochs += increment
