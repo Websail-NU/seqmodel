@@ -8,4 +8,4 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - Simplify sampling interfaces.
 - Load best model to evaluate when the training is done
 - Replace highway-like update with GRU-like update in definition model (to replicate original paper)
-- Implement `no_label_seq` for iterator in single_text_iterator (might no make sense?)
+- Implement `no_label_seq` for iterator in single_text_iterator (might not make sense?)

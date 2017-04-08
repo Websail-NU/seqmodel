@@ -50,13 +50,18 @@ def get_rnn_cell(opt):
                input_keep_prob=opt.input_keep_prob,
                output_keep_prob=opt.output_keep_prob)
         cells.append(cell)
-    if opt.num_layers > 1 and opt.is_attr_set('hn'):
+    if opt.num_layers > 1 and opt.is_attr_set('vrrn') and opt.vrrn:
         final_cell = rnn_cells.VRRNWrapper(cells)
-        return final_cell
-    if opt.num_layers > 1:
+        if opt.output_keep_prob < 1.0:
+            final_cell = tf.contrib.rnn.DropoutWrapper(
+               cell=final_cell,
+               output_keep_prob=opt.output_keep_prob)
+    elif opt.num_layers > 1:
         final_cell = tf.contrib.rnn.MultiRNNCell(cells)
     else:
         final_cell = cells[0]
+    if opt.is_attr_set("output_all_states") and opt.output_all_states:
+        final_cell = rnn_cells.OutputStateWrapper(final_cell)
     return final_cell
 
 
@@ -134,6 +139,9 @@ class BasicRNNModule(GraphModule):
 
     def _finalize(self, cell_output, final_state, *args, **kwargs):
         final_output = Bunch(cell_output=cell_output, final_state=final_state)
+        if isinstance(cell_output, rnn_cells.OutputStateTuple):
+            final_output.cell_output = cell_output.output
+            final_output.all_states = cell_output.state
         if self.initial_state is not None:
             final_output.initial_state = self.initial_state
         return final_output
