@@ -114,5 +114,7 @@ class BasicAgent(agent.Agent):
                 greedy=greedy)
             samples = np.stack(samples)
             likelihoods = np.stack(likelihoods)
+            if hasattr(data_iter, 'format_sample_output'):
+                data_iter.format_sample_output(out_batch_, samples)
             batch_outputs.append((out_batch_, samples, likelihoods))
         return batch_outputs

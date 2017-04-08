@@ -8,6 +8,7 @@ feed dictionary. The keys can be in "inputs" or "labels"
 import abc
 
 import six
+import numpy as np
 
 from seqmodel.bunch import Bunch
 from seqmodel.data.vocab import Vocabulary
@@ -103,3 +104,38 @@ class TextIterator(BatchIterator):
     def is_all_end(self, outputs):
         """ Return True, if all elements in the outputs is "end_seq" symbol """
         return False
+
+
+class RawBatchIterator(BatchIterator):
+    def __init__(self, opt, batches, batch_iter=None):
+        super(RawBatchIterator, self).__init__(opt)
+        self.data = batches
+        self.iter = batch_iter
+
+    def initialize(self, **kwargs):
+        return None
+
+    def init_batch(self, batch_size=None, no_label_seq=False):
+        self._pos = 0
+        if self.opt.shuffle:
+            self._perm = np.random.permutation(len(self.data))
+        else:
+            self._perm = np.arange(len(self.data))
+        if self.iter is not None:
+            self.iter.init_batch(batch_size)
+        self._toggle = True
+
+    def next_batch(self):
+        if self._toggle and self._pos < len(self.data):
+            batch = self.data[self._perm[self._pos]]
+            self._pos += 1
+            self._toggle = False
+            return batch
+        if self.iter is not None:
+            batch = self.iter.next_batch()
+            self._toggle = True
+            return batch
+        return None
+
+    def update_last_input(self, batch, input, **kwargs):
+        raise NotImplementedError

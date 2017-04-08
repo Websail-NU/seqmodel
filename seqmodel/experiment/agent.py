@@ -106,6 +106,7 @@ class Agent(object):
                         lr_decay_imp_ratio=0.96,
                         lr_start_decay_at=1,
                         clip_gradients=5.0,
+                        init_scale=0.04,
                         max_epochs=10))
 
     @staticmethod
@@ -167,7 +168,15 @@ class Agent(object):
         training_state.cur_eval = cur_eval
         return training_state
 
-    def initialize(self, with_training=False):
+    def initialize(self, with_training=False, init_scale=None):
+        # if init_scale is None:
+        #     if self.opt.optim.is_attr_set('init_scale'):
+        #         init_scale = self.opt.optim.init_scale
+        #     else:
+        #         init_scale = 0.1
+        # initializer = tf.random_uniform_initializer(
+        #     -init_scale, init_scale)
+        # with tf.variable_scope(self.name, initializer=initializer):
         with tf.variable_scope(self.name):
             self.eval_model, self.training_model = create_model_from_opt(
                 self.opt.model, create_training_model=with_training)
@@ -225,6 +234,10 @@ class Agent(object):
 
     def increase_max_epoch(self, increment):
         self.opt.optim.max_epochs += increment
+
+    def reset_training_state(self):
+        self._training_state = self.initial_training_state()
+        self._training_state.learning_rate = self.opt.optim.learning_rate
 
     @abc.abstractmethod
     def train(self, *args, **kwargs):

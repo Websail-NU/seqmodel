@@ -19,33 +19,10 @@
               "use_bias": true
             },
             "rnn_cell": {
-              "fast_slow": true,
-              "fast": {
-                "cell_class": "tf.contrib.rnn.BasicLSTMCell",
-                "cell_opt": {
-                  "num_units": 100
-                },
-                "input_keep_prob": 1.0,
-                "num_layers": 1,
-                "output_keep_prob": 1.0
-              },
-              "slow": {
-                "cell_class": "tf.contrib.rnn.BasicLSTMCell",
-                "cell_opt": {
-                  "num_units": 100
-                },
-                "input_keep_prob": 1.0,
-                "num_layers": 1,
-                "output_keep_prob": 1.0
-              },
-              "control": {
-                "cell_class": "tf.contrib.rnn.BasicLSTMCell",
-                "cell_opt": {
-                  "num_units": 100
-                },
-                "input_keep_prob": 1.0,
-                "num_layers": 1,
-                "output_keep_prob": 1.0
+              "cell_class": "seqmodel.model.module.rnn_cells.RSHNCell",
+              "cell_opt": {
+                "num_units": 100,
+                "depth": 3
               },
               "input_keep_prob": 1.0,
               "num_layers": 1,
@@ -74,7 +51,7 @@
       "lr_decay_wait": 1,
       "lr_min": 0.01,
       "lr_start_decay_at": 4,
-      "max_epochs": 13,
+      "max_epochs": 20,
       "name": "GradientDescentOptimizer"
     }
   },
@@ -100,7 +77,7 @@
   },
   "writeout_opt": {
     "checkpoint_dir": "model/",
-    "experiment_dir": "experiment/out",
+    "experiment_dir": "experiment/rshn_ptb",
     "log_file": "experiment.log",
     "training_state": "training_state.json",
     "report_step_every": 1000

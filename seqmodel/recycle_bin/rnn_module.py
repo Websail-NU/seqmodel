@@ -39,8 +39,23 @@ def create_rnn_cell_from_opt(opt):
     return cell_class(**opt.cell_opt)
 
 
+def get_fast_slow_cell(opt):
+    fast_cell = get_rnn_cell(opt.fast)
+    slow_cell = get_rnn_cell(opt.slow)
+    control_cell = get_rnn_cell(opt.control)
+    cell = rnn_cells.FastSlowCellWrapper(fast_cell, slow_cell, control_cell)
+    if opt.input_keep_prob < 1.0 or opt.output_keep_prob < 1.0:
+        cell = tf.contrib.rnn.DropoutWrapper(
+           cell=cell,
+           input_keep_prob=opt.input_keep_prob,
+           output_keep_prob=opt.output_keep_prob)
+    return cell
+
+
 def get_rnn_cell(opt):
     """ Create a homogenous RNN cell. """
+    if opt.is_attr_set('fast_slow'):
+        return get_fast_slow_cell(opt)
     cells = []
     for _ in range(opt.num_layers):
         cell = create_rnn_cell_from_opt(opt)
@@ -57,6 +72,9 @@ def get_rnn_cell(opt):
         final_cell = tf.contrib.rnn.MultiRNNCell(cells)
     else:
         final_cell = cells[0]
+    if opt.is_attr_set("o2i") and opt.o2i.add_o2i:
+        final_cell = rnn_cells.OutputToInputWrapper(
+            final_cell, opt.o2i.input_size, opt.o2i.use_input)
     return final_cell
 
 
@@ -64,6 +82,9 @@ def feed_state(feed_dict, state_vars, state_vals):
     if isinstance(state_vars, dict):
         for k in state_vars:
             feed_state(feed_dict, state_vars[k], state_vals[k])
+    elif isinstance(state_vars, list):
+        for var, val in zip(state_vars, state_vals):
+            feed_dict[var] = val
     else:
         feed_dict[state_vars] = state_vals
     return feed_dict

@@ -339,3 +339,16 @@ class Seq2SeqIterator(TextIterator):
                 batch.features.decoder_input[-1, i] = output_id
             else:
                 batch.features.decoder_input[i, -1] = output_id
+
+    def format_sample_output(self, batch, samples):
+        # XXX: only time major
+        batch.features.decoder_input = np.vstack(
+            [batch.features.decoder_input, samples[:-1, :]])
+        batch.features.decoder_seq_len = np.sum(samples != self.dec_pad_id, 0)
+        batch.features.decoder_seq_len += 1
+        batch.features.decoder_seq_len *= batch.features.encoder_seq_len != 0
+        batch.labels.decoder_label = np.vstack(samples)
+        batch.labels.decoder_label_weight =\
+            (batch.features.decoder_input != self.dec_pad_id).astype(
+                np.float32)
+        batch.num_tokens = np.sum(batch.features.decoder_seq_len)
