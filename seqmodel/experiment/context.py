@@ -140,8 +140,7 @@ class Context(object):
 
     def report_epoch(self, training_state, training_info=None,
                      validation_info=None, context=None, **kwargs):
-        report = ['ep: {} lr: {:.6f}'.format(
-            training_state.cur_epoch, training_state.learning_rate)]
+        report = []
         info = None
         if training_info is not None:
             report.append('train: {:.5f} ({:.5f}) ({:.5f})'.format(
@@ -154,7 +153,10 @@ class Context(object):
                 validation_info.cost / validation_info.num_tokens,
                 np.exp(validation_info.cost / validation_info.num_tokens)))
             info = validation_info
-        self._logger.info(' '.join(report))
+        if len(report) > 0:
+            self._logger.info(' '.join(report))
+        self._logger.info('ep: {} lr: {:.6f}'.format(
+            training_state.cur_epoch, training_state.learning_rate))
         if not hasattr(self, 'tf_saver'):
             self.tf_saver = tf.train.Saver()
         if training_state.cur_epoch > 0:

@@ -17,7 +17,9 @@ def default_rnn_cell_opt():
                  cell_opt=Bunch(num_units=128),
                  input_keep_prob=1.0,
                  output_keep_prob=1.0,
-                 num_layers=1)
+                 num_layers=1,
+                 vrrn=False,
+                 output_all_states=False)
 
 
 def no_dropout_if_not_training(rnn_cell_opt, is_training):
@@ -50,8 +52,9 @@ def get_rnn_cell(opt):
                input_keep_prob=opt.input_keep_prob,
                output_keep_prob=opt.output_keep_prob)
         cells.append(cell)
-    if opt.num_layers > 1 and opt.is_attr_set('vrrn') and opt.vrrn:
-        final_cell = rnn_cells.VRRNWrapper(cells)
+    if opt.is_attr_set('vrrn') and opt.vrrn:
+        vrrn_opt = opt.get('vrrn_opt', Bunch())
+        final_cell = rnn_cells.VRRNWrapper(cells, **vrrn_opt)
         if opt.output_keep_prob < 1.0:
             final_cell = tf.contrib.rnn.DropoutWrapper(
                cell=final_cell,

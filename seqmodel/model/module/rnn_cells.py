@@ -3,6 +3,7 @@ A collection of RNN cells and wrappers
 """
 import collections
 
+import six
 import tensorflow as tf
 from tensorflow.contrib.rnn import RNNCell
 
@@ -21,10 +22,14 @@ class VRRNStateTuple(_VRRNStateTuple):
 
 
 class VRRNWrapper(RNNCell):
-    def __init__(self, cells, activation=tf.tanh, reuse=None):
+    def __init__(self, cells, activation=tf.tanh,
+                 block_input=False, reuse=None):
         self._cells = cells
         self._reuse = reuse
+        if isinstance(activation, six.string_types):
+            activation = eval(activation)
         self._act_fn = activation
+        self._block_input = block_input
 
     @property
     def state_size(self):
@@ -42,15 +47,16 @@ class VRRNWrapper(RNNCell):
         states, output_state = state
         new_states = []
         for i, cell in enumerate(self._cells):
-            with tf.variable_scope('vrhn_{}'.format(i), reuse=self._reuse):
+            with tf.variable_scope('vrrn_{}'.format(i), reuse=self._reuse):
                 res_output, res_state = cell(inputs, states[i])
                 new_states.append(res_state)
-                # if i == 0:
-                #     output_state = res_output
-                # else:
-                #     output_state = self._act_fn(output_state + res_output)
-                # output_state = self._act_fn(output_state + res_output)
-                output_state = self._act_fn(inputs + res_output)
+                if self._block_input:
+                    if i == 0:
+                        output_state = res_output
+                    else:
+                        output_state = self._act_fn(output_state + res_output)
+                else:
+                    output_state = self._act_fn(inputs + res_output)
                 inputs = output_state
         return output_state, VRRNStateTuple(tuple(new_states), output_state)
 
