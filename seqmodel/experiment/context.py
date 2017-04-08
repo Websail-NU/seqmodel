@@ -97,8 +97,11 @@ class Context(object):
             for s_key in opt:
                 if s_key.endswith('_source') and s_key != 'data_source':
                     file_key = s_key[0:-7] + '_files'
-                    opt[s_key] = os.path.join(
-                        data_dir, kwargs[file_key][key])
+                    if file_key in kwargs:
+                        opt[s_key] = os.path.join(
+                            data_dir, kwargs[file_key][key])
+                    else:
+                        opt[s_key] = ""
             iterators[key] = iter_class_(opt, **vocab_kwargs)
         return iterators
 
@@ -141,9 +144,10 @@ class Context(object):
             training_state.cur_epoch, training_state.learning_rate)]
         info = None
         if training_info is not None:
-            report.append('train: {:.5f} ({:.5f})'.format(
+            report.append('train: {:.5f} ({:.5f}) ({:.5f})'.format(
                 training_info.cost / training_info.num_tokens,
-                np.exp(training_info.cost / training_info.num_tokens)))
+                np.exp(training_info.cost / training_info.num_tokens),
+                training_info.training_cost / training_info.num_tokens))
             info = training_info
         if validation_info is not None:
             report.append('val: {:.5f} ({:.5f})'.format(

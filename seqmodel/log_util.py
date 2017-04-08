@@ -1,3 +1,4 @@
+import os
 import logging as py_logging
 
 
@@ -5,7 +6,7 @@ def _check_file_handler(logger, filepath):
     for handler in logger.handlers:
         if isinstance(handler, py_logging.FileHandler):
             handler.baseFilename
-            return handler.baseFilename == ps.path.abspath(filepath)
+            return handler.baseFilename == os.path.abspath(filepath)
     return False
 
 

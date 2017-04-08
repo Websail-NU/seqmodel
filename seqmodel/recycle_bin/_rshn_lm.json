@@ -19,12 +19,13 @@
               "use_bias": true
             },
             "rnn_cell": {
-              "cell_class": "tf.contrib.rnn.BasicLSTMCell",
+              "cell_class": "seqmodel.model.module.rnn_cells.RSHNCell",
               "cell_opt": {
-                "num_units": 100
+                "num_units": 100,
+                "depth": 3
               },
               "input_keep_prob": 1.0,
-              "num_layers": 2,
+              "num_layers": 1,
               "output_keep_prob": 1.0
             },
             "time_major": true
@@ -49,8 +50,8 @@
       "lr_decay_imp_ratio": 0.96,
       "lr_decay_wait": 1,
       "lr_min": 0.01,
-      "lr_start_decay_at": 2,
-      "max_epochs": 13,
+      "lr_start_decay_at": 4,
+      "max_epochs": 20,
       "name": "GradientDescentOptimizer"
     }
   },
@@ -76,7 +77,7 @@
   },
   "writeout_opt": {
     "checkpoint_dir": "model/",
-    "experiment_dir": "experiment/tmp2",
+    "experiment_dir": "experiment/rshn_ptb",
     "log_file": "experiment.log",
     "training_state": "training_state.json",
     "report_step_every": 1000

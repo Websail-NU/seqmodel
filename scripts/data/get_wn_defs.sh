@@ -14,7 +14,7 @@ fi
 
 echo "[2/3] Copying files..."
 DIR="../../data/common_wordnet_defs"
-DATA_NAMES="first_senses all_senses"
+DATA_NAMES="first_senses lemma_senses all_senses"
 for N in $DATA_NAMES; do
   mkdir -p $DIR"/"$N
   cp "_cached/common_wordnet_defs/function_words.txt" $DIR"/"$N"/"
@@ -23,6 +23,7 @@ SPLITS="train valid test"
 for SPLIT in $SPLITS; do
   cp "_cached/common_wordnet_defs/"$SPLIT".txt" $DIR"/all_senses/"$SPLIT".txt"
   grep -P '\t1\t' $DIR"/all_senses/"$SPLIT".txt" > $DIR"/first_senses/"$SPLIT".txt"
+  grep -P '\tlemma\t' $DIR"/all_senses/"$SPLIT".txt" > $DIR"/lemma_senses/"$SPLIT".txt"
 done
 
 echo "[3/3] Preprocessing..."

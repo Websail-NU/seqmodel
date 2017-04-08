@@ -39,8 +39,23 @@ def create_rnn_cell_from_opt(opt):
     return cell_class(**opt.cell_opt)
 
 
+def get_fast_slow_cell(opt):
+    fast_cell = get_rnn_cell(opt.fast)
+    slow_cell = get_rnn_cell(opt.slow)
+    control_cell = get_rnn_cell(opt.control)
+    cell = rnn_cells.FastSlowCellWrapper(fast_cell, slow_cell, control_cell)
+    if opt.input_keep_prob < 1.0 or opt.output_keep_prob < 1.0:
+        cell = tf.contrib.rnn.DropoutWrapper(
+           cell=cell,
+           input_keep_prob=opt.input_keep_prob,
+           output_keep_prob=opt.output_keep_prob)
+    return cell
+
+
 def get_rnn_cell(opt):
     """ Create a homogenous RNN cell. """
+    if opt.is_attr_set('fast_slow'):
+        return get_fast_slow_cell(opt)
     cells = []
     for _ in range(opt.num_layers):
         cell = create_rnn_cell_from_opt(opt)
@@ -50,18 +65,16 @@ def get_rnn_cell(opt):
                input_keep_prob=opt.input_keep_prob,
                output_keep_prob=opt.output_keep_prob)
         cells.append(cell)
-    if opt.num_layers > 1 and opt.is_attr_set('vrrn') and opt.vrrn:
+    if opt.num_layers > 1 and opt.is_attr_set('hn'):
         final_cell = rnn_cells.VRRNWrapper(cells)
-        if opt.output_keep_prob < 1.0:
-            final_cell = tf.contrib.rnn.DropoutWrapper(
-               cell=final_cell,
-               output_keep_prob=opt.output_keep_prob)
-    elif opt.num_layers > 1:
+        return final_cell
+    if opt.num_layers > 1:
         final_cell = tf.contrib.rnn.MultiRNNCell(cells)
     else:
         final_cell = cells[0]
-    if opt.is_attr_set("output_all_states") and opt.output_all_states:
-        final_cell = rnn_cells.OutputStateWrapper(final_cell)
+    if opt.is_attr_set("o2i") and opt.o2i.add_o2i:
+        final_cell = rnn_cells.OutputToInputWrapper(
+            final_cell, opt.o2i.input_size, opt.o2i.use_input)
     return final_cell
 
 
@@ -69,6 +82,9 @@ def feed_state(feed_dict, state_vars, state_vals):
     if isinstance(state_vars, dict):
         for k in state_vars:
             feed_state(feed_dict, state_vars[k], state_vals[k])
+    elif isinstance(state_vars, list):
+        for var, val in zip(state_vars, state_vals):
+            feed_dict[var] = val
     else:
         feed_dict[state_vars] = state_vals
     return feed_dict
@@ -139,9 +155,6 @@ class BasicRNNModule(GraphModule):
 
     def _finalize(self, cell_output, final_state, *args, **kwargs):
         final_output = Bunch(cell_output=cell_output, final_state=final_state)
-        if isinstance(cell_output, rnn_cells.OutputStateTuple):
-            final_output.cell_output = cell_output.output
-            final_output.all_states = cell_output.state
         if self.initial_state is not None:
             final_output.initial_state = self.initial_state
         return final_output

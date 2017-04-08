@@ -25,7 +25,9 @@
               },
               "input_keep_prob": 1.0,
               "num_layers": 2,
-              "output_keep_prob": 1.0
+              "output_keep_prob": 1.0,
+              "vrrn": true,
+              "output_all_states": true
             },
             "time_major": true
           },
@@ -76,7 +78,7 @@
   },
   "writeout_opt": {
     "checkpoint_dir": "model/",
-    "experiment_dir": "experiment/tmp2",
+    "experiment_dir": "experiment/tmp",
     "log_file": "experiment.log",
     "training_state": "training_state.json",
     "report_step_every": 1000

@@ -1,9 +1,12 @@
 import abc
 
 import six
+from pydoc import locate
+import tensorflow as tf
 
 from seqmodel.bunch import Bunch
 from seqmodel.model.module.graph_module import GraphModule
+from seqmodel.model.module.rnn_module import BasicRNNModule
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -55,19 +58,19 @@ class RNNDecoder(Decoder):
                 A Bunch containing RNN outputs and states
         """
         initial_state = None
+        zero_initial_state = True
         if self.opt.init_with_encoder_state:
             initial_state = context.final_state
-            self.rnn = rnn_module(inputs, sequence_length,
-                                  context=context_for_rnn,
-                                  initial_state=initial_state, *args, **kwargs)
-        else:
-            self.rnn = rnn_module(inputs, sequence_length,
-                                  context=context_for_rnn,
-                                  create_zero_initial_state=True,
-                                  *args, **kwargs)
-        return Bunch(rnn=self.rnn,
-                     initial_state=self.rnn.initial_state,
-                     final_state=self.rnn.final_state,
-                     logit=self.rnn.logit,
-                     logit_temperature=self.rnn.logit_temperature,
-                     distribution=self.rnn.distribution)
+            zero_initial_state = False
+        self.rnn = rnn_module(inputs, sequence_length,
+                              context=context_for_rnn,
+                              create_zero_initial_state=zero_initial_state,
+                              initial_state=initial_state, *args, **kwargs)
+        outputs = Bunch(rnn=self.rnn,
+                        initial_state=self.rnn.initial_state,
+                        final_state=self.rnn.final_state)
+        if self.rnn.is_attr_set('logit'):
+            outputs.logit = self.rnn.logit,
+            outputs.logit_temperature = self.rnn.logit_temperature,
+            outputs.distribution = self.rnn.distribution
+        return outputs

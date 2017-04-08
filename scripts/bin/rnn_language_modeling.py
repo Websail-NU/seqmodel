@@ -16,7 +16,7 @@ from seqmodel import data
 
 def main():
     start_time = time.time()
-    context_config_filepath = 'config/lm_template.json'
+    context_config_filepath = sys.argv[1]
     # sess_config = tf.ConfigProto(device_count={'GPU': 0})
     # sess = tf.Session(config = sess_config)
     with tf.Session() as sess:

@@ -95,7 +95,7 @@ class SeqModel(ModelBase):
                 feed_dict
         """
         feed_dict = ModelBase.map_feeddict(
-            model, data, no_labels=is_sampling)
+            model, data, no_labels=is_sampling, **kwargs)
         if is_sampling:
             return feed_dict
         if training_loss_denom is not None and 'losses' in model:

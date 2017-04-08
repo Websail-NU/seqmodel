@@ -19,7 +19,7 @@
               "use_bias": true
             },
             "rnn_cell": {
-              "cell_class": "GRUCell",
+              "cell_class": "tf.contrib.rnn.GRUCell",
               "cell_opt": {
                 "num_units": 200
               },

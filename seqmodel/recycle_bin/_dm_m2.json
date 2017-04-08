@@ -14,18 +14,42 @@
             "create_zero_initial_state": false,
             "logit": {
               "name_prefix": "logit",
-              "out_vocab_size": 27030,
+              "out_vocab_size": 27665,
               "trainable": true,
               "use_bias": true
             },
             "rnn_cell": {
-              "cell_class": "tf.contrib.rnn.BasicLSTMCell",
-              "cell_opt": {
-                "num_units": 128
+              "fast_slow": true,
+              "fast": {
+                "cell_class": "tf.contrib.rnn.BasicLSTMCell",
+                "cell_opt": {
+                  "num_units": 300
+                },
+                "input_keep_prob": 1.0,
+                "num_layers": 1,
+                "output_keep_prob": 1.0
               },
-              "input_keep_prob": 1.0,
+              "slow": {
+                "cell_class": "tf.contrib.rnn.BasicLSTMCell",
+                "cell_opt": {
+                  "num_units": 300
+                },
+                "input_keep_prob": 1.0,
+                "num_layers": 1,
+                "output_keep_prob": 1.0
+              },
+              "control": {
+                "cell_class": "tf.contrib.rnn.BasicLSTMCell",
+                "cell_opt": {
+                  "num_units": 300
+                },
+                "input_keep_prob": 0.75,
+                "num_layers": 1,
+                "output_keep_prob": 0.75
+              },
+              "input_keep_prob": 0.75,
               "num_layers": 1,
-              "output_keep_prob": 1.0
+              "output_keep_prob": 0.5
             },
             "time_major": true,
             "transform_input_mode": "ignored",
@@ -43,36 +67,60 @@
           "char_trainable": true,
           "char_vocab_size": 28,
           "char_init_filepath": null,
-          "decoder_dim": 128,
-          "decoder_trainable": true,
-          "decoder_vocab_size": 27030,
-          "decoder_init_filepath": null,
-          "encoder_dim": 128,
-          "encoder_trainable": true,
-          "encoder_vocab_size": 46052,
-          "encoder_init_filepath": null,
-          "word_feature_dim": 128,
+          "decoder_dim": 300,
+          "decoder_trainable": false,
+          "decoder_vocab_size": 27665,
+          "decoder_init_filepath": "../../data/common_wordnet_defs/lemma_senses/dec_emb.cpkl",
+          "encoder_dim": 300,
+          "encoder_trainable": false,
+          "encoder_vocab_size": 31267,
+          "encoder_init_filepath": "../../data/common_wordnet_defs/lemma_senses/enc_emb.cpkl",
+          "word_feature_dim": 300,
           "word_feature_trainable": true,
-          "word_feature_vocab_size": 27030,
+          "word_feature_vocab_size": 27665,
           "word_feature_init_filepath": null
         },
         "encoder": {
           "class_name": "seqmodel.model.encoder.DefWordEncoder",
           "opt": {
-            "word_info_keep_prob": 1.0
+            "word_info_keep_prob": 0.5
           },
           "rnn_class_name": "seqmodel.model.rnn_module.BasicRNNModule",
           "rnn_opt": {
             "create_zero_initial_state": false,
             "logit": null,
             "rnn_cell": {
-              "cell_class": "tf.contrib.rnn.BasicLSTMCell",
-              "cell_opt": {
-                "num_units": 128
+              "fast_slow": true,
+              "fast": {
+                "cell_class": "tf.contrib.rnn.BasicLSTMCell",
+                "cell_opt": {
+                  "num_units": 300
+                },
+                "input_keep_prob": 1.0,
+                "num_layers": 1,
+                "output_keep_prob": 1.0
               },
-              "input_keep_prob": 1.0,
+              "slow": {
+                "cell_class": "tf.contrib.rnn.BasicLSTMCell",
+                "cell_opt": {
+                  "num_units": 300
+                },
+                "input_keep_prob": 1.0,
+                "num_layers": 1,
+                "output_keep_prob": 1.0
+              },
+              "control": {
+                "cell_class": "tf.contrib.rnn.BasicLSTMCell",
+                "cell_opt": {
+                  "num_units": 300
+                },
+                "input_keep_prob": 0.75,
+                "num_layers": 1,
+                "output_keep_prob": 0.75
+              },
+              "input_keep_prob": 0.75,
               "num_layers": 1,
-              "output_keep_prob": 1.0
+              "output_keep_prob": 0.5
             },
             "time_major": true
           },
@@ -97,25 +145,25 @@
         "word_context": {
           "share_feature_dec_embedding": true,
           "use_chars": true,
-          "use_features": true,
+          "use_features": false,
           "use_word": true
         }
       }
     },
     "optim": {
       "clip_gradients": 5.0,
-      "learning_rate": 0.0001,
+      "learning_rate": 0.5,
       "lr_decay_every": -1,
-      "lr_decay_factor": 0.8,
-      "lr_decay_imp_ratio": 0.96,
-      "lr_decay_wait": 4,
-      "lr_min": 1e-06,
+      "lr_decay_factor": 0.5,
+      "lr_decay_imp_ratio": 0.98,
+      "lr_decay_wait": 2,
+      "lr_min": 0.1,
       "lr_start_decay_at": 1,
-      "max_epochs": 10,
-      "name": "AdamOptimizer"
+      "max_epochs": 30,
+      "name": "GradientDescentOptimizer"
     }
   },
-  "data_dir": "../../data/common_wordnet_defs/all_senses/",
+  "data_dir": "../../data/common_wordnet_defs/lemma_senses/",
   "data_files": {
     "test": "test.txt",
     "train": "train.txt",
@@ -158,7 +206,7 @@
   },
   "writeout_opt": {
     "checkpoint_dir": "model/",
-    "experiment_dir": "experiment/out",
+    "experiment_dir": "experiment/lemma_senses/m2",
     "log_file": "experiment.log",
     "report_step_every": 1000,
     "training_state": "training_state.json"

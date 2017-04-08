@@ -106,6 +106,7 @@ class Agent(object):
                         lr_decay_imp_ratio=0.96,
                         lr_start_decay_at=1,
                         clip_gradients=5.0,
+                        init_scale=0.04,
                         max_epochs=10))
 
     @staticmethod
@@ -150,7 +151,7 @@ class Agent(object):
     @staticmethod
     def is_training_done(optim_opt, training_state):
         # current epoch reaches max epochs
-        if training_state.cur_epoch == optim_opt.max_epochs:
+        if training_state.cur_epoch >= optim_opt.max_epochs:
             return True
         # early stopping
         if training_state.imp_wait >= optim_opt.lr_decay_wait:
@@ -167,7 +168,15 @@ class Agent(object):
         training_state.cur_eval = cur_eval
         return training_state
 
-    def initialize(self, with_training=False):
+    def initialize(self, with_training=False, init_scale=None):
+        # if init_scale is None:
+        #     if self.opt.optim.is_attr_set('init_scale'):
+        #         init_scale = self.opt.optim.init_scale
+        #     else:
+        #         init_scale = 0.1
+        # initializer = tf.random_uniform_initializer(
+        #     -init_scale, init_scale)
+        # with tf.variable_scope(self.name, initializer=initializer):
         with tf.variable_scope(self.name):
             self.eval_model, self.training_model = create_model_from_opt(
                 self.opt.model, create_training_model=with_training)
@@ -178,10 +187,11 @@ class Agent(object):
                 self.train_op, self.lr = self._build_train_op(
                     self.training_model.losses.training_loss)
 
-    def _build_train_op(self, loss):
+    def _build_train_op(self, loss, lr=None):
         """ Create training operation and learning rate variable"""
-        lr = tf.Variable(self.opt.optim.learning_rate, trainable=False,
-                         name='learning_rate')
+        if lr is None:
+            lr = tf.Variable(self.opt.optim.learning_rate, trainable=False,
+                             name='learning_rate')
         global_step = tf.contrib.framework.get_or_create_global_step()
         optimizer = get_optimizer(lr, self.opt.optim.name)
         # l2_loss_weight = opt.get('l2_loss_weight', 0.0)
@@ -221,6 +231,13 @@ class Agent(object):
             report.append('val: {:.5f}'.format(
                 validation_info.cost / validation_info.num_tokens))
         self._logger.info(' '.join(report))
+
+    def increase_max_epoch(self, increment):
+        self.opt.optim.max_epochs += increment
+
+    def reset_training_state(self):
+        self._training_state = self.initial_training_state()
+        self._training_state.learning_rate = self.opt.optim.learning_rate
 
     @abc.abstractmethod
     def train(self, *args, **kwargs):
