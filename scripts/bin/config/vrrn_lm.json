@@ -21,7 +21,7 @@
             "rnn_cell": {
               "cell_class": "tf.contrib.rnn.BasicLSTMCell",
               "cell_opt": {
-                "num_units": 100
+                "num_units": 200
               },
               "input_keep_prob": 1.0,
               "num_layers": 2,
@@ -37,7 +37,7 @@
         },
         "embedding": {
           "in_vocab_size": 10000,
-          "dim": 100,
+          "dim": 200,
           "trainable": true,
           "init_filepath": null
         }

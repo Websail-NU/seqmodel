@@ -18,6 +18,7 @@ from seqmodel.model import graph_util
 from seqmodel.model import rnn_module as rnn_module
 from seqmodel.model import decoder as decoder_module
 from seqmodel.model.model_base import ModelBase
+from seqmodel.model.losses import xent_loss
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -57,30 +58,9 @@ class SeqModel(ModelBase):
         return model
 
     def compute_loss(self, decoder_output, _features, labels):
-        return SeqModel.xent_loss(
+        return xent_loss(
             decoder_output.logit, labels.label,
             labels.label_weight)
-
-    @staticmethod
-    def xent_loss(logit, label, weight):
-        """
-        Compute negative likelihood (cross-entropy loss)
-        Return:
-            batch losses
-            traning loss: NLL / batch size
-            eval loss: average NLL
-        """
-        # Internally logits and labels are reshaped into 2D and 1D...
-        loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
-            logits=logit, labels=label)
-        sum_loss = tf.reduce_sum(tf.multiply(
-            loss, weight))
-        loss_denom = tf.placeholder_with_default(
-            1.0, shape=None, name="training_loss_denom")
-        training_loss = tf.div(sum_loss, loss_denom)
-        mean_loss = tf.div(
-            sum_loss, tf.reduce_sum(weight) + 1e-12)
-        return loss, training_loss, loss_denom, mean_loss
 
     @staticmethod
     def map_feeddict(model, data, is_sampling=False, training_loss_denom=None,

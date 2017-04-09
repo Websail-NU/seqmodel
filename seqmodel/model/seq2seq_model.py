@@ -20,6 +20,7 @@ from seqmodel.model import encoder as encoder_module
 from seqmodel.model import decoder as decoder_module
 from seqmodel.model.model_base import ModelBase
 from seqmodel.model import seq_model
+from seqmodel.model.losses import xent_loss
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -62,7 +63,7 @@ class Seq2SeqModel(seq_model.SeqModel):
         return model
 
     def compute_loss(self, decoder_output, _features, labels):
-        return seq_model.SeqModel.xent_loss(
+        return xent_loss(
             decoder_output.logit, labels.decoder_label,
             labels.decoder_label_weight)
 
