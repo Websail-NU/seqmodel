@@ -106,8 +106,11 @@ class Context(object):
         return iterators
 
     @staticmethod
-    def from_config_file(sess, filepath):
+    def from_config_file(sess, filepath, experiment_subdir=None):
         opt = Bunch.from_json_file(filepath)
+        if experiment_subdir is not None:
+            opt.writeout_opt.experiment_dir = os.path.join(
+                opt.writeout_opt.experiment_dir, experiment_subdir)
         out_context = Context(sess, **opt)
         return out_context
 
@@ -166,3 +169,8 @@ class Context(object):
             if self._best_eval > training_state.best_eval:
                 self.tf_saver.save(self.sess, self._best_checkpoint_path)
                 self._best_eval = training_state.best_eval
+
+    def load_best_model(self):
+        if not hasattr(self, 'tf_saver'):
+            self.tf_saver = tf.train.Saver()
+        self.tf_saver.restore(self.sess, self._best_checkpoint_path)

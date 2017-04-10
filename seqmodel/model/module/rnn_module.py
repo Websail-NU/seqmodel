@@ -44,18 +44,24 @@ def create_rnn_cell_from_opt(opt):
 def get_rnn_cell(opt):
     """ Create a homogenous RNN cell. """
     cells = []
-    for _ in range(opt.num_layers):
+    for layer in range(opt.num_layers):
         cell = create_rnn_cell_from_opt(opt)
-        if opt.input_keep_prob < 1.0 or opt.output_keep_prob < 1.0:
+        input_keep_prob = opt.input_keep_prob
+        # in general, only the first layer of cell need an input dropout
+        # if not VRRN
+        if layer > 0 and not opt.get('vrrn', False):
+            input_keep_prob = 1.0
+        if input_keep_prob < 1.0 or opt.output_keep_prob < 1.0:
             cell = tf.contrib.rnn.DropoutWrapper(
                cell=cell,
-               input_keep_prob=opt.input_keep_prob,
+               input_keep_prob=input_keep_prob,
                output_keep_prob=opt.output_keep_prob)
         cells.append(cell)
     if opt.is_attr_set('vrrn') and opt.vrrn:
         vrrn_opt = opt.get('vrrn_opt', Bunch())
         final_cell = rnn_cells.VRRNWrapper(cells, **vrrn_opt)
         if opt.output_keep_prob < 1.0:
+            # because of addition, we need another dropout
             final_cell = tf.contrib.rnn.DropoutWrapper(
                cell=final_cell,
                output_keep_prob=opt.output_keep_prob)

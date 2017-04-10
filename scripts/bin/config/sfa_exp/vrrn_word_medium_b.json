@@ -1,0 +1,90 @@
+{
+  "agent_class": "seqmodel.experiment.basic_agent.BasicAgent",
+  "agent_opt": {
+    "model": {
+      "model_class": "seqmodel.model.seq_model.BasicSeqModel",
+      "model_opt": {
+        "decoder": {
+          "class_name": "seqmodel.model.decoder.RNNDecoder",
+          "opt": {
+            "init_with_encoder_state": false
+          },
+          "rnn_class_name": "seqmodel.model.rnn_module.BasicRNNModule",
+          "rnn_opt": {
+            "create_zero_initial_state": true,
+            "logit": {
+              "name_prefix": "logit",
+              "out_vocab_size": 10000,
+              "trainable": true,
+              "use_bias": true
+            },
+            "rnn_cell": {
+              "cell_class": "tf.contrib.rnn.BasicLSTMCell",
+              "cell_opt": {
+                "num_units": 650
+              },
+              "input_keep_prob": 0.5,
+              "num_layers": 2,
+              "output_keep_prob": 0.5,
+              "vrrn": true,
+              "vrrn_opt": {
+                "block_input": true
+              },
+              "output_all_states": false
+            },
+            "time_major": true
+          },
+          "share": {
+            "logit_weight_tying": false
+          }
+        },
+        "embedding": {
+          "in_vocab_size": 10000,
+          "dim": 650,
+          "trainable": true,
+          "init_filepath": null
+        }
+      }
+    },
+    "optim": {
+      "init_scale": 0.05,
+      "clip_gradients": 5.0,
+      "learning_rate": 1.0,
+      "lr_decay_every": 1,
+      "lr_decay_factor": 0.8,
+      "lr_decay_imp_ratio": 0.96,
+      "lr_decay_wait": 1,
+      "lr_min": 0.01,
+      "lr_start_decay_at": 10,
+      "max_epochs": 39,
+      "name": "GradientDescentOptimizer"
+    }
+  },
+  "data_dir": "../../data/ptb/",
+  "data_files": {
+    "test": "test.txt",
+    "train": "train.txt",
+    "valid": "valid.txt"
+  },
+  "iterator_class": "seqmodel.data.TokenIterator",
+  "iterator_opt": {
+    "_add_end_seq": true,
+    "_add_start_seq": false,
+    "data_source": "",
+    "sequence_length": 35,
+    "shuffle": true,
+    "time_major": true,
+    "truncate_batch": false
+  },
+  "vocab_files": {
+    "in_vocab": "vocab.txt",
+    "out_vocab": "vocab.txt"
+  },
+  "writeout_opt": {
+    "checkpoint_dir": "model/",
+    "experiment_dir": "experiment/sfa/vrrn_word_medium_b",
+    "log_file": "experiment.log",
+    "training_state": "training_state.json",
+    "report_step_every": 1000
+  }
+}
