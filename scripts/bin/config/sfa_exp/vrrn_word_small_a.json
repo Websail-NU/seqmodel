@@ -21,15 +21,12 @@
             "rnn_cell": {
               "cell_class": "tf.contrib.rnn.BasicLSTMCell",
               "cell_opt": {
-                "num_units": 650
+                "num_units": 200
               },
-              "input_keep_prob": 0.5,
+              "input_keep_prob": 1.0,
               "num_layers": 2,
-              "output_keep_prob": 0.5,
+              "output_keep_prob": 1.0,
               "vrrn": true,
-              "vrrn_opt": {
-                "block_input": true
-              },
               "output_all_states": false
             },
             "time_major": true
@@ -40,23 +37,22 @@
         },
         "embedding": {
           "in_vocab_size": 10000,
-          "dim": 650,
+          "dim": 200,
           "trainable": true,
           "init_filepath": null
         }
       }
     },
     "optim": {
-      "init_scale": 0.05,
       "clip_gradients": 5.0,
-      "learning_rate": 1.0,
+      "learning_rate": 0.8,
       "lr_decay_every": 1,
-      "lr_decay_factor": 0.8,
+      "lr_decay_factor": 0.5,
       "lr_decay_imp_ratio": 0.96,
       "lr_decay_wait": 1,
       "lr_min": 0.01,
-      "lr_start_decay_at": 10,
-      "max_epochs": 39,
+      "lr_start_decay_at": 2,
+      "max_epochs": 13,
       "name": "GradientDescentOptimizer"
     }
   },
@@ -71,7 +67,7 @@
     "_add_end_seq": true,
     "_add_start_seq": false,
     "data_source": "",
-    "sequence_length": 35,
+    "sequence_length": 20,
     "shuffle": true,
     "time_major": true,
     "truncate_batch": false
@@ -82,7 +78,7 @@
   },
   "writeout_opt": {
     "checkpoint_dir": "model/",
-    "experiment_dir": "experiment/sfa/vrrn_word_medium_b",
+    "experiment_dir": "experiment/sfa/vrrn_word_small_a",
     "log_file": "experiment.log",
     "training_state": "training_state.json",
     "report_step_every": 1000

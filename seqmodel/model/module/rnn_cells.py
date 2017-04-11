@@ -6,30 +6,27 @@ import collections
 import six
 import tensorflow as tf
 from tensorflow.contrib.rnn import RNNCell
+from seqmodel.model.module.tf_rnn_cells import *
 
 
-_VRRNStateTuple = collections.namedtuple(
-    "VRRNStateTuple", ("cell_states", "output_state"))
+_ParallelCellStateTuple = collections.namedtuple(
+    "ParallelCellStateTuple", ("mixer_state", "para_states"))
 
 
-class VRRNStateTuple(_VRRNStateTuple):
+class ParallelCellStateTuple(_ParallelCellStateTuple):
     __slots__ = ()
 
     @property
     def dtype(self):
-        cell_states, output_state = self
-        return output_state.dtype
+        mixer_state, para_states = self
+        return mixer_state.dtype
 
 
-class VRRNWrapper(RNNCell):
-    def __init__(self, cells, activation=tf.tanh,
-                 block_input=False, reuse=None):
-        self._cells = cells
+class ParallelCellWrapper(RNNCell):
+    def __init__(self, cells, reuse=None):
+        self._cells = cells[1:]
+        self._mixer = cells[0]
         self._reuse = reuse
-        if isinstance(activation, six.string_types):
-            activation = eval(activation)
-        self._act_fn = activation
-        self._block_input = block_input
 
     @property
     def state_size(self):
@@ -37,28 +34,26 @@ class VRRNWrapper(RNNCell):
         for cell in self._cells:
             states.append(cell.state_size)
         states = tuple(states)
-        return VRRNStateTuple(states, self.output_size)
+        return ParallelCellStateTuple(self._mixer.state_size, states)
 
     @property
     def output_size(self):
-        return self._cells[0].output_size
+        return self._mixer.output_size
 
     def __call__(self, inputs, state, scope=None):
-        states, output_state = state
-        new_states = []
+        mixer_state, para_states = state
+        res_states = []
+        res_outputs = []
         for i, cell in enumerate(self._cells):
-            with tf.variable_scope('vrrn_{}'.format(i), reuse=self._reuse):
-                res_output, res_state = cell(inputs, states[i])
-                new_states.append(res_state)
-                if self._block_input:
-                    if i == 0:
-                        output_state = res_output
-                    else:
-                        output_state = self._act_fn(output_state + res_output)
-                else:
-                    output_state = self._act_fn(inputs + res_output)
-                inputs = output_state
-        return output_state, VRRNStateTuple(tuple(new_states), output_state)
+            with tf.variable_scope('pcell_{}'.format(i), reuse=self._reuse):
+                res_output, res_state = cell(inputs, para_states[i])
+                res_states.append(res_state)
+                res_outputs.append(res_output)
+        with tf.variable_scope('mcell', reuse=self._reuse):
+            inputs = tf.concat(res_outputs, axis=-1)
+            res_m_output, res_m_state = self._mixer(inputs, mixer_state)
+        return res_m_output, ParallelCellStateTuple(
+            res_m_state, tuple(res_states))
 
 
 _OutputStateTuple = collections.namedtuple("OutputStateTuple",

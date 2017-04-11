@@ -61,6 +61,9 @@ class ModelBase(object):
         feed_dict = _custom_feed
         if feed_dict is None:
             feed_dict = {}
+        for key in feed_dict:
+            if callable(feed_dict[key]):
+                feed_dict[key] = feed_dict[key](data)
         if not no_features:
             for k in model.feed.features:
                 if k in data.features:
@@ -72,10 +75,13 @@ class ModelBase(object):
         return feed_dict
 
     @staticmethod
-    def get_fetch(model, **kwargs):
+    def get_fetch(model, _custom_fetch=None, **kwargs):
         """ Create an empty fetch dictionary
 
             Returns:
                 fetch
         """
-        return Bunch(model.losses)
+        fetch = _custom_fetch
+        if fetch is None:
+            fetch = Bunch()
+        return fetch

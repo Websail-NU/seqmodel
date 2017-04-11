@@ -180,12 +180,21 @@ class Agent(object):
         with tf.variable_scope(self.name):
             self.eval_model, self.training_model = create_model_from_opt(
                 self.opt.model, create_training_model=with_training)
-            if with_training:
-                self._training_state = self.initial_training_state()
-                self._training_state.learning_rate =\
-                    self.opt.optim.learning_rate
-                self.train_op, self.lr = self._build_train_op(
-                    self.training_model.losses.training_loss)
+            # if with_training:
+            #     self._training_state = self.initial_training_state()
+            #     self._training_state.learning_rate =\
+            #         self.opt.optim.learning_rate
+            #     self.train_op, self.lr = self._build_train_op(
+            #         self.training_model.losses.training_loss)
+
+    def initialize_optim(self, loss=None, lr=None):
+        self._training_state = self.initial_training_state()
+        self._training_state.learning_rate =\
+            self.opt.optim.learning_rate
+        if loss is None:
+            loss = self.training_model.losses.training_loss
+        self.train_op, self.lr = self._build_train_op(
+            loss, lr=lr)
 
     def _build_train_op(self, loss, lr=None):
         """ Create training operation and learning rate variable"""

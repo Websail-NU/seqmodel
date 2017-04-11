@@ -112,7 +112,7 @@ class BasicSeqModel(SeqModel):
             Returns:
                 fetch
         """
-        fetch = Bunch()
+        fetch = ModelBase.get_fetch(model, **kwargs)
         if is_sampling:
             fetch.logit = model.decoder_output.logit
             fetch.distribution = model.decoder_output.distribution

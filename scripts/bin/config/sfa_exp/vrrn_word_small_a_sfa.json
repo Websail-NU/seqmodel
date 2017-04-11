@@ -24,10 +24,10 @@
                 "num_units": 200
               },
               "input_keep_prob": 1.0,
-              "num_layers": 1,
+              "num_layers": 2,
               "output_keep_prob": 1.0,
               "vrrn": true,
-              "output_all_states": false
+              "output_all_states": true
             },
             "time_major": true
           },
@@ -78,7 +78,7 @@
   },
   "writeout_opt": {
     "checkpoint_dir": "model/",
-    "experiment_dir": "experiment/sfa/vrrn_word_small",
+    "experiment_dir": "experiment/sfa/vrrn_word_small_a_sfa",
     "log_file": "experiment.log",
     "training_state": "training_state.json",
     "report_step_every": 1000

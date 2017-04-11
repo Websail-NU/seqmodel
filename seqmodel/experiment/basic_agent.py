@@ -26,7 +26,7 @@ class BasicAgent(agent.Agent):
         """ Run an epoch with model and data """
         info = Bunch(start_time=time.time(), cost=0.0, training_cost=0.0,
                      num_tokens=0, step=0, collect=[])
-        fetch = model.model_obj.get_fetch(model)
+        fetch = model.model_obj.get_fetch(model, **kwargs)
         if train_op is not None:
             fetch._train_op = train_op
         result = Bunch()
@@ -102,7 +102,7 @@ class BasicAgent(agent.Agent):
     def sample(self, data_iter, batch_size=1, max_decoding_len=40,
                temperature=1.0, greedy=False, *args, **kwargs):
         fetch = self.eval_model.model_obj.get_fetch(
-            self.eval_model, is_sampling=True)
+            self.eval_model, is_sampling=True, **kwargs)
         batch_outputs = []
         for b_step, batch in enumerate(
                 data_iter.iterate_epoch(batch_size, no_label_seq=True)):

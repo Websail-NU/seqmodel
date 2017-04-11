@@ -25,6 +25,7 @@ def main():
         context.write_config()
         context.logger.info('Initializing graphs and models...')
         context.initialize_agent(with_training=True)
+        context.agent.initialize_optim()
         context.logger.info('Initializing data...')
         context.initialize_iterators()
         context.logger.info('Trainable variables:')
