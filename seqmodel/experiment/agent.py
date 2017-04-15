@@ -243,6 +243,9 @@ class Agent(object):
         self._logger.info('ep: {} lr: {:.6f}'.format(
             training_state.cur_epoch, training_state.learning_rate))
 
+    def set_max_epoch(self, max_epochs):
+        self.opt.optim.max_epochs = max_epochs
+
     def increase_max_epoch(self, increment):
         self.opt.optim.max_epochs += increment
 

@@ -37,8 +37,6 @@ class TokenIterator(TextIterator):
         out_vocab: decoding Vocabulary
     opt:
         shuffle: If true, shuffle the data.
-        data_source: a path (str) to a data file,
-                     or a list of sentences (str)
         sequence_length: number of time steps
         time_major: If true, return [Time x Batch]
         _add_start_seq: If true, add start symbol id
@@ -52,7 +50,6 @@ class TokenIterator(TextIterator):
         default_opt = TextIterator.default_opt()
         return Bunch(
             default_opt,
-            data_source='',
             sequence_length=10,
             _add_start_seq=False,
             _add_end_seq=True,
@@ -66,13 +63,6 @@ class TokenIterator(TextIterator):
     @property
     def label_keys(self):
         return set(['label', 'label_weight'])
-
-    @property
-    def batch_size(self):
-        if hasattr(self, '_batch_size'):
-            return self._batch_size
-        else:
-            return 1
 
     @staticmethod
     def _aggregate_line(data, tokens):
@@ -101,7 +91,7 @@ class TokenIterator(TextIterator):
         output_data = output_data
         return data, input_data, output_data
 
-    def initialize(self, **kwargs):
+    def initialize(self, data_source):
         if type(self) == TokenIterator and self.opt._add_start_seq:
             warnings.warn(("Adding start symbol to each sentence "
                            "is unusual for sentence dependent models. "
@@ -111,121 +101,110 @@ class TokenIterator(TextIterator):
             self.in_vocab.special_symbols.end_seq)
         self.out_pad_id = self.out_vocab.w2i(
             self.out_vocab.special_symbols.end_seq)
-        if isinstance(self.opt.data_source, six.string_types):
-            lines = read_text_file(self.opt.data_source)
+        if isinstance(data_source, six.string_types):
+            lines = read_text_file(data_source)
         else:
-            lines = read_text_list(self.opt.data_source)
+            lines = read_text_list(data_source)
         self.data, self._input_data, self._output_data =\
             self._format_data(lines)
+        self._batch_size = -1
 
     def init_batch(self, batch_size, no_label_seq=False):
         self._no_label_seq = no_label_seq
-        if not hasattr(self, 'bbatch') or self._batch_size != batch_size:
-            self._batch_size = batch_size
-            self.bbatch = self._reset_batch_data(Bunch())
+        self._reset_batch_data(batch_size)
         # reset batch position
         distance = len(self.data) / batch_size
         left_over = len(self.data) % batch_size
-        self.bbatch.distances[:] = distance
-        self.bbatch.distances[0:left_over] += 1
-        self.bbatch.read[:] = 0
+        self._b_distances[:] = distance
+        self._b_distances[0:left_over] += 1
+        self._b_read[:] = 0
         cur_pos = 0
         for i in range(self._batch_size):
-            self.bbatch.pointers[i] = cur_pos
-            cur_pos += self.bbatch.distances[i]
+            self._b_pointers[i] = cur_pos
+            cur_pos += self._b_distances[i]
         # shuffle if needed (only shuffle pointers, we need a running text)
         if self.opt.shuffle:
             p = np.random.permutation(self._batch_size)
-            self.bbatch.pointers = self.bbatch.pointers[p]
-            self.bbatch.distances = self.bbatch.distances[p]
-            if self.bbatch.is_attr_set('data_perm'):
-                self.bbatch.data_perm = np.random.permutation(len(self.data))
+            self._b_pointers = self._b_pointers[p]
+            self._b_distances = self._b_distances[p]
+            if hasattr(self, '_b_data_perm'):
+                self._b_data_perm = np.random.permutation(len(self.data))
         self._new_seq = True
 
-    def _reset_batch_data(self, batch_bunch):
-        size = [self._batch_size]
-        # create if not exist
-        batch_bunch.input = batch_bunch.get(
-            'input', np.zeros(size + [self.opt.sequence_length], np.int32))
-        batch_bunch.output = batch_bunch.get(
-            'output', np.zeros(size + [self.opt.sequence_length], np.int32))
-        batch_bunch.weight = batch_bunch.get(
-            'weight', np.zeros(size + [self.opt.sequence_length], np.float32))
-        batch_bunch.seq_len = batch_bunch.get(
-            'seq_len', np.zeros(size, np.int32))
-        batch_bunch.pointers = batch_bunch.get(
-            'pointers', np.zeros(size, np.int32))
-        batch_bunch.distances = batch_bunch.get(
-            'distances', np.zeros(size, np.int32))
-        batch_bunch.read = batch_bunch.get(
-            'read', np.zeros(size, np.int32))
-        batch_bunch.input[:] = self.in_pad_id
-        batch_bunch.output[:] = self.out_pad_id
-        batch_bunch.weight[:] = 0
-        batch_bunch.seq_len[:] = 0
-        return batch_bunch
+    def _reset_batch_data(self, batch_size=None):
+        if batch_size is not None and batch_size != self._batch_size:
+            self._batch_size = batch_size
+            size = [self._batch_size]
+            # create if not exist
+            self._b_input = np.zeros(
+                size + [self.opt.sequence_length], np.int32)
+            self._b_output = np.zeros(
+                size + [self.opt.sequence_length], np.int32)
+            self._b_weight = np.zeros(
+                size + [self.opt.sequence_length], np.float32)
+            self._b_seq_len = np.zeros(size, np.int32)
+            self._b_pointers = np.zeros(size, np.int32)
+            self._b_distances = np.zeros(size, np.int32)
+            self._b_read = np.zeros(size, np.int32)
+        self._b_input[:] = self.in_pad_id
+        self._b_output[:] = self.out_pad_id
+        self._b_weight[:] = 0
+        self._b_seq_len[:] = 0
 
     def _get_data(self, pos, i_batch):
-        bb = self.bbatch
-        end_pos = min(pos + self.opt.sequence_length,
-                      pos + (bb.distances[i_batch] - bb.read[i_batch]),
-                      len(self.data))
+        end_pos = min(
+            pos + self.opt.sequence_length,
+            pos + (self._b_distances[i_batch] - self._b_read[i_batch]),
+            len(self.data))
         if pos == end_pos:
             return None, None
         return self._input_data[pos:end_pos], self._output_data[pos:end_pos]
 
     def next_batch(self):
-        if all(self.bbatch.read >= self.bbatch.distances):
+        if all(self._b_read >= self._b_distances):
             return None
-        bb = self._reset_batch_data(self.bbatch)
+        self._reset_batch_data()
         # populating new data
         for i_batch in range(self._batch_size):
-            cur_pos = bb.pointers[i_batch]
+            cur_pos = self._b_pointers[i_batch]
             input_data, output_data = self._get_data(cur_pos, i_batch)
             len_ = 0
             if input_data is not None and output_data is not None:
                 len_ = len(input_data)
-                bb.input[i_batch, :len_] = input_data
-                bb.output[i_batch, :len_] = output_data
-                bb.weight[i_batch, 0:len_] = 1
-                bb.seq_len[i_batch] = len_
-            bb.pointers[i_batch] += len_
-            bb.read[i_batch] += len_
-        return self.format_batch(bb)
+                self._b_input[i_batch, :len_] = input_data
+                self._b_output[i_batch, :len_] = output_data
+                self._b_weight[i_batch, 0:len_] = 1
+                self._b_seq_len[i_batch] = len_
+            self._b_pointers[i_batch] += len_
+            self._b_read[i_batch] += len_
+        return self.format_batch()
 
-    def _transpose_matrices(self, batch):
-        batch.features.inputs = np.transpose(batch.features.inputs)
-        batch.labels.label = np.transpose(batch.labels.label)
-        batch.labels.label_weight = np.transpose(batch.labels.label_weight)
-        return batch
-
-    def _truncate_to_seq_len(self, batch):
-        """Must be called before transpose truncate
-           matrices in the batch to max seq len"""
-        max_len = batch.features.input_seq_len.max()
-        batch.features.inputs = batch.features.inputs[:, :max_len]
-        batch.labels.label = batch.labels.label[:, :max_len]
-        batch.labels.label_weight = batch.labels.label_weight[:, :max_len]
-        return batch
-
-    def _postprocess(self, batch):
+    def _postprocess(self):
+        seq_len = self._b_seq_len
+        inputs = self._b_input
+        label = self._b_output
+        weight = self._b_weight
         if self.opt.truncate_batch:
-            batch = self._truncate_to_seq_len(batch)
+            max_len = seq_len.max()
+            inputs = inputs[:, :max_len]
+            label = label[:, :max_len]
+            weight = weight[:, :max_len]
         if self.opt.time_major:
-            batch = self._transpose_matrices(batch)
-        return batch
+            inputs = np.transpose(inputs)
+            label = np.transpose(label)
+            weight = np.transpose(weight)
+        return inputs, seq_len, label, weight
 
-    def format_batch(self, bb):
-        inputs = Bunch(inputs=bb.input,
-                       input_seq_len=bb.seq_len)
-        labels = Bunch(label=bb.output,
-                       label_weight=bb.weight)
-        batch = Bunch(features=inputs, labels=labels,
-                      num_tokens=bb.weight.sum(), new_seq=self._new_seq)
-        self._postprocess(batch)
+    def format_batch(self):
+        inputs, seq_len, label, weight = self._postprocess()
+        features = SeqFeatureTuple(inputs, seq_len)
+        labels = SeqLabelTuple(label, weight)
+        batch = SeqTuple(features, labels,
+                         self._new_seq, float((weight != 0).sum()))
         self._new_seq = False
         return batch
 
+    # XXX: Fix this methods
     def is_all_end(self, batch, outputs):
         return all(np.logical_or(outputs == self.out_pad_id,
                                  batch.features.input_seq_len == 0))
@@ -290,51 +269,47 @@ class SentenceIterator(TokenIterator):
         data = output_data
         return data, input_data, output_data
 
-    def _reset_batch_data(self, batch_bunch):
-        batch_bunch = super(SentenceIterator, self)._reset_batch_data(
-            batch_bunch)
-        batch_bunch.read_tokens = batch_bunch.get(
-            'read_tokens', np.zeros([self._batch_size], np.int32))
-        batch_bunch.data_perm = batch_bunch.get(
-            'data_perm', np.arange(len(self.data)))
-        return batch_bunch
+    def _reset_batch_data(self, batch_size=None):
+        if batch_size is not None and batch_size != self._batch_size:
+            self._b_read_tokens = np.zeros([batch_size], np.int32)
+            self._b_data_perm = np.arange(len(self.data))
+        super(SentenceIterator, self)._reset_batch_data(batch_size)
 
     def _get_data(self, pos, i_batch):
-        bb = self.bbatch
-        if (bb.read[i_batch] < bb.distances[i_batch] and
+        if (self._b_read[i_batch] < self._b_distances[i_batch] and
                 pos < len(self.data)):
-            idx = bb.data_perm[pos]
+            idx = self._b_data_perm[pos]
             in_data, out_data = self._input_data[idx], self._output_data[idx]
-            start_idx = bb.read_tokens[i_batch]
+            start_idx = self._b_read_tokens[i_batch]
             end_idx = min(self.opt.sequence_length + start_idx, len(in_data))
             if start_idx < end_idx:
                 return in_data[start_idx:end_idx], out_data[start_idx:end_idx]
         return None, None
 
     def next_batch(self):
-        if all(self.bbatch.read >= self.bbatch.distances):
+        if all(self._b_read >= self._b_distances):
             return None
-        bb = self._reset_batch_data(self.bbatch)
+        self._reset_batch_data()
         # populating new data
         end_seq_count = 0
         for i_batch in range(self._batch_size):
-            cur_pos = bb.pointers[i_batch]
+            cur_pos = self._b_pointers[i_batch]
             input_data, output_data = self._get_data(cur_pos, i_batch)
             len_ = 0
             if input_data is not None and output_data is not None:
                 len_ = len(input_data)
-                bb.input[i_batch, :len_] = input_data
-                bb.output[i_batch, :len_] = output_data
-                bb.weight[i_batch, 0:len_] = 1
-                bb.seq_len[i_batch] = len_
-                bb.read_tokens[i_batch] += len_
+                self._b_input[i_batch, :len_] = input_data
+                self._b_output[i_batch, :len_] = output_data
+                self._b_weight[i_batch, 0:len_] = 1
+                self._b_seq_len[i_batch] = len_
+                self._b_read_tokens[i_batch] += len_
             else:
                 end_seq_count += 1
         if end_seq_count == self._batch_size:
             self._new_seq = True
             for i_batch in range(self._batch_size):
-                bb.pointers[i_batch] += 1
-                bb.read[i_batch] += 1
-            bb.read_tokens[:] = 0
+                self._b_pointers[i_batch] += 1
+                self._b_read[i_batch] += 1
+            self._b_read_tokens[:] = 0
             return self.next_batch()
-        return self.format_batch(bb)
+        return self.format_batch()

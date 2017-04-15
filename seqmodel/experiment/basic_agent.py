@@ -1,5 +1,6 @@
 import time
 import copy
+import collections
 
 import numpy as np
 import tensorflow as tf
@@ -7,6 +8,10 @@ import tensorflow as tf
 from seqmodel.bunch import Bunch
 from seqmodel.experiment import agent
 from seqmodel import model
+
+
+SampleOutputTuple = collections.namedtuple(
+    "SampleOutputTuple", ("batch", "samples", "scores"))
 
 
 class BasicAgent(agent.Agent):
@@ -22,7 +27,7 @@ class BasicAgent(agent.Agent):
                 model_opt=model.seq2seq_model.BasicSeq2SeqModel.default_opt()))
 
     def _run_epoch(self, model, data, batch_size,
-                   train_op=None, collect_fn=None, **kwargs):
+                   train_op=None, collect_fn=None, verbose=True, **kwargs):
         """ Run an epoch with model and data """
         info = Bunch(start_time=time.time(), cost=0.0, training_cost=0.0,
                      num_tokens=0, step=0, collect=[])
@@ -42,7 +47,8 @@ class BasicAgent(agent.Agent):
                     info.training_cost +=\
                         result.losses.training_loss * batch.num_tokens
             info.num_tokens += batch.num_tokens
-            self.report_step(info, **kwargs)
+            if verbose:
+                self.report_step(info, **kwargs)
         info.end_time = time.time()
         return info
 
@@ -52,7 +58,8 @@ class BasicAgent(agent.Agent):
                                report_mode='evaluating', **kwargs)
 
     def train(self, training_data_iter, batch_size, valid_data_iter=None,
-              valid_batch_size=1, train_op=None, *args, **kwargs):
+              valid_batch_size=1, train_op=None, verbose=True,
+              *args, **kwargs):
         if train_op is None:
             assert hasattr(self, 'train_op'),\
                 "Agent is not initialized for training."
@@ -61,14 +68,16 @@ class BasicAgent(agent.Agent):
         tr_info, val_info = None, None
         while True:
             new_lr = self.update_learning_rate(self.opt.optim, training_state)
-            self.report_epoch(training_state, tr_info, val_info, **kwargs)
+            if verbose:
+                self.report_epoch(training_state, tr_info, val_info, **kwargs)
             if self.is_training_done(self.opt.optim, training_state):
                 break
             self.sess.run(tf.assign(self.lr, new_lr))
             tr_info = self._run_epoch(self.training_model, training_data_iter,
                                       batch_size, train_op=train_op,
                                       training_loss_denom=batch_size,
-                                      report_mode='training', **kwargs)
+                                      report_mode='training',
+                                      verbose=verbose, **kwargs)
             info = tr_info
             if valid_data_iter is not None:
                 val_info = self.evaluate(valid_data_iter, valid_batch_size,
@@ -80,6 +89,7 @@ class BasicAgent(agent.Agent):
     def _sample_a_batch(self, model, batch, fetch, max_decoding_len,
                         temperature, update_input_fn, is_seq_end_fn,
                         *args, **kwargs):
+        batch = copy.deepcopy(batch)
         result = None
         samples = []
         likelihoods = []
@@ -100,21 +110,26 @@ class BasicAgent(agent.Agent):
         return samples, likelihoods
 
     def sample(self, data_iter, batch_size=1, max_decoding_len=40,
-               temperature=1.0, greedy=False, *args, **kwargs):
+               temperature=1.0, greedy=False, ignore_label=True,
+               num_samples=1, *args, **kwargs):
         fetch = self.eval_model.model_obj.get_fetch(
             self.eval_model, is_sampling=True, **kwargs)
         batch_outputs = []
         for b_step, batch in enumerate(
-                data_iter.iterate_epoch(batch_size, no_label_seq=True)):
-            batch_ = copy.deepcopy(batch)
+                data_iter.iterate_epoch(batch_size,
+                                        no_label_seq=ignore_label)):
             out_batch_ = copy.deepcopy(batch)
-            samples, likelihoods = self._sample_a_batch(
-                self.eval_model, batch_, fetch, max_decoding_len, temperature,
-                data_iter.update_last_input, data_iter.is_all_end,
-                greedy=greedy)
-            samples = np.stack(samples)
-            likelihoods = np.stack(likelihoods)
-            if hasattr(data_iter, 'format_sample_output'):
-                data_iter.format_sample_output(out_batch_, samples)
-            batch_outputs.append((out_batch_, samples, likelihoods))
+            out_scores = []
+            out_samples = []
+            for _ in range(num_samples):
+                samples, likelihoods = self._sample_a_batch(
+                    self.eval_model, batch, fetch, max_decoding_len,
+                    temperature, data_iter.update_last_input,
+                    data_iter.is_all_end, greedy=greedy)
+                out_scores.append(np.stack(likelihoods))
+                out_samples.append(np.stack(samples))
+            # if hasattr(data_iter, 'format_sample_output'):
+            #     data_iter.format_sample_output(out_batch_, samples)
+            batch_outputs.append(SampleOutputTuple(
+                out_batch_, out_samples, out_scores))
         return batch_outputs

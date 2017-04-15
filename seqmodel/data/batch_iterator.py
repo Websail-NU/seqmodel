@@ -11,6 +11,7 @@ import six
 import numpy as np
 
 from seqmodel.bunch import Bunch
+from seqmodel.common_tuple import *
 from seqmodel.data.vocab import Vocabulary
 
 
@@ -20,8 +21,10 @@ class BatchIterator(object):
     opt:
         shuffle: If true, shuffle the data.
     """
-    def __init__(self, opt):
+    def __init__(self, opt=None):
         self.opt = opt
+        if self.opt is None:
+            self.opt = self.default_opt()
 
     @staticmethod
     def default_opt():
@@ -38,10 +41,13 @@ class BatchIterator(object):
 
     @property
     def batch_size(self):
-        return 1
+        if hasattr(self, '_batch_size'):
+            return self._batch_size
+        else:
+            return 1
 
     @abc.abstractmethod
-    def initialize(self, **kwargs):
+    def initialize(self):
         """
         Call before using.
         """
@@ -88,7 +94,7 @@ class TextIterator(BatchIterator):
         add_start_seq: Add start symbol id to the start of each sequence
         add_end_seq: Add end symbol id to the end of each sequence
     """
-    def __init__(self, opt, in_vocab, out_vocab):
+    def __init__(self, in_vocab, out_vocab, opt=None):
         super(TextIterator, self).__init__(opt)
         self.in_vocab = in_vocab
         self.out_vocab = out_vocab
@@ -107,12 +113,12 @@ class TextIterator(BatchIterator):
 
 
 class RawBatchIterator(BatchIterator):
-    def __init__(self, opt, batches, batch_iter=None):
+    def __init__(self, batches, opt=None, batch_iter=None):
         super(RawBatchIterator, self).__init__(opt)
         self.data = batches
         self.iter = batch_iter
 
-    def initialize(self, **kwargs):
+    def initialize(self):
         return None
 
     def init_batch(self, batch_size=None, no_label_seq=False):
@@ -121,21 +127,19 @@ class RawBatchIterator(BatchIterator):
             self._perm = np.random.permutation(len(self.data))
         else:
             self._perm = np.arange(len(self.data))
-        if self.iter is not None:
-            self.iter.init_batch(batch_size)
-        self._toggle = True
 
     def next_batch(self):
-        if self._toggle and self._pos < len(self.data):
+        if self._pos < len(self.data):
             batch = self.data[self._perm[self._pos]]
             self._pos += 1
-            self._toggle = False
-            return batch
-        if self.iter is not None:
-            batch = self.iter.next_batch()
-            self._toggle = True
             return batch
         return None
 
-    def update_last_input(self, batch, input, **kwargs):
-        raise NotImplementedError
+    def is_all_end(self, batch, outputs):
+        return self.iter.is_all_end(batch, outputs)
+
+    def update_last_input(self, batch, outputs, **kwargs):
+        self.iter.update_last_input(batch, outputs, **kwargs)
+
+    def format_sample_output(self, batch, samples):
+        self.iter.format_sample_output(batch, samples)
