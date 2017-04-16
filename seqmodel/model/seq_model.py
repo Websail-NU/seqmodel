@@ -14,10 +14,12 @@ import six
 import tensorflow as tf
 
 from seqmodel.bunch import Bunch
+from seqmodel.common_tuple import *
 from seqmodel.model import graph_util
 from seqmodel.model import rnn_module as rnn_module
 from seqmodel.model import decoder as decoder_module
 from seqmodel.model.model_base import ModelBase
+from seqmodel.model.model_base import ExecutableModel
 from seqmodel.model.losses import xent_loss
 
 
@@ -25,6 +27,12 @@ from seqmodel.model.losses import xent_loss
 class SeqModel(ModelBase):
     """ A base class for seq model
     """
+
+    @staticmethod
+    def default_opt():
+        """ Provide template for options """
+        return Bunch(output_mode='distribution',  # or 'logit'
+                     loss_type='xent')
 
     @abc.abstractmethod
     def _prepare_input(self):
@@ -35,7 +43,7 @@ class SeqModel(ModelBase):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def decode(self, features, labels):
+    def decode(self, inputs, seq_len):
         """ Create decoder graph with empty context
             Returns:
                 decoder output
@@ -43,24 +51,36 @@ class SeqModel(ModelBase):
         raise NotImplementedError
 
     def _build(self):
-        model = super(SeqModel, self)._build()
-        features, labels = self._prepare_input()
-        decoder_output = self.decode(features, labels)
-        model.decoder_output = decoder_output
-        model.features = features
-        model.labels = labels
-        losses, training_loss, loss_denom, eval_loss = self.compute_loss(
-            decoder_output, features, labels)
-        model.losses = Bunch(tokens_loss=losses,
-                             training_loss=training_loss,
-                             training_loss_denom=loss_denom,
-                             eval_loss=eval_loss)
+        features, labels, lookup = self._prepare_input()
+        decoder_output = self.decode(lookup, features.input_seq_len)
+        output = Bunch(rnn=decoder_output.rnn)
+        setting = Bunch()
+        logit_temperature = None
+        losses = None
+        loss_denom = None
+        if decoder_output.is_attr_set('logit'):
+            output.logit = decoder_output.logit
+            output.distribution = decoder_output.distribution
+            setting.logit_temperature = decoder_output.logit_temperature
+            logit_temperature = setting.logit_temperature
+            output.prediction = output[self.opt.output_mode]
+        if self.opt.loss_type == 'xent':
+            assert output.logit is not None,\
+                "Need logit node to compute xent loss."
+            t_loss, training_loss, loss_denom, eval_loss = xent_loss(
+                output.logit, labels.label, labels.label_weight)
+            losses = Bunch(tokens_loss=losses,
+                           training_loss=training_loss,
+                           eval_loss=eval_loss)
+            setting.training_loss_denom = loss_denom
+        if not output.is_attr_set('prediction'):
+            output.prediction = output.rnn
+        nodes = Bunch(features=features, labels=labels, output=output,
+                      losses=losses, setting=setting, _all_=self._nodes)
+        model = ExeSeqModel(
+            nodes, features, labels, decoder_output.initial_state,
+            decoder_output.final_state, loss_denom, logit_temperature)
         return model
-
-    def compute_loss(self, decoder_output, _features, labels):
-        return xent_loss(
-            decoder_output.logit, labels.label,
-            labels.label_weight)
 
     @staticmethod
     def map_feeddict(model, data, is_sampling=False, training_loss_denom=None,
@@ -84,6 +104,41 @@ class SeqModel(ModelBase):
         return feed_dict
 
 
+class ExeSeqModel(ExecutableModel):
+
+    def __init__(self, node_bunch, feature_tuple, label_tuple,
+                 initial_state, final_state, training_loss_denom,
+                 logit_temperature):
+        super(ExeSeqModel, self).__init__(
+            node_bunch, feature_tuple, label_tuple)
+        self._init_state = initial_state
+        self._final_state = final_state
+        self._t_loss_denom = training_loss_denom
+        self._logit_temperature = logit_temperature
+        self._fetch_state = self._final_state
+        self._feed_state = self._init_state
+
+    def _get_state_fetch(self, **kwargs):
+        return self._fetch_state
+
+    def _get_feed(self, mode, feature_tuple, label_tuple=None,
+                  state=None, c_feed=None, training_loss_denom=None,
+                  logit_temperature=1.0, **kwargs):
+        feed_dict = super(ExeSeqModel, self)._get_feed(
+            mode, feature_tuple, label_tuple, state, c_feed, **kwargs)
+        if mode == ExecutableModel._TRAIN_ and training_loss_denom is not None:
+            feed_dict[self._t_loss_denom] = training_loss_denom
+        if self._logit_temperature is not None:
+            feed_dict[self._logit_temperature] = logit_temperature
+        return feed_dict
+
+    def _set_state_feed(self, feed_dict, state, new_seq=True, **kwargs):
+        if not new_seq:
+            assert state is not None,\
+                "new_seq is False, state cannot be None."
+            rnn_module.feed_state(feed_dict, self._feed_state, state)
+
+
 class BasicSeqModel(SeqModel):
     """
     A standard Seq2Seq model using RNN Decoder
@@ -91,6 +146,7 @@ class BasicSeqModel(SeqModel):
     @staticmethod
     def default_opt():
         return Bunch(
+            SeqModel.default_opt(),
             embedding=Bunch(
                 in_vocab_size=15,
                 dim=100,
@@ -145,37 +201,39 @@ class BasicSeqModel(SeqModel):
         return feed_dict
 
     def _prepare_input(self):
-        features = Bunch()
-        labels = Bunch()
-        features.inputs = tf.placeholder(
+        nodes = Bunch()
+        nodes.inputs = tf.placeholder(
             tf.int32, [None, None], name='inputs')
-        features.input_seq_len = tf.placeholder(
+        nodes.input_seq_len = tf.placeholder(
             tf.int32, [None], name='input_seq_len')
-        labels.label = tf.placeholder(
+        nodes.label = tf.placeholder(
             tf.int32, [None, None], name='label')
-        labels.label_weight = tf.placeholder(
+        nodes.label_weight = tf.placeholder(
             tf.float32, [None, None], name='label_weight')
-        self._feed.features = features.shallow_clone()
-        self._feed.labels = labels.shallow_clone()
         emb_opt = self.opt.embedding
-        embedding_vars = graph_util.create_embedding_var(
+        nodes.embedding_vars = graph_util.create_embedding_var(
             emb_opt.in_vocab_size, emb_opt.dim, trainable=emb_opt.trainable,
             init_filepath=emb_opt.init_filepath)
-        features.lookup = tf.nn.embedding_lookup(
-            embedding_vars, features.inputs, name='lookup')
-        self._decoder_emb_vars = embedding_vars
-        return (features, labels)
+        nodes.lookup = tf.nn.embedding_lookup(
+            nodes.embedding_vars, nodes.inputs, name='lookup')
+        self._nodes.inputs = nodes
+        features = SeqFeatureTuple(nodes.inputs, nodes.input_seq_len)
+        labels = SeqLabelTuple(nodes.label, nodes.label_weight)
+        return features, labels, nodes.lookup
 
-    def decode(self, features, labels):
+    def decode(self, inputs, seq_len):
+        nodes = Bunch()
         kwargs = {}
         if self.opt.decoder.share.logit_weight_tying:
-            kwargs['logit_w'] = self._decoder_emb_vars
-        kwargs['_features'] = features
+            kwargs['logit_w'] = self._nodes.inputs.embedding_vars
         dec_cls = locate(self.opt.decoder.class_name)
         rnn_cls = locate(self.opt.decoder.rnn_class_name)
-        rnn = rnn_cls(self.opt.decoder.rnn_opt, name='decoder_rnn',
-                      is_training=self.is_training)
-        decoder = dec_cls(self.opt.decoder.opt, is_training=self.is_training)(
-            features.lookup, None, features.input_seq_len,
-            rnn, **kwargs)
-        return decoder
+        nodes.rnn_module = rnn_cls(
+            self.opt.decoder.rnn_opt, name='decoder_rnn',
+            is_training=self.is_training)
+        nodes.decoder_module = dec_cls(
+            self.opt.decoder.opt, is_training=self.is_training)
+        nodes.decode_output = nodes.decoder_module(
+            inputs, None, seq_len, nodes.rnn_module, **kwargs)
+        self._nodes.decode = nodes
+        return nodes.decode_output
