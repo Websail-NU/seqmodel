@@ -67,7 +67,6 @@ class Word2DefIterator(Seq2SeqIterator):
         seq_delimiter: a character that separates encoding and decoding seqs
         truncate_batch: If true, return batch as long as the longest seqs in
                         a current batch
-        time_major: If true, return [Time x Batch]
     """
     def __init__(self, in_vocab, out_vocab, char_vocab, opt=None):
         super(Word2DefIterator, self).__init__(in_vocab, out_vocab, opt)
@@ -155,7 +154,7 @@ class Word2DefIterator(Seq2SeqIterator):
         processed_data = self._postprocess()
         tok_weight = processed_data[5]
         num_tokens = float(np.sum(tok_weight != 0))
-        # XXX: verbose the code
+        # XXX: this code beats SHA256 in term of secrecy
         features = Word2SeqFeatureTuple(
             processed_data[0], processed_data[1], processed_data[2],
             processed_data[3], processed_data[7], processed_data[8],
@@ -163,31 +162,3 @@ class Word2DefIterator(Seq2SeqIterator):
         labels = Seq2SeqLabelTuple(*processed_data[4:7])
         batch = Seq2SeqTuple(features, labels, num_tokens)
         return batch
-
-    # XXX: Fix these methods
-    def is_all_end(self, batch, outputs):
-        return all(np.logical_or(outputs == self.dec_pad_id,
-                                 batch.features.decoder_seq_len == 0))
-
-    def update_last_input(self, batch, outputs, **kwargs):
-        o_batch_size = len(outputs)
-        if any(batch.features.decoder_seq_len > 1):
-            batch.features.decoder_input = np.zeros([o_batch_size, 1],
-                                                    dtype=np.int32)
-            batch.features.decoder_input[:] = self.dec_pad_id
-            if self.opt.time_major:
-                batch.features.decoder_input =\
-                    np.transpose(batch.features.decoder_input)
-        for i in range(len(outputs)):
-            output_id = self.dec_pad_id
-            if (batch.features.decoder_seq_len[i] == 0 or
-                    outputs[i] == self.dec_pad_id):
-                outputs[i] = self.dec_pad_id
-                batch.features.decoder_seq_len[i] = 0
-            else:
-                output_id = outputs[i]
-                batch.features.decoder_seq_len[i] = 1
-            if self.opt.time_major:
-                batch.features.decoder_input[-1, i] = output_id
-            else:
-                batch.features.decoder_input[i, -1] = output_id

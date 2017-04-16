@@ -38,7 +38,6 @@ class TokenIterator(TextIterator):
     opt:
         shuffle: If true, shuffle the data.
         sequence_length: number of time steps
-        time_major: If true, return [Time x Batch]
         _add_start_seq: If true, add start symbol id
                        to the start of encoding sequence
         _add_end_seq: If true, add end symbol id to the end of
@@ -53,7 +52,6 @@ class TokenIterator(TextIterator):
             sequence_length=10,
             _add_start_seq=False,
             _add_end_seq=True,
-            time_major=True,
             truncate_batch=True)
 
     @property
@@ -189,10 +187,9 @@ class TokenIterator(TextIterator):
             inputs = inputs[:, :max_len]
             label = label[:, :max_len]
             weight = weight[:, :max_len]
-        if self.opt.time_major:
-            inputs = np.transpose(inputs)
-            label = np.transpose(label)
-            weight = np.transpose(weight)
+        inputs = np.transpose(inputs)
+        label = np.transpose(label)
+        weight = np.transpose(weight)
         return inputs, seq_len, label, weight
 
     def format_batch(self):
@@ -214,8 +211,7 @@ class TokenIterator(TextIterator):
         if any(batch.features.input_seq_len > 1):
             batch.features.inputs = np.zeros([o_batch_size, 1], dtype=np.int32)
             batch.features.inputs[:] = self.in_pad_id
-            if self.opt.time_major:
-                batch.features.inputs = np.transpose(batch.features.inputs)
+            batch.features.inputs = np.transpose(batch.features.inputs)
         for i in range(len(outputs)):
             output_id = self.out_pad_id
             if (batch.features.input_seq_len[i] == 0 or
@@ -226,10 +222,7 @@ class TokenIterator(TextIterator):
                 output_id = outputs[i]
                 batch.features.input_seq_len[i] = 1
             input_id = self.in_vocab.w2i(self.out_vocab.i2w(output_id))
-            if self.opt.time_major:
-                batch.features.inputs[-1, i] = input_id
-            else:
-                batch.features.inputs[i, -1] = input_id
+            batch.features.inputs[-1, i] = input_id
         batch.new_seq = False
 
 
@@ -244,7 +237,6 @@ class SentenceIterator(TokenIterator):
         data_source: a path (str) to a data file,
                      or a list of sentences (str)
         sequence_length: number of time steps
-        time_major: If true, return [Time x Batch]
         _add_start_seq: If true, add start symbol id
                         to the start of encoding sequence
         _add_end_seq: If true, add end symbol id to the end of

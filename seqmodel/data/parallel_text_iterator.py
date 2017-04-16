@@ -6,11 +6,13 @@ create parallel batches of inputs and labels. Any token will
 be map to id.
 """
 import codecs
+import warnings
 import six
 
 import numpy as np
 
 from seqmodel.data.batch_iterator import *
+from seqmodel.data.environment import EnvGenerator
 from seqmodel.data.vocab import Vocabulary
 
 
@@ -70,7 +72,7 @@ def read_parallel_text_list(data_source, token_weight_source=None,
     return enc_data, dec_data, token_weights, seq_labels
 
 
-class Seq2SeqIterator(TextIterator):
+class Seq2SeqIterator(TextIterator, EnvGenerator):
     """
     args:
         opt: Bunch of option, see below
@@ -88,7 +90,6 @@ class Seq2SeqIterator(TextIterator):
         seq_delimiter: a character that separates encoding and decoding seqs
         truncate_batch: If true, return batch as long as the longest seqs in
                         a current batch
-        time_major: If true, return [Time x Batch]
     """
     @staticmethod
     def default_opt():
@@ -100,8 +101,7 @@ class Seq2SeqIterator(TextIterator):
             add_end_seq=True,
             add_end_enc=True,
             add_start_dec=True,
-            truncate_batch=True,
-            time_major=True)
+            truncate_batch=True)
 
     @property
     def input_keys(self):
@@ -257,11 +257,10 @@ class Seq2SeqIterator(TextIterator):
             dec_input = dec_input[:, :dec_max_len]
             dec_label = dec_label[:, :dec_max_len]
             tok_weight = tok_weight[:, :dec_max_len]
-        if self.opt.time_major:
-            enc_input = np.transpose(enc_input)
-            dec_input = np.transpose(dec_input)
-            dec_label = np.transpose(dec_label)
-            tok_weight = np.transpose(tok_weight)
+        enc_input = np.transpose(enc_input)
+        dec_input = np.transpose(dec_input)
+        dec_label = np.transpose(dec_label)
+        tok_weight = np.transpose(tok_weight)
         return (enc_input, enc_seq_len, dec_input,
                 dec_seq_len, dec_label, tok_weight, seq_weight)
 
@@ -274,20 +273,61 @@ class Seq2SeqIterator(TextIterator):
         batch = Seq2SeqTuple(features, labels, num_tokens)
         return batch
 
-    # XXX: Fix this methods
+    def reset(self):
+        assert self._batch_size > 0,\
+            "Iterator has not been initialized for batch (init_batch)"
+        batch = self.next_batch()
+        if batch is None:
+            self.init_batch(self._batch_size)
+        _f = batch.features
+        decoder_input = _f.decoder_input[:1, :].copy()
+        decoder_seq_len = (_f.encoder_seq_len > 0).astype(np.int32)
+        decoder_label = np.zeros_like(batch.labels.decoder_label[:1, :])
+        decoder_label_weight = batch.labels.decoder_label_weight[:1, :].copy()
+        num_tokens = float(np.sum(decoder_label_weight != 0))
+        init_features = Seq2SeqFeatureTuple(
+            _f.encoder_input, _f.encoder_seq_len,
+            decoder_input, decoder_seq_len)
+        init_labels = Seq2SeqLabelTuple(decoder_label, decoder_label_weight,
+                                        batch.labels.decoder_seq_label)
+        init_batch = Seq2SeqTuple(init_features, init_labels, num_tokens)
+        return batch, init_batch
+
+    def step(self, observation, action):
+        _f = observation.features
+        decoder_input = np.zeros([1, self._batch_size], dtype=np.int32)
+        decoder_input[:] = self.dec_pad_id
+        decoder_seq_len = np.zeros_like(_f.decoder_seq_len)
+        for ib in range(self._batch_size):
+            if (_f.decoder_seq_len[ib] == 0 or action[ib] == self.dec_pad_id):
+                decoder_input[0, ib] = self.dec_pad_id
+                decoder_seq_len[ib] = 0
+            else:
+                decoder_input[0, ib] = action[ib]
+                decoder_seq_len[ib] = 1
+        num_tokens = float(np.sum(decoder_seq_len > 0))
+        features = Seq2SeqFeatureTuple(
+            _f.encoder_input, _f.encoder_seq_len,
+            decoder_input, decoder_seq_len)
+        new_obs = Seq2SeqTuple(features, observation.labels, num_tokens)
+        return new_obs, decoder_seq_len == 0, None
+
     def is_all_end(self, batch, outputs):
+        warnings.warn("Please use a proper EnvGenerator methods",
+                      category=DeprecationWarning)
         return all(np.logical_or(outputs == self.dec_pad_id,
                                  batch.features.decoder_seq_len == 0))
 
     def update_last_input(self, batch, outputs, **kwargs):
+        warnings.warn("Please use a proper EnvGenerator methods",
+                      category=DeprecationWarning)
         o_batch_size = len(outputs)
         if any(batch.features.decoder_seq_len > 1):
             batch.features.decoder_input = np.zeros([o_batch_size, 1],
                                                     dtype=np.int32)
             batch.features.decoder_input[:] = self.dec_pad_id
-            if self.opt.time_major:
-                batch.features.decoder_input =\
-                    np.transpose(batch.features.decoder_input)
+            batch.features.decoder_input =\
+                np.transpose(batch.features.decoder_input)
         for i in range(len(outputs)):
             output_id = self.dec_pad_id
             if (batch.features.decoder_seq_len[i] == 0 or
@@ -297,13 +337,9 @@ class Seq2SeqIterator(TextIterator):
             else:
                 output_id = outputs[i]
                 batch.features.decoder_seq_len[i] = 1
-            if self.opt.time_major:
-                batch.features.decoder_input[-1, i] = output_id
-            else:
-                batch.features.decoder_input[i, -1] = output_id
+            batch.features.decoder_input[-1, i] = output_id
 
     def format_sample_output(self, batch, samples):
-        # XXX: only time major
         batch.labels.decoder_label = np.vstack(
             [batch.features.decoder_input[1:, :], samples])
         batch.features.decoder_input = np.vstack(
