@@ -4,7 +4,7 @@ import collections
 Sequence Model Tuples
 """
 SeqTuple = collections.namedtuple(
-    "SeqBatchTuple", ("features", "labels", "new_seq", "num_tokens"))
+    "SeqTuple", ("features", "labels", "new_seq", "num_tokens"))
 SeqFeatureTuple = collections.namedtuple(
     "SeqFeatureTuple", ("inputs", "input_seq_len"))
 SeqLabelTuple = collections.namedtuple(

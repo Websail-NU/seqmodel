@@ -201,12 +201,47 @@ class TokenIterator(TextIterator):
         self._new_seq = False
         return batch
 
+    def reset(self):
+        assert self._batch_size > 0,\
+            "Iterator has not been initialized for batch (init_batch)"
+        batch = self.next_batch()
+        if batch is None:
+            self.init_batch(self._batch_size)
+        batch = SeqTuple(batch.features, batch.labels, True, batch.num_tokens)
+        label = np.zeros_like(batch.labels.label[:1, :])
+        label[:] = self.out_pad_id
+        label_weight = batch.labels.label_weight[:1, :].copy()
+        labels = SeqLabelTuple(label, label_weight)
+        init_batch = SeqTuple(batch.features, labels, True, batch.num_tokens)
+        return batch, init_batch
+
+    def step(self, observation, action):
+        _f = observation.features
+        inputs = np.zeros([1, self._batch_size], dtype=np.int32)
+        inputs[:] = self.in_pad_id
+        seq_len = np.zeros_like(_f.input_seq_len)
+        for ib in range(self._batch_size):
+            if (_f.input_seq_len[ib] == 0 or action[ib] == self.out_pad_id):
+                inputs[0, ib] = self.in_pad_id
+            else:
+                input_id = self.in_vocab.w2i(self.out_vocab.i2w(action[ib]))
+                inputs[0, ib] = input_id
+                seq_len[ib] = 1
+        num_tokens = float(np.sum(seq_len > 0))
+        features = SeqFeatureTuple(inputs, seq_len)
+        new_obs = SeqTuple(features, observation.labels, False, num_tokens)
+        return new_obs, seq_len == 0, None
+
     # XXX: Fix this methods
     def is_all_end(self, batch, outputs):
+        warnings.warn("Please use a proper EnvGenerator methods",
+                      category=DeprecationWarning)
         return all(np.logical_or(outputs == self.out_pad_id,
                                  batch.features.input_seq_len == 0))
 
     def update_last_input(self, batch, outputs, **kwargs):
+        warnings.warn("Please use a proper EnvGenerator methods",
+                      category=DeprecationWarning)
         o_batch_size = len(outputs)
         if any(batch.features.input_seq_len > 1):
             batch.features.inputs = np.zeros([o_batch_size, 1], dtype=np.int32)

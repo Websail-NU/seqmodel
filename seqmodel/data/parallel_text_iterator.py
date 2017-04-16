@@ -283,6 +283,7 @@ class Seq2SeqIterator(TextIterator, EnvGenerator):
         decoder_input = _f.decoder_input[:1, :].copy()
         decoder_seq_len = (_f.encoder_seq_len > 0).astype(np.int32)
         decoder_label = np.zeros_like(batch.labels.decoder_label[:1, :])
+        decoder_label[:] = self.dec_pad_id
         decoder_label_weight = batch.labels.decoder_label_weight[:1, :].copy()
         num_tokens = float(np.sum(decoder_label_weight != 0))
         init_features = Seq2SeqFeatureTuple(
@@ -301,7 +302,6 @@ class Seq2SeqIterator(TextIterator, EnvGenerator):
         for ib in range(self._batch_size):
             if (_f.decoder_seq_len[ib] == 0 or action[ib] == self.dec_pad_id):
                 decoder_input[0, ib] = self.dec_pad_id
-                decoder_seq_len[ib] = 0
             else:
                 decoder_input[0, ib] = action[ib]
                 decoder_seq_len[ib] = 1

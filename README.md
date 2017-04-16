@@ -70,9 +70,9 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
   - \_custom_fetch (if not empty, or overwritten) (*ModelBase*)
 
 ## TODO
-- Refactor dropout (replace static values of `keep_prob` with placeholders).
-- Simplify sampling interfaces.
-- Replace highway-like update with GRU-like update in definition model (to replicate original paper)
+- [ ] Refactor dropout (replace static values of `keep_prob` with placeholders).
+- [ ] Simplify sampling interfaces.
+- [ ] Replace highway-like update with GRU-like update in definition model (to replicate original paper)
 
 ### Data Refactor
 - [x] Creating BatchIterator every time is a pain. We should have a function that creates the same iterator  
@@ -81,5 +81,6 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
   The fastest way is to have a class, but that's too much code
 - [x] BatchIterator will not have a configuration for data files or lists anymore, initialize()  
   function should take argument for such thing
-- [ ] We should have an Environment class to wrap BatchIterator in RL.
-- Perhaps, an agent should take raw data and use BatchIterator to generate batch
+- [x] We should have an Environment class to wrap BatchIterator in RL.
+- [ ] The environment interface on sequence iterator does not make much sense
+- [ ] Perhaps, an agent should take raw data and use BatchIterator to generate batch
