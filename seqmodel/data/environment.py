@@ -7,7 +7,7 @@ import six
 class EnvGenerator(object):
 
     @abc.abstractmethod
-    def reset(self):
+    def reset(self, **kwargs):
         """
         Reset the state of the environment and return new batch of observations
         Returns:
@@ -40,20 +40,25 @@ class Env(object):
     """
     A wrapper of batch namedtuple and its generator, for efficiency
     """
-    def __init__(self, generator):
+    def __init__(self, generator, re_init=False):
         self._generator = generator
+        self._re_init = re_init
         self._ref_state = None
         self._cur_obs = None
         self._transitions = []
 
-    def reset(self):
+    def reset(self, new_obs=True):
         """
         Reset the state of the environment and return new batch of observations
         Returns:
             initial_obs: a batch initial observations
         """
-        self._ref_state, self._cur_obs = self._generator.reset()
-        return self._cur_obs
+        self._transitions = []
+        if new_obs:
+            self._ref_state, self._init_obs = self._generator.reset(
+                re_init=self._re_init)
+            self._cur_obs = self._init_obs
+        return self._init_obs
 
     def step(self, action):
         """
@@ -72,7 +77,12 @@ class Env(object):
         reward = self._reward(action, new_obs)
         self._transitions.append(
             EnvTransitionTuple(self._cur_obs, action, reward))
+        self._cur_obs = new_obs
         return new_obs, reward, done, info
+
+    @property
+    def transitions(self):
+        return self._transitions
 
     def _reward(self, action, new_obs):
         return 0.0

@@ -23,8 +23,9 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - [ ] Refactor dropout (replace static values of `keep_prob` with placeholders).
 
 ### Agent
-- [ ] Update basic agent to use the executable model interfaces
-- [ ] Simplify sampling interfaces, use environment interfaces
+- [x] Update basic agent to use the executable model interfaces
+- [x] Simplify sampling code, use environment interfaces
+- [ ] Write Policy gradient agent
 
 ### Data
 - [x] Creating BatchIterator every time is a pain. We should have a function that creates the same iterator  

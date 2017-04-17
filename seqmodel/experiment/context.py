@@ -90,19 +90,18 @@ class Context(object):
                          iterator_opt, data_files, **kwargs):
         iterators = Bunch()
         iter_class_ = locate(iterator_class)
-        vocab_kwargs = Bunch(vocabs)
         for key in data_files:
-            opt = copy.deepcopy(iterator_opt)
-            opt.data_source = os.path.join(data_dir, data_files[key])
-            for s_key in opt:
-                if s_key.endswith('_source') and s_key != 'data_source':
-                    file_key = s_key[0:-7] + '_files'
-                    if file_key in kwargs:
-                        opt[s_key] = os.path.join(
-                            data_dir, kwargs[file_key][key])
-                    else:
-                        opt[s_key] = ""
-            iterators[key] = iter_class_(opt, **vocab_kwargs)
+            kwargs = Bunch(vocabs, opt=iterator_opt)
+        #     opt.data_source = os.path.join(data_dir, data_files[key])
+        #     for s_key in opt:
+        #         if s_key.endswith('_source') and s_key != 'data_source':
+        #             file_key = s_key[0:-7] + '_files'
+        #             if file_key in kwargs:
+        #                 opt[s_key] = os.path.join(
+        #                     data_dir, kwargs[file_key][key])
+        #             else:
+        #                 opt[s_key] = ""
+            iterators[key] = iter_class_(**kwargs)
         return iterators
 
     @staticmethod
@@ -128,33 +127,32 @@ class Context(object):
     def initialize_agent(self, with_training=False):
         agent_class_ = locate(self.opt.agent_class)
         self.agent = agent_class_(self.opt.agent_opt, self.sess, self._logger)
-        self.agent.initialize(with_training=with_training)
+        self.agent.initialize_model(with_training=with_training)
 
     def initialize_iterators(self):
         for key in self.iterators:
-            self.iterators[key].initialize()
+            self.iterators[key].initialize(
+                os.path.join(self.opt.data_dir, self.opt.data_files[key]))
 
-    def report_step(self, info, report_mode, **kwargs):
+    def end_step(self, info, verbose, report_mode, **kwargs):
         report_step_every = self.opt.writeout_opt.report_step_every
         if info.step % report_step_every == 0 and info.step > 0:
             self._logger.info('@{} cost: {:.5f}, wps: {:.1f}'.format(
-                info.step, info.cost / info.num_tokens,
+                info.step, info.eval_loss,
                 info.num_tokens / (time.time() - info.start_time)))
 
-    def report_epoch(self, training_state, training_info=None,
-                     validation_info=None, context=None, **kwargs):
+    def begin_epoch(self, training_state, verbose=True, training_info=None,
+                    validation_info=None, context=None, **kwargs):
         report = []
         info = None
         if training_info is not None:
             report.append('train: {:.5f} ({:.5f}) ({:.5f})'.format(
-                training_info.cost / training_info.num_tokens,
-                np.exp(training_info.cost / training_info.num_tokens),
-                training_info.training_cost / training_info.num_tokens))
+                training_info.eval_loss, np.exp(training_info.eval_loss),
+                training_info.training_loss))
             info = training_info
         if validation_info is not None:
             report.append('val: {:.5f} ({:.5f})'.format(
-                validation_info.cost / validation_info.num_tokens,
-                np.exp(validation_info.cost / validation_info.num_tokens)))
+                validation_info.eval_loss, np.exp(validation_info.eval_loss)))
             info = validation_info
         if len(report) > 0:
             self._logger.info(' '.join(report))

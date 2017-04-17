@@ -98,6 +98,7 @@ class ExecutableModel(object):
         self._nodes = node_bunch
         self._features = feature_tuple
         self._labels = label_tuple
+        self._no_op = tf.no_op()
         self._fetches = {}
 
     def predict(self, sess, feature_tuple, state=None, **kwargs):
@@ -135,6 +136,7 @@ class ExecutableModel(object):
             Returns:
                 evaluation loss
                 training loss
+                model state
                 info (from info_fetch)
         """
         fetch = self._get_fetch(self._TRAIN_, **kwargs)
@@ -157,6 +159,7 @@ class ExecutableModel(object):
                 See _get_feed() and _get_fetch for full detail
             Returns:
                 evaluation loss
+                model state
                 info (from info_fetch)
         """
         fetch = self._get_fetch(self._EVAL_, **kwargs)
@@ -191,11 +194,11 @@ class ExecutableModel(object):
 
     def _get_info_fetch(self, fetch, **kwargs):
         if fetch is None:
-            return [tf.no_op()]
+            return [self._no_op]
         return fetch
 
     def _set_state_fetch(self, **kwargs):
-        return tf.no_op()
+        return self._no_op
 
     def _get_feed(self, mode, feature_tuple, label_tuple=None,
                   state=None, c_feed=None, **kwargs):
@@ -203,12 +206,18 @@ class ExecutableModel(object):
                                       state, **kwargs)
         self._set_state_feed(feed_dict, state, **kwargs)
         if mode == self._PREDICT_:
-            feed_dict[self._features] = feature_tuple
+            # feed_dict[self._features] = feature_tuple
+            for i in range(len(self._features)):
+                feed_dict[self._features[i]] = feature_tuple[i]
         elif mode == self._TRAIN_ or mode == self._EVAL_:
             assert label_tuple is not None,\
                 "Need label data for training or evaluation"
-            feed_dict[self._features] = feature_tuple
-            feed_dict[self._labels] = label_tuple
+            # feed_dict[self._features] = feature_tuple
+            # feed_dict[self._labels] = label_tuple
+            for i in range(len(self._features)):
+                feed_dict[self._features[i]] = feature_tuple[i]
+            for i in range(len(self._labels)):
+                feed_dict[self._labels[i]] = label_tuple[i]
         return feed_dict
 
     def _create_feed(self, c_feed, feature_tuple, label_tuple,

@@ -123,7 +123,7 @@ class Seq2SeqIterator(TextIterator, EnvGenerator):
         else:
             enc_text, dec_text, tk_w, seq_w = read_parallel_text_list(
                 data_source, token_weight_source,
-                seq_label_source, add_end_seq)
+                seq_label_source, self.opt.add_end_seq)
         enc_data = self.in_vocab.w2i(enc_text)
         dec_data = self.out_vocab.w2i(dec_text)
         self.data = zip(enc_data, dec_data, tk_w, seq_w)
@@ -273,12 +273,15 @@ class Seq2SeqIterator(TextIterator, EnvGenerator):
         batch = Seq2SeqTuple(features, labels, num_tokens)
         return batch
 
-    def reset(self):
+    def reset(self, re_init=False):
         assert self._batch_size > 0,\
             "Iterator has not been initialized for batch (init_batch)"
         batch = self.next_batch()
         if batch is None:
-            self.init_batch(self._batch_size)
+            if re_init:
+                self.init_batch(self._batch_size)
+            else:
+                return None, None
         _f = batch.features
         decoder_input = _f.decoder_input[:1, :].copy()
         decoder_seq_len = (_f.encoder_seq_len > 0).astype(np.int32)

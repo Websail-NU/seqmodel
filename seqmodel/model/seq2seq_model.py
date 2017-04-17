@@ -105,7 +105,7 @@ class ExeSeq2SeqModel(seq_model.ExeSeqModel):
             self._ENC_STATE_: self._encoder_output.final_state,
             self._DEC_STATE_: self._final_state}
         self._feed_state = {
-            self._CONTEXT_: self._encoder_output,
+            self._CONTEXT_: self._encoder_output.context,
             self._ENC_STATE_: self._encoder_output.final_state,
             self._DEC_STATE_: self._init_state}
 

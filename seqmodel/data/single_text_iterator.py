@@ -201,12 +201,15 @@ class TokenIterator(TextIterator):
         self._new_seq = False
         return batch
 
-    def reset(self):
+    def reset(self, re_init=False):
         assert self._batch_size > 0,\
             "Iterator has not been initialized for batch (init_batch)"
         batch = self.next_batch()
         if batch is None:
-            self.init_batch(self._batch_size)
+            if re_init:
+                self.init_batch(self._batch_size)
+            else:
+                return None, None
         batch = SeqTuple(batch.features, batch.labels, True, batch.num_tokens)
         label = np.zeros_like(batch.labels.label[:1, :])
         label[:] = self.out_pad_id
