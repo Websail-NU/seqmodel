@@ -47,10 +47,14 @@ class Seq2SeqModel(seq_model.SeqModel):
         raise NotImplementedError
 
     def _build(self):
-        features, labels, enc_lookup, dec_lookup = self._prepare_input()
-        encoder_output = self.encode(enc_lookup, features.encoder_seq_len)
-        decoder_output = self.decode(
+        features, labels, enc_lookup, dec_lookup, in_nodes =\
+            self._prepare_input()
+        encoder_output, enc_nodes = self.encode(
+            enc_lookup, features.encoder_seq_len)
+        decoder_output, dec_nodes = self.decode(
             encoder_output, dec_lookup, features.decoder_seq_len)
+        all_nodes = Bunch(inputs=in_nodes, encoder=enc_nodes,
+                          decoder=dec_nodes)
         output = Bunch(rnn=decoder_output.rnn, context=encoder_output)
         setting = Bunch()
         logit_temperature = None
@@ -75,7 +79,7 @@ class Seq2SeqModel(seq_model.SeqModel):
         if not output.is_attr_set('prediction'):
             output.prediction = output.rnn
         nodes = Bunch(features=features, labels=labels, output=output,
-                      losses=losses, setting=setting, _all_=self._nodes)
+                      losses=losses, setting=setting, _all_=all_nodes)
         model = ExeSeq2SeqModel(
             nodes, features, labels, encoder_output,
             decoder_output.initial_state, decoder_output.final_state,
@@ -234,7 +238,8 @@ class BasicSeq2SeqModel(Seq2SeqModel):
         labels = Seq2SeqLabelTuple(
             nodes.decoder_label, nodes.decoder_label_weight,
             tf.placeholder(tf.float32, [None], name='_seq_label'))
-        return features, labels, nodes.encoder_lookup, nodes.decoder_lookup
+        return (features, labels, nodes.encoder_lookup,
+                nodes.decoder_lookup, nodes)
 
     def _encoder_kwargs(self, nodes):
         kwargs = {}
@@ -257,7 +262,7 @@ class BasicSeq2SeqModel(Seq2SeqModel):
         nodes.encoder_output = nodes.encoder_module(
             encoder_lookup, encoder_seq_len, nodes.rnn_module, **kwargs)
         self._nodes.encode = nodes
-        return nodes.encoder_output
+        return nodes.encoder_output, nodes
 
     def _decoder_kwargs(self, encoder_output, nodes):
         kwargs = {}
@@ -283,4 +288,4 @@ class BasicSeq2SeqModel(Seq2SeqModel):
             decoder_lookup, encoder_output, decoder_seq_len, nodes.rnn_module,
             **kwargs)
         self._nodes.decode = nodes
-        return nodes.decoder_output
+        return nodes.decoder_output, nodes

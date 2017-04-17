@@ -51,8 +51,10 @@ class SeqModel(ModelBase):
         raise NotImplementedError
 
     def _build(self):
-        features, labels, lookup = self._prepare_input()
-        decoder_output = self.decode(lookup, features.input_seq_len)
+        features, labels, lookup, input_nodes = self._prepare_input()
+        decoder_output, output_nodes = self.decode(
+            lookup, features.input_seq_len)
+        all_nodes = Bunch(inputs=input_nodes, outputs=output_nodes)
         output = Bunch(rnn=decoder_output.rnn)
         setting = Bunch()
         logit_temperature = None
@@ -76,7 +78,7 @@ class SeqModel(ModelBase):
         if not output.is_attr_set('prediction'):
             output.prediction = output.rnn
         nodes = Bunch(features=features, labels=labels, output=output,
-                      losses=losses, setting=setting, _all_=self._nodes)
+                      losses=losses, setting=setting, _all_=all_nodes)
         model = ExeSeqModel(
             nodes, features, labels, decoder_output.initial_state,
             decoder_output.final_state, loss_denom, logit_temperature)
@@ -216,10 +218,9 @@ class BasicSeqModel(SeqModel):
             init_filepath=emb_opt.init_filepath)
         nodes.lookup = tf.nn.embedding_lookup(
             nodes.embedding_vars, nodes.inputs, name='lookup')
-        self._nodes.inputs = nodes
         features = SeqFeatureTuple(nodes.inputs, nodes.input_seq_len)
         labels = SeqLabelTuple(nodes.label, nodes.label_weight)
-        return features, labels, nodes.lookup
+        return features, labels, nodes.lookup, nodes
 
     def decode(self, inputs, seq_len):
         nodes = Bunch()
@@ -235,5 +236,4 @@ class BasicSeqModel(SeqModel):
             self.opt.decoder.opt, is_training=self.is_training)
         nodes.decode_output = nodes.decoder_module(
             inputs, None, seq_len, nodes.rnn_module, **kwargs)
-        self._nodes.decode = nodes
-        return nodes.decode_output
+        return nodes.decode_output, nodes

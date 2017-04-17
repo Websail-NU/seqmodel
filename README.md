@@ -18,7 +18,7 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - [x] Feed dictionary functions will take data and state (need to decide on the format)
   - [x] data is in a tuple that corresponds to the graph nodes
   - [x] state is whatever the model needed for itself (possibly a tuple or bunch)
-- [ ] Update Definition Model for the executable model interfaces
+- [x] Update Definition Model for the executable model interfaces
 - [ ] Replace highway-like update with GRU-like update in definition model (to replicate original paper)
 - [ ] Refactor dropout (replace static values of `keep_prob` with placeholders).
 
