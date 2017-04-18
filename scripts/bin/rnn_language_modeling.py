@@ -39,13 +39,13 @@ def main():
         context.logger.info('Evaluating...')
         info = context.agent.evaluate(context.iterators.train, 20)
         context.logger.info('Train PPL: {}'.format(
-            np.exp(info.cost/info.num_tokens)))
+            np.exp(info.eval_loss)))
         info = context.agent.evaluate(context.iterators.valid, 20)
         context.logger.info('Valid PPL: {}'.format(
-            np.exp(info.cost/info.num_tokens)))
+            np.exp(info.eval_loss)))
         info = context.agent.evaluate(context.iterators.test, 20)
         context.logger.info('Test PPL: {}'.format(
-            np.exp(info.cost/info.num_tokens)))
+            np.exp(info.eval_loss)))
     context.logger.info('Total time: {}s'.format(time.time() - start_time))
 
 

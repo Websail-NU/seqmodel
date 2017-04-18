@@ -12,6 +12,7 @@ import numpy as np
 import tensorflow as tf
 
 from seqmodel.bunch import Bunch
+from seqmodel.experiment.run_info import *
 from seqmodel.log_util import get_logger
 from seqmodel import model
 
@@ -97,8 +98,8 @@ class Agent(object):
     def default_opt():
         return Bunch(
             model=Bunch(model_class="", model_opt=Bunch()),
-            optim=Bunch(name="AdamOptimizer",
-                        learning_rate=1e-4,
+            optim=Bunch(name="GradientDescentOptimizer",
+                        learning_rate=1.0,
                         lr_min=1e-6,
                         lr_decay_every=-1,
                         lr_decay_factor=0.8,
@@ -109,66 +110,7 @@ class Agent(object):
                         init_scale=0.04,
                         max_epochs=10))
 
-    @staticmethod
-    def initial_training_state():
-        return Bunch(learning_rate=1e-4, cur_epoch=0, cur_eval=float('inf'),
-                     last_imp_eval=float('inf'), best_eval=float('inf'),
-                     best_epoch=-1, last_imp_epoch=-1, imp_wait=0)
-
-    @staticmethod
-    def update_learning_rate(optim_opt, training_state):
-        """ Update learning rate in training_state
-            This should be called before the training"""
-        if training_state.cur_epoch < optim_opt.lr_start_decay_at:
-            # waiting to start
-            return training_state.learning_rate
-        old_lr = training_state.learning_rate
-        new_lr = old_lr
-        if (optim_opt.lr_decay_every > 0 and
-                training_state.cur_epoch % optim_opt.lr_decay_every == 0):
-            # schedule decay
-            new_lr = old_lr * optim_opt.lr_decay_factor
-        elif optim_opt.lr_decay_imp_ratio > 0:
-            improvment_ratio = training_state.cur_eval
-            improvment_ratio /= training_state.last_imp_eval
-            if improvment_ratio < optim_opt.lr_decay_imp_ratio:
-                # improve
-                training_state.last_imp_epoch = training_state.cur_epoch
-                training_state.last_imp_eval = training_state.cur_eval
-                training_state.imp_wait = 0
-            else:
-                # not improve
-                training_state.imp_wait = training_state.imp_wait + 1
-                if training_state.imp_wait >= optim_opt.lr_decay_wait:
-                    new_lr = old_lr * optim_opt.lr_decay_factor
-                    if (optim_opt.lr_decay_factor < 1.0 and
-                            new_lr >= optim_opt.lr_min):
-                        # reset the wait (when decayed)
-                        training_state.imp_wait = 0
-        training_state.learning_rate = max(new_lr, optim_opt.lr_min)
-        return training_state.learning_rate
-
-    @staticmethod
-    def is_training_done(optim_opt, training_state):
-        # current epoch reaches max epochs
-        if training_state.cur_epoch >= optim_opt.max_epochs:
-            return True
-        # early stopping
-        if training_state.imp_wait >= optim_opt.lr_decay_wait:
-            return True
-        return False
-
-    @staticmethod
-    def update_training_state(training_state, info):
-        cur_eval = info.cost / info.num_tokens
-        if training_state.best_eval > cur_eval:
-            training_state.best_eval = cur_eval
-            training_state.best_epoch = training_state.cur_epoch
-        training_state.cur_epoch += 1
-        training_state.cur_eval = cur_eval
-        return training_state
-
-    def initialize(self, with_training=False, init_scale=None):
+    def initialize_model(self, with_training=False, init_scale=None):
         # if init_scale is None:
         #     if self.opt.optim.is_attr_set('init_scale'):
         #         init_scale = self.opt.optim.init_scale
@@ -180,19 +122,10 @@ class Agent(object):
         with tf.variable_scope(self.name):
             self.eval_model, self.training_model = create_model_from_opt(
                 self.opt.model, create_training_model=with_training)
-            # if with_training:
-            #     self._training_state = self.initial_training_state()
-            #     self._training_state.learning_rate =\
-            #         self.opt.optim.learning_rate
-            #     self.train_op, self.lr = self._build_train_op(
-            #         self.training_model.losses.training_loss)
 
     def initialize_optim(self, loss=None, lr=None):
-        self._training_state = self.initial_training_state()
-        self._training_state.learning_rate =\
-            self.opt.optim.learning_rate
         if loss is None:
-            loss = self.training_model.losses.training_loss
+            loss = self.training_model.training_loss
         self.train_op, self.lr = self._build_train_op(
             loss, lr=lr)
 
@@ -203,9 +136,6 @@ class Agent(object):
                              name='learning_rate')
         global_step = tf.contrib.framework.get_or_create_global_step()
         optimizer = get_optimizer(lr, self.opt.optim.name)
-        # l2_loss_weight = opt.get('l2_loss_weight', 0.0)
-        # if l2_loss_weight > 0.0:
-        #     loss = loss + get_l2_loss(l2_loss_weight)
         tvars, grads = get_vars_grads(loss, optimizer)
         clipped_grads, _norm = tf.clip_by_global_norm(
             grads, self.opt.optim.clip_gradients)
@@ -215,40 +145,45 @@ class Agent(object):
             global_step=global_step)
         return optim_op, lr
 
-    def report_step(self, info, report_mode='training',
-                    report_step_every=1000, context=None, **kwargs):
+    def end_step(self, info, verbose=True, report_mode='training',
+                 report_step_every=1000, context=None, **kwargs):
         if context is not None:
-            context.report_step(info, report_mode, **kwargs)
+            context.end_step(info, verbose, report_mode, **kwargs)
             return
-        if info.step % report_step_every == 0 and info.step > 0:
-            self._logger.info('@{} cost: {:.5f}, wps: {:.1f}'.format(
-                info.step, info.cost / info.num_tokens,
-                info.num_tokens / (time.time() - info.start_time)))
+        if info.step % report_step_every == 0 and info.step > 0 and verbose:
+            self._logger.info(info.summary_string())
 
-    def report_epoch(self, training_state, training_info=None,
-                     validation_info=None, context=None, **kwargs):
+    def begin_epoch(self, training_state, verbose=True,
+                    context=None, **kwargs):
         if context is not None:
-            context.report_epoch(training_state, training_info,
-                                 validation_info, **kwargs)
+            context.begin_epoch(
+                training_state, verbose, **kwargs)
             return
-        report = []
-        if training_info is not None:
-            report.append('train: {:.5f}'.format(
-                training_info.cost / training_info.num_tokens))
-        if validation_info is not None:
-            report.append('val: {:.5f}'.format(
-                validation_info.cost / validation_info.num_tokens))
-        if len(report) > 0:
-            self._logger.info(' '.join(report))
-        self._logger.info('ep: {} lr: {:.6f}'.format(
-            training_state.cur_epoch, training_state.learning_rate))
+        if verbose:
+            self._logger.info(training_state.summary_string())
+
+    def end_epoch(self, training_state, verbose=True, training_info=None,
+                  validation_info=None, context=None, **kwargs):
+        if context is not None:
+            context.end_epoch(
+                training_state, verbose, training_info,
+                validation_info, **kwargs)
+            return
+        if verbose:
+            if training_info is not None:
+                self._logger.info("train: " + training_info.summary_string())
+            if validation_info is not None:
+                self._logger.info("valid: " + validation_info.summary_string())
+
+    def set_max_epoch(self, max_epochs):
+        self.opt.optim.max_epochs = max_epochs
 
     def increase_max_epoch(self, increment):
         self.opt.optim.max_epochs += increment
 
     def reset_training_state(self):
-        self._training_state = self.initial_training_state()
-        self._training_state.learning_rate = self.opt.optim.learning_rate
+        self._training_state = TrainingState(self.opt.optim.learning_rate)
+        return self._training_state
 
     @abc.abstractmethod
     def train(self, *args, **kwargs):

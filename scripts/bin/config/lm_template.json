@@ -4,6 +4,8 @@
     "model": {
       "model_class": "seqmodel.model.seq_model.BasicSeqModel",
       "model_opt": {
+        "loss_type": "xent",
+        "output_mode": "distribution",
         "decoder": {
           "class_name": "seqmodel.model.decoder.RNNDecoder",
           "opt": {
@@ -65,7 +67,7 @@
     "_add_end_seq": true,
     "_add_start_seq": false,
     "data_source": "",
-    "sequence_length": 10,
+    "sequence_length": 20,
     "shuffle": true,
     "time_major": true,
     "truncate_batch": false
