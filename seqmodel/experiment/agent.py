@@ -153,10 +153,19 @@ class Agent(object):
         if info.step % report_step_every == 0 and info.step > 0 and verbose:
             self._logger.info(info.summary_string())
 
-    def begin_epoch(self, training_state, verbose=True, training_info=None,
-                    validation_info=None, context=None, **kwargs):
+    def begin_epoch(self, training_state, verbose=True,
+                    context=None, **kwargs):
         if context is not None:
             context.begin_epoch(
+                training_state, verbose, **kwargs)
+            return
+        if verbose:
+            self._logger.info(training_state.summary_string())
+
+    def end_epoch(self, training_state, verbose=True, training_info=None,
+                  validation_info=None, context=None, **kwargs):
+        if context is not None:
+            context.end_epoch(
                 training_state, verbose, training_info,
                 validation_info, **kwargs)
             return
@@ -165,7 +174,6 @@ class Agent(object):
                 self._logger.info("train: " + training_info.summary_string())
             if validation_info is not None:
                 self._logger.info("valid: " + validation_info.summary_string())
-            self._logger.info(training_state.summary_string())
 
     def set_max_epoch(self, max_epochs):
         self.opt.optim.max_epochs = max_epochs

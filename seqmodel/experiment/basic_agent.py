@@ -65,8 +65,7 @@ class BasicAgent(agent.Agent):
         tr_info, val_info = None, None
         for epoch in range(self.opt.optim.max_epochs):
             new_lr = training_state.update_learning_rate(self.opt.optim)
-            self.begin_epoch(training_state, verbose, tr_info, val_info,
-                             **kwargs)
+            self.begin_epoch(training_state, verbose, **kwargs)
             if training_state.is_training_done(self.opt.optim):
                 break
             self.sess.run(tf.assign(self.lr, new_lr))
@@ -81,6 +80,8 @@ class BasicAgent(agent.Agent):
                     verbose=verbose, **kwargs)
                 info = val_info
             training_state.update(info)
+            self.end_epoch(training_state, verbose, tr_info, val_info,
+                           **kwargs)
         return training_state
 
     def _predict_to_end(self, model, env, obs, max_steps,
@@ -90,19 +91,20 @@ class BasicAgent(agent.Agent):
         samples, likelihoods = [], []
         for t_step in range(max_steps):
             distribution, state, _ = model.predict(
-                self.sess, obs.features, state=state, new_seq=new_seq)
+                self.sess, obs.features, state=state, new_seq=new_seq,
+                logit_temperature=temperature, **kwargs)
             sampled_action, likelihood = agent.select_from_distribution(
                 distribution, greedy)
             samples.append(sampled_action)
             likelihoods.append(likelihood)
             obs, _, done, _ = env.step(sampled_action)
             new_seq = False
-            if done:
+            if all(done):
                 break
         return samples, likelihoods
 
     def sample(self, env, max_decoding_len=40, temperature=1.0, greedy=False,
-               num_samples=1, *args, **kwargs):
+               num_samples=1, **kwargs):
         obs = env.reset()
         batch_outputs = []
         transitions = []
@@ -113,7 +115,7 @@ class BasicAgent(agent.Agent):
                 obs = env.reset(new_obs=False)
                 samples, likelihoods = self._predict_to_end(
                     self.eval_model, env, obs, max_decoding_len,
-                    temperature, greedy)
+                    temperature, greedy, **kwargs)
                 out_scores.append(np.stack(likelihoods))
                 out_samples.append(np.stack(samples))
             batch_outputs.append(SampleOutputTuple(

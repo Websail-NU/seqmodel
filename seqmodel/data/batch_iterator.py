@@ -69,10 +69,6 @@ class BatchIterator(object):
         """
         raise NotImplementedError('Not implemented.')
 
-    @abc.abstractmethod
-    def update_last_input(self, batch, input, **kwargs):
-        raise NotImplementedError
-
     def iterate_epoch(self, batch_size, no_label_seq=False):
         self.init_batch(batch_size, no_label_seq)
         while True:
@@ -107,10 +103,6 @@ class TextIterator(BatchIterator):
             add_start_seq=False,
             add_end_seq=True)
 
-    def is_all_end(self, outputs):
-        """ Return True, if all elements in the outputs is "end_seq" symbol """
-        return False
-
 
 class RawBatchIterator(BatchIterator):
     def __init__(self, batches, opt=None, batch_iter=None):
@@ -134,12 +126,12 @@ class RawBatchIterator(BatchIterator):
             self._pos += 1
             return batch
         return None
-
-    def is_all_end(self, batch, outputs):
-        return self.iter.is_all_end(batch, outputs)
-
-    def update_last_input(self, batch, outputs, **kwargs):
-        self.iter.update_last_input(batch, outputs, **kwargs)
-
-    def format_sample_output(self, batch, samples):
-        self.iter.format_sample_output(batch, samples)
+    #
+    # def is_all_end(self, batch, outputs):
+    #     return self.iter.is_all_end(batch, outputs)
+    #
+    # def update_last_input(self, batch, outputs, **kwargs):
+    #     self.iter.update_last_input(batch, outputs, **kwargs)
+    #
+    # def format_sample_output(self, batch, samples):
+    #     self.iter.format_sample_output(batch, samples)

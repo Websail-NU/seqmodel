@@ -12,6 +12,9 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 ## TODO
 
 ### Model
+- [ ] Make it possible to share variables between 2 different model
+- [ ] Replace highway-like update with GRU-like update in definition model (to replicate original paper)
+- [ ] Refactor dropout (replace static values of `keep_prob` with placeholders).
 - [x] Create an actual model object that has a well defined API for creation (graph nodes)
 - [x] Placeholders should be in a tuple corresponding to BatchIterator
 - [x] Fetch functions will not take any argument
@@ -19,13 +22,14 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
   - [x] data is in a tuple that corresponds to the graph nodes
   - [x] state is whatever the model needed for itself (possibly a tuple or bunch)
 - [x] Update Definition Model for the executable model interfaces
-- [ ] Replace highway-like update with GRU-like update in definition model (to replicate original paper)
-- [ ] Refactor dropout (replace static values of `keep_prob` with placeholders).
+
 
 ### Agent
+- [ ] Add critic to policy gradient agent
 - [x] Update basic agent to use the executable model interfaces
 - [x] Simplify sampling code, use environment interfaces
-- [ ] Write Policy gradient agent
+- [x] Write Policy gradient agent
+
 
 ### Data
 - [x] Creating BatchIterator every time is a pain. We should have a function that creates the same iterator  
@@ -35,5 +39,3 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - [x] BatchIterator will not have a configuration for data files or lists anymore, initialize()  
   function should take argument for such thing
 - [x] We should have an Environment class to wrap BatchIterator in RL.
-- [ ] The environment interface on sequence iterator does not make much sense
-- [ ] Perhaps, an agent should take raw data and use BatchIterator to generate batch

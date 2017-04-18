@@ -214,8 +214,8 @@ class TokenIterator(TextIterator):
         label = np.zeros_like(batch.labels.label[:1, :])
         label[:] = self.out_pad_id
         label_weight = batch.labels.label_weight[:1, :].copy()
-        labels = SeqLabelTuple(label, label_weight)
-        init_batch = SeqTuple(batch.features, labels, True, batch.num_tokens)
+        labels = batch.labels._replace(label=label, label_weight=label_weight)
+        init_batch = batch._replace(labels=labels, new_seq=True)
         return batch, init_batch
 
     def step(self, observation, action):
@@ -226,14 +226,16 @@ class TokenIterator(TextIterator):
         for ib in range(self._batch_size):
             if (_f.input_seq_len[ib] == 0 or action[ib] == self.out_pad_id):
                 inputs[0, ib] = self.in_pad_id
+                action[ib] = self.out_pad_id
             else:
                 input_id = self.in_vocab.w2i(self.out_vocab.i2w(action[ib]))
                 inputs[0, ib] = input_id
                 seq_len[ib] = 1
         num_tokens = float(np.sum(seq_len > 0))
-        features = SeqFeatureTuple(inputs, seq_len)
-        new_obs = SeqTuple(features, observation.labels, False, num_tokens)
-        return new_obs, seq_len == 0, None
+        features = _f._replace(inputs=inputs, input_seq_len=seq_len)
+        new_obs = _f._replace(features=features, new_seq=False,
+                              num_tokens=num_tokens)
+        return new_obs, action, seq_len == 0, None
 
     # XXX: Fix this methods
     def is_all_end(self, batch, outputs):

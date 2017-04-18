@@ -33,6 +33,23 @@ class RunningInfo(object):
             self.step, self.training_loss, self.eval_loss, self.wps)
 
 
+class RLRunningInfo(RunningInfo):
+    def __init__(self, start_time=None, end_time=None,
+                 eval_cost=0.0, training_cost=0.0,
+                 num_tokens=0, step=0, num_episodes=0):
+        super(RLRunningInfo, self).__init__(
+            start_time, end_time, eval_cost, training_cost, num_tokens, step)
+        self.num_episodes = num_episodes
+
+    @property
+    def eval_loss(self):
+        return self.eval_cost / self.num_episodes
+
+    def summary_string(self):
+        return "@{} tr_loss: {:.5f}, avg_return: {:.5f}, wps: {:.1f}".format(
+            self.step, self.training_loss, self.eval_loss, self.wps)
+
+
 class TrainingState(object):
     def __init__(self, learning_rate=1e-4, cur_epoch=0,
                  cur_eval=float('inf'), last_imp_eval=float('inf'),
@@ -92,7 +109,7 @@ class TrainingState(object):
 
     def is_training_done(self, opt):
         # current epoch reaches max epochs
-        if self.cur_epoch >= opt.max_epochs:
+        if self.cur_epoch > opt.max_epochs:
             return True
         # early stopping
         if self.imp_wait >= opt.lr_decay_wait:

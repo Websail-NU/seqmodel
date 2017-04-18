@@ -141,8 +141,14 @@ class Context(object):
                 info.step, info.eval_loss,
                 info.num_tokens / (time.time() - info.start_time)))
 
-    def begin_epoch(self, training_state, verbose=True, training_info=None,
-                    validation_info=None, context=None, **kwargs):
+    def begin_epoch(self, training_state, verbose=True,
+                    context=None, **kwargs):
+        if verbose:
+            self._logger.info('ep: {} lr: {:.6f}'.format(
+                training_state.cur_epoch, training_state.learning_rate))
+
+    def end_epoch(self, training_state, verbose=True, training_info=None,
+                  validation_info=None, context=None, **kwargs):
         report = []
         info = None
         if training_info is not None:
@@ -154,10 +160,8 @@ class Context(object):
             report.append('val: {:.5f} ({:.5f})'.format(
                 validation_info.eval_loss, np.exp(validation_info.eval_loss)))
             info = validation_info
-        if len(report) > 0:
+        if len(report) > 0 and verbose:
             self._logger.info(' '.join(report))
-        self._logger.info('ep: {} lr: {:.6f}'.format(
-            training_state.cur_epoch, training_state.learning_rate))
         if not hasattr(self, 'tf_saver'):
             self.tf_saver = tf.train.Saver()
         if training_state.cur_epoch > 0:

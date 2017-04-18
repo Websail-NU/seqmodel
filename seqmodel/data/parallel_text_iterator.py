@@ -283,76 +283,62 @@ class Seq2SeqIterator(TextIterator, EnvGenerator):
             else:
                 return None, None
         _f = batch.features
+        _l = batch.labels
         decoder_input = _f.decoder_input[:1, :].copy()
         decoder_seq_len = (_f.encoder_seq_len > 0).astype(np.int32)
         decoder_label = np.zeros_like(batch.labels.decoder_label[:1, :])
         decoder_label[:] = self.dec_pad_id
         decoder_label_weight = batch.labels.decoder_label_weight[:1, :].copy()
         num_tokens = float(np.sum(decoder_label_weight != 0))
-        init_features = Seq2SeqFeatureTuple(
-            _f.encoder_input, _f.encoder_seq_len,
-            decoder_input, decoder_seq_len)
-        init_labels = Seq2SeqLabelTuple(decoder_label, decoder_label_weight,
-                                        batch.labels.decoder_seq_label)
-        init_batch = Seq2SeqTuple(init_features, init_labels, num_tokens)
+        init_features = _f._replace(decoder_input=decoder_input,
+                                    decoder_seq_len=decoder_seq_len)
+        init_labels = _l._replace(decoder_label=decoder_label,
+                                  decoder_label_weight=decoder_label_weight)
+        init_batch = batch._replace(features=init_features,
+                                    labels=init_labels,
+                                    num_tokens=num_tokens)
         return batch, init_batch
 
     def step(self, observation, action):
         _f = observation.features
+        action = action
         decoder_input = np.zeros([1, self._batch_size], dtype=np.int32)
         decoder_input[:] = self.dec_pad_id
         decoder_seq_len = np.zeros_like(_f.decoder_seq_len)
         for ib in range(self._batch_size):
             if (_f.decoder_seq_len[ib] == 0 or action[ib] == self.dec_pad_id):
                 decoder_input[0, ib] = self.dec_pad_id
+                action[ib] = self.dec_pad_id
             else:
                 decoder_input[0, ib] = action[ib]
                 decoder_seq_len[ib] = 1
         num_tokens = float(np.sum(decoder_seq_len > 0))
-        features = Seq2SeqFeatureTuple(
-            _f.encoder_input, _f.encoder_seq_len,
-            decoder_input, decoder_seq_len)
-        new_obs = Seq2SeqTuple(features, observation.labels, num_tokens)
-        return new_obs, decoder_seq_len == 0, None
+        features = _f._replace(decoder_input=decoder_input,
+                               decoder_seq_len=decoder_seq_len)
+        new_obs = observation._replace(features=features,
+                                       num_tokens=num_tokens)
+        return new_obs, action, decoder_seq_len == 0, None
 
-    def is_all_end(self, batch, outputs):
-        warnings.warn("Please use a proper EnvGenerator methods",
-                      category=DeprecationWarning)
-        return all(np.logical_or(outputs == self.dec_pad_id,
-                                 batch.features.decoder_seq_len == 0))
+    def pack_transitions(self, ref_obs, transitions):
+        _f = ref_obs.features
+        _l = ref_obs.labels
+        decoder_input = np.vstack(
+            [t.state.features.decoder_input for t in transitions])
+        decoder_label = np.vstack([t.action for t in transitions])
+        decoder_seq_len = np.sum(decoder_label != self.dec_pad_id, 0) + 1
+        decoder_seq_len *= (_f.encoder_seq_len != 0)
+        decoder_label_weight = (decoder_input != self.dec_pad_id).astype(
+            np.float32)
+        num_tokens = np.sum(decoder_seq_len)
+        features = _f._replace(decoder_input=decoder_input,
+                               decoder_seq_len=decoder_seq_len)
+        labels = _l._replace(decoder_label=decoder_label,
+                             decoder_label_weight=decoder_label_weight)
+        packed_obs = ref_obs._replace(features=features, labels=labels,
+                                      num_tokens=num_tokens)
+        return packed_obs
 
-    def update_last_input(self, batch, outputs, **kwargs):
-        warnings.warn("Please use a proper EnvGenerator methods",
-                      category=DeprecationWarning)
-        o_batch_size = len(outputs)
-        if any(batch.features.decoder_seq_len > 1):
-            batch.features.decoder_input = np.zeros([o_batch_size, 1],
-                                                    dtype=np.int32)
-            batch.features.decoder_input[:] = self.dec_pad_id
-            batch.features.decoder_input =\
-                np.transpose(batch.features.decoder_input)
-        for i in range(len(outputs)):
-            output_id = self.dec_pad_id
-            if (batch.features.decoder_seq_len[i] == 0 or
-                    outputs[i] == self.dec_pad_id):
-                outputs[i] = self.dec_pad_id
-                batch.features.decoder_seq_len[i] = 0
-            else:
-                output_id = outputs[i]
-                batch.features.decoder_seq_len[i] = 1
-            batch.features.decoder_input[-1, i] = output_id
-
-    def format_sample_output(self, batch, samples):
-        batch.labels.decoder_label = np.vstack(
-            [batch.features.decoder_input[1:, :], samples])
-        batch.features.decoder_input = np.vstack(
-            [batch.features.decoder_input, samples[:-1, :]])
-        batch.features.decoder_seq_len = np.sum(
-            batch.labels.decoder_label != self.dec_pad_id, 0)
-        batch.features.decoder_seq_len += 1
-        batch.features.decoder_seq_len *= (batch.features.encoder_seq_len != 0)
-
-        batch.labels.decoder_label_weight =\
-            (batch.features.decoder_input != self.dec_pad_id).astype(
-                np.float32)
-        batch.num_tokens = np.sum(batch.features.decoder_seq_len)
+    def replace_weights(self, obs, new_weights):
+        _l = obs.labels
+        labels = _l._replace(decoder_label_weight=new_weights)
+        return obs._replace(labels=labels)
