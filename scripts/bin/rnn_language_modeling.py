@@ -24,6 +24,7 @@ def main():
         context.write_config()
         context.logger.info('Initializing graphs and models...')
         context.initialize_agent(with_training=True)
+        context.agent.initialize_optim()
         context.logger.info('Initializing data...')
         context.initialize_iterators()
         context.logger.info('Trainable variables:')
@@ -33,9 +34,18 @@ def main():
         context.agent.train(context.iterators.train, 20,
                             context.iterators.valid, 20,
                             context=context)
+        context.logger.info('Loading best model...')
+        context.load_best_model()
+        context.logger.info('Evaluating...')
+        info = context.agent.evaluate(context.iterators.train, 20)
+        context.logger.info('Train PPL: {}'.format(
+            np.exp(info.eval_loss)))
         info = context.agent.evaluate(context.iterators.valid, 20)
-        context.logger.info('Validation PPL: {}'.format(
-            np.exp(info.cost/info.num_tokens)))
+        context.logger.info('Valid PPL: {}'.format(
+            np.exp(info.eval_loss)))
+        info = context.agent.evaluate(context.iterators.test, 20)
+        context.logger.info('Test PPL: {}'.format(
+            np.exp(info.eval_loss)))
     context.logger.info('Total time: {}s'.format(time.time() - start_time))
 
 

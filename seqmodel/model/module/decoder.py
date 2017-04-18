@@ -70,7 +70,7 @@ class RNNDecoder(Decoder):
                         initial_state=self.rnn.initial_state,
                         final_state=self.rnn.final_state)
         if self.rnn.is_attr_set('logit'):
-            outputs.logit = self.rnn.logit,
-            outputs.logit_temperature = self.rnn.logit_temperature,
+            outputs.logit = self.rnn.logit
+            outputs.logit_temperature = self.rnn.logit_temperature
             outputs.distribution = self.rnn.distribution
         return outputs

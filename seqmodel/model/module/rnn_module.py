@@ -8,6 +8,7 @@ import tensorflow as tf
 from seqmodel.bunch import Bunch
 from seqmodel.model.module import graph_util
 from seqmodel.model.module import rnn_cells
+from tensorflow.contrib.rnn import DropoutWrapper
 from seqmodel.model.module.graph_module import GraphModule
 
 
@@ -28,6 +29,7 @@ def no_dropout_if_not_training(rnn_cell_opt, is_training):
         new_opt = copy.copy(rnn_cell_opt)
         new_opt.input_keep_prob = 1.0
         new_opt.output_keep_prob = 1.0
+        new_opt.state_keep_prob = 1.0
         rnn_cell_opt = new_opt
     return rnn_cell_opt
 
@@ -38,34 +40,95 @@ def create_rnn_cell_from_opt(opt):
         cell_class = eval(opt.cell_class)
     else:
         cell_class = locate(opt.cell_class)
-    return cell_class(**opt.cell_opt)
+    cell = cell_class(**opt.cell_opt)
+    if opt.get('vrrn', False):
+        cell = rnn_cells.ResidualWrapper(cell)
+    return cell
+
+
+def _get_rnn_cells(opt, num_cells, only_drop_input_first=True):
+    """ Create a homogenous RNN cells. """
+    cells = []
+    vrrn = opt.get('vrrn', False)
+    variational_dropout = opt.get('variational_dropout', False)
+    input_keep_prob = opt.get('input_keep_prob', 1.0)
+    output_keep_prob = opt.get('output_keep_prob', 1.0)
+    state_keep_prob = opt.get('state_keep_prob', 1.0)
+    input_size = opt.get('input_size', opt.cell_opt.num_units)
+    for icell in range(num_cells):
+        cell = create_rnn_cell_from_opt(opt)
+        input_keep_prob_ = input_keep_prob
+        # Only the first cell need an input dropout
+        if icell > 0 and only_drop_input_first:
+            input_keep_prob_ = 1.0
+        if (input_keep_prob_ < 1.0 or output_keep_prob < 1.0
+                or state_keep_prob < 1.0):
+            cell = DropoutWrapper(cell, input_keep_prob=input_keep_prob_,
+                                  output_keep_prob=output_keep_prob)
+            # cell = rnn_cells.DropoutWrapper(
+            #    cell=cell, input_keep_prob=input_keep_prob_,
+            #    state_keep_prob=state_keep_prob, input_size=input_size,
+            #    output_keep_prob=output_keep_prob,
+            #    variational_recurrent=variational_dropout, dtype=tf.float32)
+        cells.append(cell)
+    return cells
 
 
 def get_rnn_cell(opt):
-    """ Create a homogenous RNN cell. """
-    cells = []
-    for _ in range(opt.num_layers):
-        cell = create_rnn_cell_from_opt(opt)
-        if opt.input_keep_prob < 1.0 or opt.output_keep_prob < 1.0:
-            cell = tf.contrib.rnn.DropoutWrapper(
-               cell=cell,
-               input_keep_prob=opt.input_keep_prob,
-               output_keep_prob=opt.output_keep_prob)
-        cells.append(cell)
-    if opt.is_attr_set('vrrn') and opt.vrrn:
-        vrrn_opt = opt.get('vrrn_opt', Bunch())
-        final_cell = rnn_cells.VRRNWrapper(cells, **vrrn_opt)
-        if opt.output_keep_prob < 1.0:
-            final_cell = tf.contrib.rnn.DropoutWrapper(
-               cell=final_cell,
-               output_keep_prob=opt.output_keep_prob)
+    if opt.get('parallel_cells', 0) > 1:
+        opt = copy.deepcopy(opt)
+        input_keep_prob = opt.input_keep_prob
+        opt.input_keep_prob = 1.0
+        cells = _get_rnn_cells(opt, opt.parallel_cells)
+        new_opt = copy.deepcopy(opt)
+        new_opt.cell_opt.num_units = opt.get('num_p_units',
+                                             new_opt.cell_opt.num_units)
+        m_cell = _get_rnn_cells(new_opt, 1)[0]
+        final_cell = rnn_cells.ParallelCellWrapper([m_cell] + cells)
+        if input_keep_prob < 1.0:
+            final_cell = DropoutWrapper(final_cell,
+                                        input_keep_prob=input_keep_prob)
     elif opt.num_layers > 1:
+        cells = _get_rnn_cells(opt, opt.num_layers)
         final_cell = tf.contrib.rnn.MultiRNNCell(cells)
     else:
+        cells = _get_rnn_cells(opt, 1)
         final_cell = cells[0]
     if opt.is_attr_set("output_all_states") and opt.output_all_states:
         final_cell = rnn_cells.OutputStateWrapper(final_cell)
     return final_cell
+
+# def get_rnn_cell(opt):
+#     """ Create a homogenous RNN cell. """
+#     cells = []
+#     for layer in range(opt.num_layers):
+#         cell = create_rnn_cell_from_opt(opt)
+#         input_keep_prob = opt.input_keep_prob
+#         # in general, only the first layer of cell need an input dropout
+#         # if not VRRN
+#         if layer > 0 and not opt.get('vrrn', False):
+#             input_keep_prob = 1.0
+#         if input_keep_prob < 1.0 or opt.output_keep_prob < 1.0:
+#             cell = tf.contrib.rnn.DropoutWrapper(
+#                cell=cell,
+#                input_keep_prob=input_keep_prob,
+#                output_keep_prob=opt.output_keep_prob)
+#         cells.append(cell)
+#     if opt.is_attr_set('vrrn') and opt.vrrn:
+#         vrrn_opt = opt.get('vrrn_opt', Bunch())
+#         final_cell = rnn_cells.VRRNWrapper(cells, **vrrn_opt)
+#         if opt.output_keep_prob < 1.0:
+#             # because of addition, we need another dropout
+#             final_cell = tf.contrib.rnn.DropoutWrapper(
+#                cell=final_cell,
+#                output_keep_prob=opt.output_keep_prob)
+#     elif opt.num_layers > 1:
+#         final_cell = tf.contrib.rnn.MultiRNNCell(cells)
+#     else:
+#         final_cell = cells[0]
+#     if opt.is_attr_set("output_all_states") and opt.output_all_states:
+#         final_cell = rnn_cells.OutputStateWrapper(final_cell)
+#     return final_cell
 
 
 def feed_state(feed_dict, state_vars, state_vals):

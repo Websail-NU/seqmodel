@@ -1,6 +1,7 @@
 import tensorflow as tf
 
 from seqmodel.bunch import Bunch
+from seqmodel.common_tuple import *
 from seqmodel.model import graph_util
 from seqmodel.model import tdnn_module
 from seqmodel.model import rnn_module
@@ -50,83 +51,97 @@ class DefinitionModel(BasicSeq2SeqModel):
             share_feature_dec_embedding=True)
         return opt
 
-    def _prepare_encoder_word(self, features):
-        features.encoder_word = tf.placeholder(
+    def _prepare_encoder_word(self, nodes):
+        nodes.encoder_word = tf.placeholder(
             tf.int32, [None], name='encoder_word')
-        self._feed.features.encoder_word = features.encoder_word
-        features.word_lookup = tf.nn.embedding_lookup(
-            self._encoder_emb_vars, features.encoder_word,
+        nodes.word_lookup = tf.nn.embedding_lookup(
+            self._nodes.inputs.enc_embedding_vars, nodes.encoder_word,
             name="word_lookup")
+        return nodes.encoder_word
 
-    def _prepare_encoder_extra_feature(self, features):
-        features.encoder_feature = tf.placeholder(
+    def _prepare_encoder_extra_feature(self, nodes):
+        nodes.encoder_feature = tf.placeholder(
             tf.int32, [None], name='encoder_feature')
-        self._feed.features.encoder_feature = features.encoder_feature
         if self.opt.word_context.share_feature_dec_embedding:
-            embedding_vars = self._decoder_emb_vars
+            nodes.ex_feature_embedding_vars =\
+                self._nodes.inputs.dec_embedding_vars
         else:
             emb_opt = self.opt.embedding
-            embedding_vars = graph_util.create_embedding_var(
+            nodes.ex_feature_embedding_vars = graph_util.create_embedding_var(
                 emb_opt.word_feature_vocab_size, emb_opt.word_feature_dim,
                 trainable=emb_opt.word_feature_trainable,
                 name='feature_embedding',
                 init_filepath=emb_opt.word_feature_init_filepath)
-        features.extra_feature = tf.nn.embedding_lookup(
-            embedding_vars, features.encoder_feature,
+        nodes.extra_feature = tf.nn.embedding_lookup(
+            nodes.ex_feature_embedding_vars, nodes.encoder_feature,
             name='feature_lookup')
+        return nodes.encoder_feature
 
-    def _prepare_encoder_char_cnn(self, features):
-        features.encoder_char = tf.placeholder(
+    def _prepare_encoder_char_cnn(self, nodes):
+        nodes.encoder_char = tf.placeholder(
             tf.int32, [None, None], name='encoder_char')
-        features.encoder_char_len = tf.placeholder(
+        nodes.encoder_char_len = tf.placeholder(
             tf.int32, [None], name='encoder_char_len')
-        self._feed.features.encoder_char = features.encoder_char
-        self._feed.features.encoder_char_len = features.encoder_char_len
         if self.opt.embedding.char_one_hot:
-            features.char_lookup = tf.one_hot(
-                features.encoder_char, self.opt.embedding.char_vocab_size,
+            nodes.char_lookup = tf.one_hot(
+                nodes.encoder_char, self.opt.embedding.char_vocab_size,
                 axis=-1, dtype=tf.float32, name="char_lookup")
         else:
             emb_opt = self.opt.embedding
-            embedding_vars = graph_util.create_embedding_var(
+            nodes.char_embedding_vars = graph_util.create_embedding_var(
                 emb_opt.char_vocab_size, emb_opt.char_dim,
                 trainable=emb_opt.char_trainable, name='char_embedding',
                 init_filepath=emb_opt.char_init_filepath)
-            features.char_lookup = tf.nn.embedding_lookup(
-                embedding_vars, features.encoder_char,
+            nodes.char_lookup = tf.nn.embedding_lookup(
+                nodes.char_embedding_vars, nodes.encoder_char,
                 name='char_lookup')
+        return nodes.encoder_char, nodes.encoder_char_len
 
     def _prepare_input(self):
-        features, labels = super(DefinitionModel, self)._prepare_input()
+        features, labels, _e, _d, nodes =\
+            super(DefinitionModel, self)._prepare_input()
         if self.opt.word_context.use_word:
-            self._prepare_encoder_word(features)
+            enc_word = self._prepare_encoder_word(nodes)
+        else:
+            enc_word = tf.placeholder(tf.int32, [None], name='_encoder_word')
         if self.opt.word_context.use_features:
-            self._prepare_encoder_extra_feature(features)
+            enc_fea = self._prepare_encoder_extra_feature(nodes)
+        else:
+            enc_fea = tf.placeholder(tf.int32, [None], name='_encoder_feature')
         if self.opt.word_context.use_chars:
-            self._prepare_encoder_char_cnn(features)
-        return features, labels
+            enc_char, enc_char_len = self._prepare_encoder_char_cnn(nodes)
+        else:
+            enc_char = tf.placeholder(
+                tf.int32, [None, None], name='_encoder_char')
+            enc_char_len = tf.placeholder(
+                tf.int32, [None], name='_encoder_char_len')
+        _f = features
+        features = Word2SeqFeatureTuple(
+            _f.encoder_input, _f.encoder_seq_len, _f.decoder_input,
+            _f.decoder_seq_len, enc_word, enc_fea, enc_char, enc_char_len)
+        return features, labels, _e, _d, nodes
 
-    def _encoder_kwargs(self, features, labels):
-        kwargs = super(DefinitionModel, self)._encoder_kwargs(features, labels)
+    def _encoder_kwargs(self, nodes):
+        kwargs = super(DefinitionModel, self)._encoder_kwargs(nodes)
         if self.opt.word_context.use_word:
-            kwargs['word_lookup'] = features.word_lookup
+            kwargs['word_lookup'] = self._nodes.inputs.word_lookup
         if self.opt.word_context.use_features:
-            kwargs['extra_feature'] = features.extra_feature
+            kwargs['extra_feature'] = self._nodes.inputs.extra_feature
         if self.opt.word_context.use_chars:
-            kwargs['char_lookup'] = features.char_lookup
-            kwargs['char_length'] = features.encoder_char_len
+            kwargs['char_lookup'] = self._nodes.inputs.char_lookup
+            kwargs['char_length'] = self._nodes.inputs.encoder_char_len
             if self.opt.encoder.tdnn_opt.activation_fn is not None:
                 kwargs['char_cnn_act_fn'] = eval(
                     self.opt.encoder.tdnn_opt.activation_fn)
-            kwargs['tdnn_module'] = tdnn_module.TDNNModule(
+            nodes.tdnn_module = tdnn_module.TDNNModule(
                 self.opt.encoder.tdnn_opt, name='char_cnn')
+            kwargs['tdnn_module'] = nodes.tdnn_module
         return kwargs
 
-    def _decoder_kwargs(self, encoder_output, features, labels):
+    def _decoder_kwargs(self, encoder_output, nodes):
         kwargs = super(DefinitionModel, self)._decoder_kwargs(
-            encoder_output, features, labels)
+            encoder_output, nodes)
         if (encoder_output.is_attr_set('context') and
                 encoder_output.context.is_attr_set('word_info')):
             kwargs['context_for_rnn'] = encoder_output.context.word_info
-        kwargs['_features'] = features
         return kwargs

@@ -20,7 +20,7 @@ import codecs
 import six
 import numpy as np
 
-from seqmodel.bunch import Bunch
+from seqmodel.data.batch_iterator import *
 from seqmodel.data.parallel_text_iterator import Seq2SeqIterator
 
 
@@ -64,25 +64,13 @@ class Word2DefIterator(Seq2SeqIterator):
                        the start of decoding sequence
         add_end_enc: If true, add end decoding symbol id to
                      the start of decoding sequence
-        data_source: a path (str) to a data file,
-                     or a list of tuple of (enc seq, dec seq)
-        feature_source: a path (str) to a feature file
-                        of a list of features (same order as data_source)
         seq_delimiter: a character that separates encoding and decoding seqs
         truncate_batch: If true, return batch as long as the longest seqs in
                         a current batch
-        time_major: If true, return [Time x Batch]
     """
-    def __init__(self, opt, in_vocab, out_vocab, char_vocab):
-        super(Word2DefIterator, self).__init__(opt, in_vocab, out_vocab)
+    def __init__(self, in_vocab, out_vocab, char_vocab, opt=None):
+        super(Word2DefIterator, self).__init__(in_vocab, out_vocab, opt)
         self.char_vocab = char_vocab
-
-    @staticmethod
-    def default_opt():
-        default_opt = Seq2SeqIterator.default_opt()
-        return Bunch(
-            default_opt,
-            feature_source='')
 
     @property
     def input_keys(self):
@@ -91,132 +79,86 @@ class Word2DefIterator(Seq2SeqIterator):
                   'encoder_char', 'encoder_char_len'))
         return keys
 
-    @property
-    def label_keys(self):
-        return set(['decoder_label', 'decoder_label_weight'])
-
-    @property
-    def batch_size(self):
-        if hasattr(self, '_batch_size'):
-            return self._batch_size
-        else:
-            return 1
-
-    def initialize(self, _return_text=False, **kwargs):
+    def initialize(self, data_source, token_weight_source=None,
+                   seq_label_source=None, feature_source=None,
+                   _return_text=False):
         enc_text, dec_text = super(Word2DefIterator, self).initialize(
-            _return_text=True)
+            data_source, _return_text=True)
         enc_char = [tokens2chars(tokens) for tokens in enc_text]
         self.max_enc_char_len = len(max(enc_char, key=len))
         enc_char = self.char_vocab.w2i(enc_char)
-        if isinstance(self.opt.feature_source, six.string_types):
-
+        if isinstance(feature_source, six.string_types):
             enc_features, feature_len = read_feature_file(
-                self.opt.feature_source, self.opt.seq_delimiter)
+                feature_source, self.opt.seq_delimiter)
         else:
-            enc_features, feature_len = self.opt.feature_source, 1
+            enc_features, feature_len = feature_source, 1
         self.feature_len = feature_len
         self.extra_data = zip(enc_char, enc_features)
         self.enc_char_pad_id = 1
         if _return_text:
             return enc_text, dec_text
 
-    def _reset_batch_data(self, batch_bunch):
-        batch_bunch = super(Word2DefIterator, self)._reset_batch_data(
-            batch_bunch)
-        size = [self._batch_size]
-        # create if not exist
-        batch_bunch.enc_word = batch_bunch.get(
-            'enc_word', np.zeros(size, np.int32))
-        batch_bunch.enc_char = batch_bunch.get(
-            'dec_char', np.zeros(size + [self.max_enc_char_len], np.int32))
-        # batch_bunch.enc_feature = batch_bunch.get(
-        #     'enc_feature', np.zeros(size + [self.feature_len], np.int32))
-        batch_bunch.enc_feature = batch_bunch.get(
-            'enc_feature', np.zeros(size, np.int32))
-        batch_bunch.enc_char_len = batch_bunch.get(
-            'enc_char_len', np.zeros(size, np.int32))
-        batch_bunch.enc_word[:] = self.enc_pad_id
-        batch_bunch.enc_char[:] = self.enc_char_pad_id
-        batch_bunch.enc_feature[:] = 0
-        batch_bunch.enc_char_len[:] = 0
-        return batch_bunch
+    def _reset_batch_data(self, batch_size=None):
+        if batch_size is not None and batch_size != self._batch_size:
+            size = [batch_size]
+            # create if not exist
+            self._b_enc_word = np.zeros(size, np.int32)
+            self._b_enc_char = np.zeros(
+                size + [self.max_enc_char_len], np.int32)
+            self._b_enc_feature = np.zeros(size, np.int32)
+            self._b_enc_char_len = np.zeros(size, np.int32)
+        super(Word2DefIterator, self)._reset_batch_data(batch_size)
+        self._b_enc_word[:] = self.enc_pad_id
+        self._b_enc_char[:] = self.enc_char_pad_id
+        self._b_enc_feature[:] = 0
+        self._b_enc_char_len[:] = 0
 
     def _get_extra_data(self, pos, i_batch):
-        bb = self.bbatch
-        if (bb.read_sentences[i_batch] < bb.distances[i_batch] and
+        if (self._b_read_sentences[i_batch] < self._b_distances[i_batch] and
                 pos < len(self.data)):
-            idx = bb.data_perm[pos]
+            idx = self._b_data_perm[pos]
             return self.extra_data[idx]
         return None, None
 
-    def _prepare_batch_extra_data(self, bb):
+    def _prepare_batch_extra_data(self):
         for i_batch in range(self._batch_size):
-            cur_pos = bb.pointers[i_batch]
+            cur_pos = self._b_pointers[i_batch]
             enc_char, enc_feat = self._get_extra_data(cur_pos, i_batch)
             if enc_char is not None and enc_feat is not None:
                 enc_end = len(enc_char)
-                bb.enc_char[i_batch, 0:enc_end] = enc_char
-                bb.enc_char_len[i_batch] = enc_end
-                bb.enc_feature[i_batch] = enc_feat
-                bb.enc_word[i_batch] = bb.enc_input[i_batch, self.start_enc]
-        return bb
+                self._b_enc_char[i_batch, 0:enc_end] = enc_char
+                self._b_enc_char_len[i_batch] = enc_end
+                self._b_enc_feature[i_batch] = enc_feat
+                self._b_enc_word[i_batch] =\
+                    self._b_enc_input[i_batch, self.start_enc]
 
     def next_batch(self):
-        bb = super(Word2DefIterator, self)._prepare_batch()
-        if bb is None:
+        if not super(Word2DefIterator, self)._prepare_batch():
             return None
-        bb = self._prepare_batch_extra_data(bb)
-        bb = self._increment_batch(bb)
-        batch = self.format_batch(bb)
-        return self._postprocess(batch)
+        self._prepare_batch_extra_data()
+        self._increment_batch()
+        return self.format_batch()
 
-    def _truncate_to_seq_len(self, batch):
-        """Must be called before transpose truncate
-           matrices in the batch to max seq len"""
-        batch = super(Word2DefIterator, self)._truncate_to_seq_len(batch)
-        enc_char_max_len = batch.features.encoder_char_len.max()
-        batch.features.encoder_char =\
-            batch.features.encoder_char[:, :enc_char_max_len]
-        return batch
-
-    def _postprocess(self, batch):
+    def _postprocess(self):
+        enc_char = self._b_enc_char
+        enc_char_len = self._b_enc_char_len
+        enc_feature = self._b_enc_feature
+        enc_word = self._b_enc_word
         if self.opt.truncate_batch:
-            batch = self._truncate_to_seq_len(batch)
-        if self.opt.time_major:
-            batch = self._transpose_matrices(batch)
+            enc_char_max_len = enc_char_len.max()
+            enc_char = enc_char[:, :enc_char_max_len]
+        batch_data = super(Word2DefIterator, self)._postprocess()
+        return batch_data + (enc_word, enc_feature, enc_char, enc_char_len)
+
+    def format_batch(self):
+        processed_data = self._postprocess()
+        tok_weight = processed_data[5]
+        num_tokens = float(np.sum(tok_weight != 0))
+        # XXX: this code beats SHA256 in term of secrecy
+        features = Word2SeqFeatureTuple(
+            processed_data[0], processed_data[1], processed_data[2],
+            processed_data[3], processed_data[7], processed_data[8],
+            processed_data[9], processed_data[10])
+        labels = Seq2SeqLabelTuple(*processed_data[4:7])
+        batch = Seq2SeqTuple(features, labels, num_tokens)
         return batch
-
-    def format_batch(self, bb):
-        batch = super(Word2DefIterator, self).format_batch(bb)
-        batch.features.encoder_word = bb.enc_word
-        batch.features.encoder_feature = bb.enc_feature
-        batch.features.encoder_char = bb.enc_char
-        batch.features.encoder_char_len = bb.enc_char_len
-        return batch
-
-    def is_all_end(self, batch, outputs):
-        return all(np.logical_or(outputs == self.dec_pad_id,
-                                 batch.features.decoder_seq_len == 0))
-
-    def update_last_input(self, batch, outputs, **kwargs):
-        o_batch_size = len(outputs)
-        if any(batch.features.decoder_seq_len > 1):
-            batch.features.decoder_input = np.zeros([o_batch_size, 1],
-                                                    dtype=np.int32)
-            batch.features.decoder_input[:] = self.dec_pad_id
-            if self.opt.time_major:
-                batch.features.decoder_input =\
-                    np.transpose(batch.features.decoder_input)
-        for i in range(len(outputs)):
-            output_id = self.dec_pad_id
-            if (batch.features.decoder_seq_len[i] == 0 or
-                    outputs[i] == self.dec_pad_id):
-                outputs[i] = self.dec_pad_id
-                batch.features.decoder_seq_len[i] = 0
-            else:
-                output_id = outputs[i]
-                batch.features.decoder_seq_len[i] = 1
-            if self.opt.time_major:
-                batch.features.decoder_input[-1, i] = output_id
-            else:
-                batch.features.decoder_input[i, -1] = output_id
