@@ -86,7 +86,7 @@ class SeqModel(ModelBase):
                            training_loss=training_loss,
                            eval_loss=eval_loss)
         elif self.opt.loss_type == 'mse':
-            logit = tf.squeeze(logit)
+            logit = tf.squeeze(logit, axis=-1)
             loss = tf.losses.mean_squared_error(
                 labels=label, predictions=logit, weights=weight)
             losses = Bunch(tokens_loss=loss,

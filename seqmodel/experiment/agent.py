@@ -151,7 +151,7 @@ class Agent(object):
             context.end_step(info, verbose, report_mode, **kwargs)
             return
         if info.step % report_step_every == 0 and info.step > 0 and verbose:
-            self._logger.info(info.summary_string())
+            self._logger.info(info.summary_string(report_mode))
 
     def begin_epoch(self, training_state, verbose=True,
                     context=None, **kwargs):
@@ -171,9 +171,11 @@ class Agent(object):
             return
         if verbose:
             if training_info is not None:
-                self._logger.info("train: " + training_info.summary_string())
+                self._logger.info(
+                    "train: " + training_info.summary_string('training'))
             if validation_info is not None:
-                self._logger.info("valid: " + validation_info.summary_string())
+                self._logger.info(
+                    "valid: " + validation_info.summary_string('evaluating'))
 
     def set_max_epoch(self, max_epochs):
         self.opt.optim.max_epochs = max_epochs

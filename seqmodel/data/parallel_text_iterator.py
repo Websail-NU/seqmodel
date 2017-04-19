@@ -340,5 +340,11 @@ class Seq2SeqIterator(TextIterator, EnvGenerator):
 
     def replace_weights(self, obs, new_weights):
         _l = obs.labels
+        new_weights = new_weights * _l.decoder_label_weight
         labels = _l._replace(decoder_label_weight=new_weights)
+        return obs._replace(labels=labels)
+
+    def replace_labels(self, obs, new_labels):
+        _l = obs.labels
+        labels = _l._replace(decoder_label=new_labels)
         return obs._replace(labels=labels)

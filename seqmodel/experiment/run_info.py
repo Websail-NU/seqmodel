@@ -28,26 +28,42 @@ class RunningInfo(object):
             end_time = time.time()
         return self.num_tokens / (end_time - self.start_time)
 
-    def summary_string(self):
-        return "@{} tr_loss: {:.5f}, eval_loss: {:.5f}, wps: {:.1f}".format(
-            self.step, self.training_loss, self.eval_loss, self.wps)
+    def summary_string(self, report_mode='training'):
+        if report_mode == 'training':
+            return ("@{} tr_loss: {:.5f}, eval_loss: {:.5f}, "
+                    "wps: {:.1f}").format(
+                self.step, self.training_loss, self.eval_loss, self.wps)
+        else:
+            return "@{} eval_loss: {:.5f}, wps: {:.1f}".format(
+                self.step, self.eval_loss, self.wps)
 
 
 class RLRunningInfo(RunningInfo):
     def __init__(self, start_time=None, end_time=None,
                  eval_cost=0.0, training_cost=0.0,
-                 num_tokens=0, step=0, num_episodes=0):
+                 num_tokens=0, step=0, num_episodes=0, baseline_cost=0.0):
         super(RLRunningInfo, self).__init__(
             start_time, end_time, eval_cost, training_cost, num_tokens, step)
         self.num_episodes = num_episodes
+        self.baseline_cost = baseline_cost
 
     @property
     def eval_loss(self):
         return self.eval_cost / self.num_episodes
 
-    def summary_string(self):
-        return "@{} tr_loss: {:.5f}, avg_return: {:.5f}, wps: {:.1f}".format(
-            self.step, self.training_loss, self.eval_loss, self.wps)
+    @property
+    def baseline_loss(self):
+        return self.baseline_cost / self.step
+
+    def summary_string(self, report_mode='training'):
+        if report_mode == 'training':
+            return ("@{} tr_loss: {:.5f}, base_loss: {:.5f}, "
+                    "avg_return: {:.5f}, wps: {:.1f}").format(
+                self.step, self.training_loss,
+                self.baseline_loss, self.eval_loss, self.wps)
+        else:
+            return ("@{} avg_return: {:.5f}, wps: {:.1f}").format(
+                self.step, self.eval_loss, self.wps)
 
 
 class TrainingState(object):
@@ -64,7 +80,7 @@ class TrainingState(object):
         self.last_imp_epoch = last_imp_epoch
         self.imp_wait = imp_wait
 
-    def summary_string(self):
+    def summary_string(self, report_mode='training'):
         return "ep: {}, lr: {:.6f}".format(self.cur_epoch, self.learning_rate)
 
     def update(self, info):

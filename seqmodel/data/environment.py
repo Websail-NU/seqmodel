@@ -37,7 +37,7 @@ class EnvGenerator(object):
     @abc.abstractmethod
     def pack_transitions(self, transitions):
         """
-        Pack transitions into a single data tuple. Useful for policy training
+        Pack transitions into a single data tuple. Useful for policy gradient
         Args:
             transitions: a list of EnvTransitionTuple objects
         Returns:
@@ -48,10 +48,22 @@ class EnvGenerator(object):
     @abc.abstractmethod
     def replace_weights(self, obs, new_weights):
         """
-        Replace weights in the observations
+        Replace weights in the observations. Used for policy update
         Args:
             obs: a data tuple
             new_weights: new weights
+        Returns:
+            new_obs
+        """
+        raise NotImplementedError('Not implemented.')
+
+    @abc.abstractmethod
+    def replace_labels(self, obs, new_labels):
+        """
+        Replace lables in the observations. Used for value update
+        Args:
+            obs: a data tuple
+            new_labels: new labels
         Returns:
             new_obs
         """
@@ -119,6 +131,9 @@ class Env(object):
 
     def create_transition_return(self, states, ret):
         return self._generator.replace_weights(states, ret)
+
+    def create_transition_value(self, states, values):
+        return self._generator.replace_labels(states, values)
 
     def _reward(self, action, new_obs):
         return [0.0 for _ in range(len(action))]

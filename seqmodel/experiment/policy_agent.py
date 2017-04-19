@@ -44,9 +44,19 @@ class PolicyAgent(basic_agent.BasicAgent):
             r_tplus1 = R[i, :]
         return R
 
-    def compute_return(self, env, states, rewards):
+    def get_baseline(self, states, rewards, **kwargs):
+        baseline = np.zeros_like(rewards)
+        # baseline[:] = 0.5
+        return baseline
+
+    def update_baseline(self, env, states, rewards, returns, info, **kwargs):
+        pass
+
+    def compute_return(self, states, rewards, **kwargs):
         rewards = self.acc_discounted_rewards(rewards)
-        return env.create_transition_return(states, rewards)
+        baseline = self.get_baseline(states, rewards, **kwargs)
+        returns = rewards - baseline
+        return returns, rewards, baseline
 
     def rollout(self, env, init_obs=None, max_steps=100,
                 temperature=1.0, greedy=False, **kwargs):
@@ -79,10 +89,18 @@ class PolicyAgent(basic_agent.BasicAgent):
             info.num_episodes += rewards.shape[1]  # XXX: over-counting
             info.eval_cost += np.sum(rewards)
             if train_op is not None:
-                pg_data = self.compute_return(env, states, rewards)
-                _, tr_loss, _, _ = self.training_model.train(
+                returns, acc_reward, baseline = self.compute_return(
+                    states, rewards, **kwargs)
+                pg_data = env.create_transition_return(states, returns)
+                _, tr_loss, _, _ = self.training_policy.train(
                     self.sess, pg_data, train_op, **kwargs)
+                self.update_baseline(env, states, acc_reward, returns,
+                                     info, **kwargs)
                 info.training_cost += tr_loss * obs.num_tokens
+                # print(pg_data.features.encoder_input[:, 0])
+                # print(pg_data.labels.decoder_label[:, 0])
+                # print(pg_data.labels.decoder_label_weight[:, 0])
+                # break
             info.num_tokens += obs.num_tokens
             self.end_step(info, verbose=verbose, **kwargs)
             obs = env.reset()
@@ -147,3 +165,31 @@ class ActorCriticAgent(PolicyAgent):
             value_model=Bunch(
                 model_class='seqmodel.model.seq2seq_model.BasicSeq2SeqModel',
                 model_opt=value_opt))
+
+    def initialize_model(self, with_training=False, init_scale=None):
+        super(ActorCriticAgent, self).initialize_model(
+            with_training, init_scale)
+        with tf.variable_scope(self.name + "/value"):
+            self.eval_value, self.training_value =\
+                agent.create_model_from_opt(
+                    self.opt.value_model, create_training_model=with_training)
+
+    def initialize_optim(self, pg_loss=None, lr=None, val_loss=None):
+        if pg_loss is None:
+            pg_loss = self.training_policy.training_loss
+        if val_loss is None:
+            val_loss = self.training_value.training_loss
+        self.train_op, self.lr = self._build_train_op(
+            pg_loss, lr=lr)
+        self.value_train_op, self.lr = self._build_train_op(
+            val_loss, lr=self.lr)
+
+    def get_baseline(self, states, rewards, **kwargs):
+        values, _, _ = self.eval_value.predict(self.sess, states.features)
+        return np.squeeze(values, axis=-1)
+
+    def update_baseline(self, env, states, rewards, returns, info, **kwargs):
+        value_data = env.create_transition_value(states, rewards)
+        eval_loss, _, _, _ = self.training_value.train(
+            self.sess, value_data, self.value_train_op)
+        info.baseline_cost += eval_loss
