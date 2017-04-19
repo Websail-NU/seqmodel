@@ -26,8 +26,7 @@ class PolicyAgent(basic_agent.BasicAgent):
             optim=agent.Agent.default_opt().optim,
             policy_model=Bunch(
                 model_class='seqmodel.model.seq2seq_model.BasicSeq2SeqModel',
-                model_opt=model.seq2seq_model.BasicSeq2SeqModel.default_opt()),
-            value_model=None)
+                model_opt=model.seq2seq_model.BasicSeq2SeqModel.default_opt()))
 
     def initialize_model(self, with_training=False, init_scale=None):
         with tf.variable_scope(self.name + "/policy"):
@@ -132,3 +131,19 @@ class PolicyAgent(basic_agent.BasicAgent):
             self.end_epoch(training_state, verbose, tr_info, val_info,
                            **kwargs)
         return training_state
+
+
+class ActorCriticAgent(PolicyAgent):
+    @staticmethod
+    def default_opt():
+        _opt = model.seq2seq_model.BasicSeq2SeqModel.default_opt()
+        value_opt = Bunch(
+            _opt, output_mode='logit', loss_type='mse')
+        value_opt.decoder.rnn_opt.logit = Bunch(
+            value_opt.decoder.rnn_opt.logit,
+            out_vocab_size=1, name_prefix='regression')
+        return Bunch(
+            PolicyAgent.default_opt(),
+            value_model=Bunch(
+                model_class='seqmodel.model.seq2seq_model.BasicSeq2SeqModel',
+                model_opt=value_opt))

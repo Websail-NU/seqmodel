@@ -15,6 +15,7 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - [ ] Make it possible to share variables between 2 different model
 - [ ] Replace highway-like update with GRU-like update in definition model (to replicate original paper)
 - [ ] Refactor dropout (replace static values of `keep_prob` with placeholders).
+- [x] Create model with logit output and MSE loss
 - [x] Create an actual model object that has a well defined API for creation (graph nodes)
 - [x] Placeholders should be in a tuple corresponding to BatchIterator
 - [x] Fetch functions will not take any argument

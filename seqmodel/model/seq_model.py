@@ -32,7 +32,7 @@ class SeqModel(ModelBase):
     def default_opt():
         """ Provide template for options """
         return Bunch(output_mode='distribution',  # or 'logit'
-                     loss_type='xent')
+                     loss_type='xent')  # or 'mse'
 
     @abc.abstractmethod
     def _prepare_input(self):
@@ -58,23 +58,17 @@ class SeqModel(ModelBase):
         output = Bunch(rnn=decoder_output.rnn)
         setting = Bunch()
         logit_temperature = None
-        losses = None
-        loss_denom = None
         if decoder_output.is_attr_set('logit'):
             output.logit = decoder_output.logit
             output.distribution = decoder_output.distribution
             setting.logit_temperature = decoder_output.logit_temperature
             logit_temperature = setting.logit_temperature
             output.prediction = output[self.opt.output_mode]
-        if self.opt.loss_type == 'xent':
-            assert output.logit is not None,\
-                "Need logit node to compute xent loss."
-            t_loss, training_loss, loss_denom, eval_loss = xent_loss(
-                output.logit, labels.label, labels.label_weight)
-            losses = Bunch(tokens_loss=losses,
-                           training_loss=training_loss,
-                           eval_loss=eval_loss)
-            setting.training_loss_denom = loss_denom
+        assert output.logit is not None,\
+            "Need logit node to compute loss."
+        losses, loss_denom = self._loss(
+            output.logit, labels.label, labels.label_weight)
+        setting.training_loss_denom = loss_denom
         if not output.is_attr_set('prediction'):
             output.prediction = output.rnn
         nodes = Bunch(features=features, labels=labels, output=output,
@@ -84,33 +78,38 @@ class SeqModel(ModelBase):
             decoder_output.final_state, loss_denom, logit_temperature)
         return model
 
-    @staticmethod
-    def map_feeddict(model, data, is_sampling=False, training_loss_denom=None,
-                     **kwargs):
-        """ Create a generic feed dict by matching keys
-            in data and model.feed
-            kwargs:
-                training_loss_denom: float indicating denominator for the
-                                     training loss
-                is_sampling: If true, do not map model.feed.labels
-            Returns:
-                feed_dict
-        """
-        feed_dict = ModelBase.map_feeddict(
-            model, data, no_labels=is_sampling, **kwargs)
-        if is_sampling:
-            return feed_dict
-        if training_loss_denom is not None and 'losses' in model:
-            feed_dict[model.losses.training_loss_denom] =\
-                training_loss_denom
-        return feed_dict
+    def _loss(self, logit, label, weight):
+        if self.opt.loss_type == 'xent':
+            t_loss, training_loss, loss_denom, eval_loss = xent_loss(
+                logit, label, weight)
+            losses = Bunch(tokens_loss=t_loss,
+                           training_loss=training_loss,
+                           eval_loss=eval_loss)
+        elif self.opt.loss_type == 'mse':
+            logit = tf.squeeze(logit)
+            loss = tf.losses.mean_squared_error(
+                labels=label, predictions=logit, weights=weight)
+            losses = Bunch(tokens_loss=loss,
+                           training_loss=loss,
+                           eval_loss=loss)
+            loss_denom = None
+        else:
+            raise ValueError(("loss_type can only be `xent` or `mse`. "
+                              "Input: `{}`").format(self.opt.loss_type))
+        return losses, loss_denom
+
+    def _label_type(self):
+        if self.opt.loss_type == 'xent':
+            return tf.int32
+        else:
+            return tf.float32
 
 
 class ExeSeqModel(ExecutableModel):
 
     def __init__(self, node_bunch, feature_tuple, label_tuple,
-                 initial_state, final_state, training_loss_denom,
-                 logit_temperature):
+                 initial_state, final_state, training_loss_denom=None,
+                 logit_temperature=None):
         super(ExeSeqModel, self).__init__(
             node_bunch, feature_tuple, label_tuple)
         self._init_state = initial_state
@@ -128,7 +127,9 @@ class ExeSeqModel(ExecutableModel):
                   logit_temperature=1.0, **kwargs):
         feed_dict = super(ExeSeqModel, self)._get_feed(
             mode, feature_tuple, label_tuple, state, c_feed, **kwargs)
-        if mode == ExecutableModel._TRAIN_ and training_loss_denom is not None:
+        if (mode == ExecutableModel._TRAIN_ and
+                training_loss_denom is not None and
+                self._t_loss_denom is not None):
             feed_dict[self._t_loss_denom] = training_loss_denom
         if self._logit_temperature is not None:
             feed_dict[self._logit_temperature] = logit_temperature
@@ -163,45 +164,6 @@ class BasicSeqModel(SeqModel):
                               create_zero_initial_state=True),
                 share=Bunch(logit_weight_tying=False)))
 
-    @staticmethod
-    def get_fetch(model, is_sampling=False, **kwargs):
-        """ Create a generic fetch dictionary
-
-            Returns:
-                fetch
-        """
-        fetch = ModelBase.get_fetch(model, **kwargs)
-        if is_sampling:
-            fetch.logit = model.decoder_output.logit
-            fetch.distribution = model.decoder_output.distribution
-        else:
-            fetch.losses = model.losses
-        fetch.state = model.decoder_output.final_state
-        return fetch
-
-    @staticmethod
-    def map_feeddict(model, data, prev_result=None,
-                     logit_temperature=1.0, **kwargs):
-        """ Create a generic feed dict by matching keys
-            in data and model.feed
-
-            Returns:
-                feed_dict
-        """
-        feed_dict = SeqModel.map_feeddict(model, data, **kwargs)
-        feed_dict[model.decoder_output.logit_temperature] = logit_temperature
-        state = None
-        if not data.new_seq:
-            if prev_result.state is not None:
-                state = prev_result.state
-            assert state is not None,\
-                "data.new_seq is False, but no state provided."
-        if state is not None:
-            rnn_module.feed_state(
-                feed_dict, model.decoder_output.initial_state,
-                state)
-        return feed_dict
-
     def _prepare_input(self):
         nodes = Bunch()
         nodes.inputs = tf.placeholder(
@@ -209,7 +171,7 @@ class BasicSeqModel(SeqModel):
         nodes.input_seq_len = tf.placeholder(
             tf.int32, [None], name='input_seq_len')
         nodes.label = tf.placeholder(
-            tf.int32, [None, None], name='label')
+            self._label_type(), [None, None], name='label')
         nodes.label_weight = tf.placeholder(
             tf.float32, [None, None], name='label_weight')
         emb_opt = self.opt.embedding

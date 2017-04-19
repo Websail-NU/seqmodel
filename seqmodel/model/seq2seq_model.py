@@ -58,24 +58,17 @@ class Seq2SeqModel(seq_model.SeqModel):
         output = Bunch(rnn=decoder_output.rnn, context=encoder_output)
         setting = Bunch()
         logit_temperature = None
-        losses = None
-        loss_denom = None
         if decoder_output.is_attr_set('logit'):
             output.logit = decoder_output.logit
             output.distribution = decoder_output.distribution
             setting.logit_temperature = decoder_output.logit_temperature
             logit_temperature = setting.logit_temperature
             output.prediction = output[self.opt.output_mode]
-        if self.opt.loss_type == 'xent':
-            assert output.logit is not None,\
-                "Need logit node to compute xent loss."
-            t_loss, training_loss, loss_denom, eval_loss = xent_loss(
-                output.logit, labels.decoder_label,
-                labels.decoder_label_weight)
-            losses = Bunch(tokens_loss=losses,
-                           training_loss=training_loss,
-                           eval_loss=eval_loss)
-            setting.training_loss_denom = loss_denom
+        assert output.logit is not None,\
+            "Need logit node to compute xent loss."
+        losses, loss_denom = self._loss(output.logit, labels.decoder_label,
+                                        labels.decoder_label_weight)
+        setting.training_loss_denom = loss_denom
         if not output.is_attr_set('prediction'):
             output.prediction = output.rnn
         nodes = Bunch(features=features, labels=labels, output=output,
@@ -143,59 +136,6 @@ class BasicSeq2SeqModel(Seq2SeqModel):
                     logit_weight_tying=False,
                     encoder_rnn_params=False)))
 
-    @staticmethod
-    def get_fetch(model, is_sampling=False, **kwargs):
-        """ Create a generic fetch dictionary.
-            No need for state, if not sampling.
-            Overwrite state to include encoder context if sampling.
-
-            Returns:
-                fetch
-        """
-        fetch = seq_model.BasicSeqModel.get_fetch(
-            model, is_sampling=is_sampling, **kwargs)
-        del fetch['state']
-        if is_sampling:
-            # cached
-            if model.is_attr_set('_fetch_state'):
-                fetch.state = model._fetch_state
-            else:
-                encoder_output = model.encoder_output.shallow_clone()
-                del encoder_output.rnn
-                fetch.state = Bunch(
-                    encoder_context=encoder_output,
-                    decoder_state=model.decoder_output.final_state)
-                model._fetch_state = fetch.state
-        return fetch
-
-    @staticmethod
-    def map_feeddict(model, data, logit_temperature=1.0,
-                     prev_result=None, **kwargs):
-        """ Create a generic feed dict by matching keys
-            in data and model.feed
-
-            Returns:
-                feed_dict
-        """
-        feed_dict = seq_model.SeqModel.map_feeddict(model, data, **kwargs)
-        feed_dict[model.decoder_output.logit_temperature] = logit_temperature
-
-        if prev_result is not None and prev_result.is_attr_set('state'):
-            # cached
-            feed_state = None
-            if model.is_attr_set('_feed_state'):
-                feed_state = model._feed_state
-            else:
-                encoder_output = model.encoder_output.shallow_clone()
-                del encoder_output.rnn
-                feed_state = Bunch(
-                    encoder_context=encoder_output,
-                    decoder_state=model.decoder_output.initial_state)
-                model._feed_state = feed_state
-            rnn_module.feed_state(feed_dict, feed_state, prev_result.state)
-            del feed_dict[model.features.encoder_input]
-        return feed_dict
-
     def _prepare_input(self):
         nodes = Bunch()
         nodes.encoder_input = tf.placeholder(
@@ -207,7 +147,7 @@ class BasicSeq2SeqModel(Seq2SeqModel):
         nodes.decoder_seq_len = tf.placeholder(
             tf.int32, [None], name='decoder_seq_len')
         nodes.decoder_label = tf.placeholder(
-            tf.int32, [None, None], name='decoder_label')
+            self._label_type(), [None, None], name='decoder_label')
         nodes.decoder_label_weight = tf.placeholder(
             tf.float32, [None, None], name='decoder_label_weight')
         embedding_name = 'encoder_embedding'
