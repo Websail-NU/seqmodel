@@ -27,6 +27,7 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 
 
 ### Agent
+- [ ] Add TD Actor-Critic Policy Gradient
 - [x] Add critic to policy gradient agent
 - [x] Update basic agent to use the executable model interfaces
 - [x] Simplify sampling code, use environment interfaces
@@ -34,6 +35,8 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 
 
 ### Data
+- [ ] Good English reward function
+- [x] BLEU score reward function
 - [x] Creating BatchIterator every time is a pain. We should have a function that creates the same iterator  
   with new data.
 - [x] Data in the BatchIterator is not changing, we should use tuple for performance and integrity.

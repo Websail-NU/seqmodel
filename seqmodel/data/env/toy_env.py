@@ -1,9 +1,11 @@
 from seqmodel.data.environment import Env
+from seqmodel.metric import easy_bleu
 
 
 class ToyRewardMode(object):
     ALL_MATCH = 0
     EACH_MATCH = 1
+    SEN_BLEU = 2
 
 
 class CopyEnv(Env):
@@ -27,6 +29,9 @@ class CopyEnv(Env):
             if self._mode == ToyRewardMode.ALL_MATCH:
                 rewards[ib] = self._exact_match_reward(
                     labels[:, ib], action[ib], done[ib], ib)
+            elif self._mode == ToyRewardMode.SEN_BLEU:
+                rewards[ib] = self._bleu_reward(
+                    labels[:, ib], action[ib], done[ib], ib)
             else:
                 rewards[ib] = float(action[ib] == labels[step, ib])
                 rewards[ib] /= lengths[ib]
@@ -43,3 +48,12 @@ class CopyEnv(Env):
             if act != labels[istep]:
                 return 0.0
         return float(action == labels[istep+1])
+
+    def _bleu_reward(self, labels, action, done, ib):
+        if not done:
+            return 0.0
+        length = self._ref_state.features.decoder_seq_len[ib]
+        references = [labels[:length]]
+        candidate = [t.action[ib] for t in self.transitions]
+        candidate.append(action)
+        return easy_bleu(references, candidate)

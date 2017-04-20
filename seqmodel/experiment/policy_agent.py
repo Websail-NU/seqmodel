@@ -23,6 +23,7 @@ class PolicyAgent(basic_agent.BasicAgent):
     @staticmethod
     def default_opt():
         return Bunch(
+            discount_factor=0.99,
             optim=agent.Agent.default_opt().optim,
             policy_model=Bunch(
                 model_class='seqmodel.model.seq2seq_model.BasicSeq2SeqModel',
@@ -36,7 +37,8 @@ class PolicyAgent(basic_agent.BasicAgent):
             self.training_model = self.training_policy
             self.eval_model = self.eval_policy
 
-    def acc_discounted_rewards(self, rewards, discount_factor=0.99):
+    def acc_discounted_rewards(self, rewards):
+        discount_factor = self.opt.discount_factor
         R = np.zeros_like(rewards)
         r_tplus1 = np.zeros([rewards.shape[1]])
         for i in range(len(rewards) - 1, -1, -1):
@@ -97,10 +99,6 @@ class PolicyAgent(basic_agent.BasicAgent):
                 self.update_baseline(env, states, acc_reward, returns,
                                      info, **kwargs)
                 info.training_cost += tr_loss * obs.num_tokens
-                # print(pg_data.features.encoder_input[:, 0])
-                # print(pg_data.labels.decoder_label[:, 0])
-                # print(pg_data.labels.decoder_label_weight[:, 0])
-                # break
             info.num_tokens += obs.num_tokens
             self.end_step(info, verbose=verbose, **kwargs)
             obs = env.reset()
