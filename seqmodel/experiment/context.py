@@ -36,17 +36,19 @@ class Context(object):
                  writeout_opt=default_writeout_opt(),
                  vocab_files=Bunch(in_vocab='vocab.txt',
                                    out_vocab='vocab.txt'),
-                 data_files=Bunch(train='train.txt',
-                                  valid='valid.txt',
-                                  test='test.txt'),
+                 iterator_keys=['train', 'valid', 'test'],
+                 data_source=Bunch(train='train.txt',
+                                   valid='valid.txt',
+                                   test='test.txt'),
                  **kwargs):
         self.opt = Bunch(
             agent_opt=agent_opt,
             agent_class=agent_class,
             iterator_class=iterator_class,
+            iterator_keys=iterator_keys,
             data_dir=data_dir,
             iterator_opt=iterator_opt,
-            data_files=data_files,
+            data_source=data_source,
             writeout_opt=writeout_opt,
             vocab_files=vocab_files,
             **kwargs)
@@ -60,8 +62,7 @@ class Context(object):
         self.agent = None
         self.vocabs = Context.create_vocabs(data_dir, vocab_files)
         self.iterators = Context.create_iterators(
-            data_dir, self.vocabs, iterator_class, iterator_opt, data_files,
-            **kwargs)
+            iterator_keys, self.vocabs, iterator_class, iterator_opt)
         self._best_eval = float('inf')
         checkpoint_dir = os.path.join(
             self.opt.writeout_opt.experiment_dir,
@@ -86,21 +87,11 @@ class Context(object):
         return vocabs
 
     @staticmethod
-    def create_iterators(data_dir, vocabs, iterator_class,
-                         iterator_opt, data_files, **kwargs):
+    def create_iterators(iterator_keys, vocabs, iterator_class, iterator_opt):
         iterators = Bunch()
         iter_class_ = locate(iterator_class)
-        for key in data_files:
+        for key in iterator_keys:
             kwargs = Bunch(vocabs, opt=iterator_opt)
-        #     opt.data_source = os.path.join(data_dir, data_files[key])
-        #     for s_key in opt:
-        #         if s_key.endswith('_source') and s_key != 'data_source':
-        #             file_key = s_key[0:-7] + '_files'
-        #             if file_key in kwargs:
-        #                 opt[s_key] = os.path.join(
-        #                     data_dir, kwargs[file_key][key])
-        #             else:
-        #                 opt[s_key] = ""
             iterators[key] = iter_class_(**kwargs)
         return iterators
 
@@ -131,8 +122,13 @@ class Context(object):
 
     def initialize_iterators(self):
         for key in self.iterators:
-            self.iterators[key].initialize(
-                os.path.join(self.opt.data_dir, self.opt.data_files[key]))
+            sources = {'data_source': os.path.join(
+                self.opt.data_dir, self.opt.data_source[key])}
+            for opt_key in self.opt.keys():
+                if opt_key.endswith('_source'):
+                    sources[opt_key] = os.path.join(
+                        self.opt.data_dir, self.opt[opt_key][key])
+            self.iterators[key].initialize(**sources)
 
     def end_step(self, info, verbose, report_mode, **kwargs):
         report_step_every = self.opt.writeout_opt.report_step_every

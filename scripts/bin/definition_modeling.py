@@ -37,7 +37,7 @@ def main():
                             context=context)
         info = context.agent.evaluate(context.iterators.valid, 64)
         context.logger.info('Validation PPL: {}'.format(
-            np.exp(info.cost/info.num_tokens)))
+            np.exp(info.eval_loss)))
         # for n in tf.get_default_graph().as_graph_def().node:
         #     print(n.name)
     context.logger.info('Total time: {}s'.format(time.time() - start_time))
