@@ -16,6 +16,7 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - [ ] Replace highway-like update with GRU-like update in definition model (to replicate original paper)
 - [ ] Refactor dropout (replace static values of `keep_prob` with placeholders).
 - [ ] Use tensorflow's dynamic_decode
+- [ ] Pass `reuse` when building graph (not create an object)
 - [x] Create model with logit output and MSE loss
 - [x] Create an actual model object that has a well defined API for creation (graph nodes)
 - [x] Placeholders should be in a tuple corresponding to BatchIterator
@@ -27,7 +28,7 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 
 
 ### Agent
-- [ ] Add TD Actor-Critic Policy Gradient
+- [ ] Bootstrap last state if not terminal
 - [x] Add critic to policy gradient agent
 - [x] Update basic agent to use the executable model interfaces
 - [x] Simplify sampling code, use environment interfaces

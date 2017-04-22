@@ -193,7 +193,7 @@ class BasicSeqModel(SeqModel):
         rnn_cls = locate(self.opt.decoder.rnn_class_name)
         nodes.rnn_module = rnn_cls(
             self.opt.decoder.rnn_opt, name='decoder_rnn',
-            is_training=self.is_training)
+            is_training=self.is_training, reuse_cell=self.reuse_variable)
         nodes.decoder_module = dec_cls(
             self.opt.decoder.opt, is_training=self.is_training)
         nodes.decode_output = nodes.decoder_module(

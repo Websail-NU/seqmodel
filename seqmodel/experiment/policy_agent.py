@@ -187,7 +187,6 @@ class ActorCriticAgent(PolicyAgent):
 
     def _compute_return(self, states, rewards, **kwargs):
         # TODO: Bootstrap?
-        # TODO: TD(0) Error
         baseline = self._compute_baseline(states, rewards, **kwargs)
         R = self._acc_discounted_rewards(rewards)
         returns = R - baseline
