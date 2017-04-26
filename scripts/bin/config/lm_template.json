@@ -4,8 +4,6 @@
     "model": {
       "model_class": "seqmodel.model.seq_model.BasicSeqModel",
       "model_opt": {
-        "loss_type": "xent",
-        "output_mode": "distribution",
         "decoder": {
           "class_name": "seqmodel.model.decoder.RNNDecoder",
           "opt": {
@@ -27,7 +25,9 @@
               },
               "input_keep_prob": 1.0,
               "num_layers": 2,
-              "output_keep_prob": 1.0
+              "output_all_states": false,
+              "output_keep_prob": 1.0,
+              "vrrn": false
             },
             "time_major": true
           },
@@ -36,22 +36,25 @@
           }
         },
         "embedding": {
-          "in_vocab_size": 10000,
           "dim": 200,
-          "trainable": true,
-          "init_filepath": null
-        }
+          "in_vocab_size": 10000,
+          "init_filepath": null,
+          "trainable": true
+        },
+        "loss_type": "xent",
+        "output_mode": "distribution"
       }
     },
     "optim": {
       "clip_gradients": 5.0,
+      "init_scale": 0.04,
       "learning_rate": 0.8,
       "lr_decay_every": 1,
-      "lr_decay_factor": 0.5,
-      "lr_decay_imp_ratio": 0.96,
-      "lr_decay_wait": 1,
-      "lr_min": 0.01,
-      "lr_start_decay_at": 2,
+      "lr_decay_factor": 1,
+      "lr_decay_imp_ratio": 1,
+      "lr_decay_wait": 4,
+      "lr_min": 1e-06,
+      "lr_start_decay_at": 3,
       "max_epochs": 13,
       "name": "GradientDescentOptimizer"
     }
@@ -62,14 +65,20 @@
     "train": "train.txt",
     "valid": "valid.txt"
   },
-  "iterator_class": "seqmodel.data.TokenIterator",
+  "iterator_class": "seqmodel.data.single_text_iterator.TokenIterator",
+  "iterator_keys": [
+    "train",
+    "valid",
+    "test"
+  ],
   "iterator_opt": {
     "_add_end_seq": true,
     "_add_start_seq": false,
+    "add_end_seq": true,
+    "add_start_seq": false,
     "sequence_length": 20,
     "shuffle": true,
-    "time_major": true,
-    "truncate_batch": false
+    "truncate_batch": true
   },
   "vocab_files": {
     "in_vocab": "vocab.txt",
@@ -77,9 +86,9 @@
   },
   "writeout_opt": {
     "checkpoint_dir": "model/",
-    "experiment_dir": "experiment/tmp2",
+    "experiment_dir": "experiment/tmp",
     "log_file": "experiment.log",
-    "training_state": "training_state.json",
-    "report_step_every": 1000
+    "report_step_every": 1000,
+    "training_state": "training_state.json"
   }
 }
