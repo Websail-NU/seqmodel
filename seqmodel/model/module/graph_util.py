@@ -1,5 +1,4 @@
 """ A collections of useful functions to create common graphs """
-import cPickle
 import numpy as np
 import tensorflow as tf
 
@@ -48,8 +47,7 @@ def create_embedding_var(vocab_size, dim, trainable=True, name='embedding',
     if init_filepath is None:
         return tf.get_variable(name, [vocab_size, dim], trainable=trainable)
     else:
-        with open(init_filepath) as ifp:
-            init_emb = cPickle.load(ifp)
+        init_emb = np.load(init_filepath)
         return tf.get_variable(
             name, trainable=trainable, initializer=tf.constant(
                 init_emb, dtype=tf.float32))
