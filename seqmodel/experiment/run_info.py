@@ -1,5 +1,6 @@
 import json
 import time
+import math
 
 
 class RunningInfo(object):
@@ -30,12 +31,13 @@ class RunningInfo(object):
 
     def summary_string(self, report_mode='training'):
         if report_mode == 'training':
-            return ("@{} tr_loss: {:.5f}, eval_loss: {:.5f}, "
+            return ("@{} tr_loss: {:.5f}, eval_loss: {:.5f} ({:.5f}), "
                     "wps: {:.1f}").format(
-                self.step, self.training_loss, self.eval_loss, self.wps)
+                self.step, self.training_loss, self.eval_loss,
+                math.exp(self.eval_loss), self.wps)
         else:
-            return "@{} eval_loss: {:.5f}, wps: {:.1f}".format(
-                self.step, self.eval_loss, self.wps)
+            return "@{} eval_loss: {:.5f} ({:.5f}), wps: {:.1f}".format(
+                self.step, self.eval_loss, math.exp(self.eval_loss), self.wps)
 
 
 class RLRunningInfo(RunningInfo):
@@ -49,7 +51,7 @@ class RLRunningInfo(RunningInfo):
 
     @property
     def eval_loss(self):
-        return self.eval_cost / self.num_episodes
+        return -1 * self.eval_cost / self.num_episodes
 
     @property
     def baseline_loss(self):
