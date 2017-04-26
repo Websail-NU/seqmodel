@@ -2,7 +2,7 @@
 import tensorflow as tf
 
 
-def xent_loss(logit, label, weight):
+def xent_loss(logit, label, weight, seq_weight=None):
     """
     Compute negative likelihood (cross-entropy loss)
     Args:
@@ -18,13 +18,14 @@ def xent_loss(logit, label, weight):
     # Internally logits and labels are reshaped into 2D and 1D...
     loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
         logits=logit, labels=label)
-    sum_loss = tf.reduce_sum(tf.multiply(
-        loss, weight))
+    sum_loss = tf.reduce_sum(tf.multiply(loss, weight))
+    mean_loss = tf.div(sum_loss, tf.reduce_sum(weight) + 1e-12)
+    if seq_weight is not None:
+        sum_loss = tf.reduce_sum(tf.multiply(
+            loss, tf.multiply(weight, seq_weight)))
     loss_denom = tf.placeholder_with_default(
         1.0, shape=None, name="training_loss_denom")
     training_loss = tf.div(sum_loss, loss_denom)
-    mean_loss = tf.div(
-        sum_loss, tf.reduce_sum(weight) + 1e-12)
     return loss, training_loss, loss_denom, mean_loss
 
 

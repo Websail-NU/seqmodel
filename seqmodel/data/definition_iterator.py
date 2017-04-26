@@ -67,10 +67,19 @@ class Word2DefIterator(Seq2SeqIterator):
         seq_delimiter: a character that separates encoding and decoding seqs
         truncate_batch: If true, return batch as long as the longest seqs in
                         a current batch
+        reweight_duplicate_words: If true, distribute weights on duplicate
+                                  words by the number of thier definitions
     """
     def __init__(self, in_vocab, out_vocab, char_vocab, opt=None):
         super(Word2DefIterator, self).__init__(in_vocab, out_vocab, opt)
         self.char_vocab = char_vocab
+
+    @staticmethod
+    def default_opt():
+        default_opt = TextIterator.default_opt()
+        return Bunch(
+            Seq2SeqIterator.default_opt(),
+            reweight_duplicate_words=True)
 
     @property
     def input_keys(self):
@@ -78,6 +87,18 @@ class Word2DefIterator(Seq2SeqIterator):
         keys.add(('encoder_word', 'encoder_feature',
                   'encoder_char', 'encoder_char_len'))
         return keys
+
+    def _reweight_duplicate_words(self):
+        word_freq = {}
+        for entry in self.data:
+            word_id = entry[0][0]
+            word_freq[word_id] = word_freq.get(word_id, 0) + 1
+        for i in range(len(self.data)):
+            entry = self.data[i]
+            word_id = entry[0][0]
+            if word_freq[word_id] > 1:
+                self.data[i] = (entry[0], entry[1], entry[2],
+                                entry[3] / word_freq[word_id])
 
     def initialize(self, data_source, token_weight_source=None,
                    seq_weight_source=None, feature_source=None,
@@ -95,6 +116,8 @@ class Word2DefIterator(Seq2SeqIterator):
         self.feature_len = feature_len
         self.extra_data = zip(enc_char, enc_features)
         self.enc_char_pad_id = 1
+        if self.opt.reweight_duplicate_words:
+            self._reweight_duplicate_words()
         if _return_text:
             return enc_text, dec_text
 

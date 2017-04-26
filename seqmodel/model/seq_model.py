@@ -78,14 +78,16 @@ class SeqModel(ModelBase):
             decoder_output.final_state, loss_denom, logit_temperature)
         return model
 
-    def _loss(self, logit, label, weight):
+    def _loss(self, logit, label, weight, seq_weight=None):
         if self.opt.loss_type == 'xent':
             t_loss, training_loss, loss_denom, eval_loss = xent_loss(
-                logit, label, weight)
+                logit, label, weight, seq_weight)
             losses = Bunch(tokens_loss=t_loss,
                            training_loss=training_loss,
                            eval_loss=eval_loss)
         elif self.opt.loss_type == 'mse':
+            if seq_weight is not None:
+                weight = tf.multiply(weight, seq_weight)
             logit = tf.squeeze(logit, axis=-1)
             loss = tf.losses.mean_squared_error(
                 labels=label, predictions=logit, weights=weight)

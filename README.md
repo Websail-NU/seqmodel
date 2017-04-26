@@ -12,19 +12,19 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 ## TODO
 
 ### Model
-- [ ] Use sequence weight when computing loss
 - [ ] Make it possible to share variables between 2 different models
 - [ ] Use tensorflow's dynamic_decode
 - [ ] Pass `reuse` when building graph (not create an object)
 - [ ] Refactor dropout (replace static values of `keep_prob` with placeholders).
 - [ ] Replace highway-like update with GRU-like update in definition model (to replicate original paper)
+- [x] Use sequence weight when computing loss
 
 ### Agent
 - [ ] Rollout more than a batch before updating policy and value networks
 - [ ] Bootstrap last state if not terminal
 
 ### Data
-- [ ] Polysemous words should get lower weight during the training (sequence weight)
+- [x] Polysemous words should get lower weight during the training (sequence weight)
 - [ ] New reward functions
 
 ### Scripts
