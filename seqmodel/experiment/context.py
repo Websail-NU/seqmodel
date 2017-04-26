@@ -133,31 +133,27 @@ class Context(object):
     def end_step(self, info, verbose, report_mode, **kwargs):
         report_step_every = self.opt.writeout_opt.report_step_every
         if info.step % report_step_every == 0 and info.step > 0:
-            self._logger.info('@{} cost: {:.5f}, wps: {:.1f}'.format(
-                info.step, info.eval_loss,
-                info.num_tokens / (time.time() - info.start_time)))
+            self._logger.info(info.summary_string(report_mode))
 
     def begin_epoch(self, training_state, verbose=True,
                     context=None, **kwargs):
         if verbose:
-            self._logger.info('ep: {} lr: {:.6f}'.format(
-                training_state.cur_epoch, training_state.learning_rate))
+            self._logger.info(training_state.summary_string())
 
     def end_epoch(self, training_state, verbose=True, training_info=None,
                   validation_info=None, context=None, **kwargs):
         report = []
         info = None
         if training_info is not None:
-            report.append('train: {:.5f} ({:.5f}) ({:.5f})'.format(
-                training_info.eval_loss, np.exp(training_info.eval_loss),
-                training_info.training_loss))
+            if verbose:
+                self._logger.info(
+                    "train: " + training_info.summary_string('training'))
             info = training_info
         if validation_info is not None:
-            report.append('val: {:.5f} ({:.5f})'.format(
-                validation_info.eval_loss, np.exp(validation_info.eval_loss)))
+            if verbose:
+                self._logger.info(
+                    "valid: " + validation_info.summary_string('evaluating'))
             info = validation_info
-        if len(report) > 0 and verbose:
-            self._logger.info(' '.join(report))
         if not hasattr(self, 'tf_saver'):
             self.tf_saver = tf.train.Saver()
         if training_state.cur_epoch > 0:
@@ -172,3 +168,8 @@ class Context(object):
         if not hasattr(self, 'tf_saver'):
             self.tf_saver = tf.train.Saver()
         self.tf_saver.restore(self.sess, self._best_checkpoint_path)
+
+    def load_latest_model(self):
+        if not hasattr(self, 'tf_saver'):
+            self.tf_saver = tf.train.Saver()
+        self.tf_saver.restore(self.sess, self._latest_checkpoint_path)
