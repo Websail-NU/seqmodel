@@ -69,16 +69,17 @@ class PolicyAgent(basic_agent.BasicAgent):
                 env, obs, max_steps, temperature, greedy, **kwargs)
             rewards = np.array(rewards)
             info.step += 1
-            info.num_episodes += rewards.shape[1]  # XXX: over-counting
+            # XXX: over-counting
+            info.num_episodes += rewards.shape[1]
             info.eval_cost += np.sum(rewards)
             if update:
                 returns, targets = self._compute_return(
                     states, rewards, **kwargs)
                 pg_loss = self._update_policy(env, states, returns, **kwargs)
                 b_loss = self._update_baseline(env, states, targets, **kwargs)
-                info.training_cost += pg_loss * obs.num_tokens
+                info.training_cost += pg_loss * states.num_tokens
                 info.baseline_cost += b_loss
-            info.num_tokens += obs.num_tokens
+            info.num_tokens += states.num_tokens
             self.end_step(info, verbose=verbose, **kwargs)
             obs = env.reset()
         info.end_time = time.time()
