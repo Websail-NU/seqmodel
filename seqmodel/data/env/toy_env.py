@@ -1,5 +1,5 @@
 from seqmodel.data.environment import Env
-from seqmodel.metric import easy_bleu
+from seqmodel.metric import sentence_bleu
 
 
 class ToyRewardMode(object):
@@ -56,4 +56,4 @@ class CopyEnv(Env):
         references = [labels[:length]]
         candidate = [t.action[ib] for t in self.transitions]
         candidate.append(action)
-        return easy_bleu(references, candidate)
+        return sentence_bleu(references, candidate)

@@ -1,6 +1,7 @@
 import abc
 import collections
 import six
+import copy
 
 from seqmodel.common_tuple import EnvTransitionTuple
 
@@ -102,6 +103,8 @@ class Env(object):
         if new_obs:
             self._ref_state, self._init_obs = self._generator.reset(
                 re_init=self._re_init)
+            self._ref_state = copy.deepcopy(self._ref_state)
+            self._init_obs = copy.deepcopy(self._init_obs)
             self._cur_obs = self._init_obs
         return self._init_obs
 
@@ -135,5 +138,5 @@ class Env(object):
     def create_transition_value(self, states, values):
         return self._generator.replace_labels(states, values)
 
-    def _reward(self, action, new_obs):
+    def _reward(self, action, new_obs, done):
         return [0.0 for _ in range(len(action))]
