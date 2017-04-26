@@ -26,3 +26,7 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 ### Data
 - [ ] Polysemous words should get lower weight during the training (sequence weight)
 - [ ] New reward functions
+
+### Scripts
+- [ ] More flexible scripts to create configuration templates
+- [ ] Refactor policy gradient definition modeling script
