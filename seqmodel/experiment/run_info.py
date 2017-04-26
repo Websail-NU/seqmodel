@@ -62,10 +62,10 @@ class RLRunningInfo(RunningInfo):
             return ("@{} tr_loss: {:.5f}, base_loss: {:.5f}, "
                     "avg_return: {:.5f}, wps: {:.1f}").format(
                 self.step, self.training_loss,
-                self.baseline_loss, self.eval_loss, self.wps)
+                self.baseline_loss, -1 * self.eval_loss, self.wps)
         else:
             return ("@{} avg_return: {:.5f}, wps: {:.1f}").format(
-                self.step, self.eval_loss, self.wps)
+                self.step, -1 * self.eval_loss, self.wps)
 
 
 class TrainingState(object):

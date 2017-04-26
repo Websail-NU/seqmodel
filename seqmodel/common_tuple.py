@@ -22,7 +22,7 @@ Seq2SeqFeatureTuple = namedtuple(
                             "decoder_input", "decoder_seq_len"))
 Seq2SeqLabelTuple = namedtuple(
     "Seq2SeqLabelTuple", ("decoder_label", "decoder_label_weight",
-                          "decoder_seq_label"))
+                          "decoder_seq_weight"))
 
 """
 Word-to-Sequence (Definition) Model Tuples

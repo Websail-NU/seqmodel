@@ -177,7 +177,7 @@ class BasicSeq2SeqModel(Seq2SeqModel):
             nodes.decoder_seq_len)
         labels = Seq2SeqLabelTuple(
             nodes.decoder_label, nodes.decoder_label_weight,
-            tf.placeholder(tf.float32, [None], name='_seq_label'))
+            tf.placeholder(tf.float32, [None], name='_seq_weight'))
         return (features, labels, nodes.encoder_lookup,
                 nodes.decoder_lookup, nodes)
 
