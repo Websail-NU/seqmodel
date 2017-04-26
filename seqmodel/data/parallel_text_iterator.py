@@ -21,12 +21,12 @@ def _check_path(path):
 
 
 def read_parallel_text_file(data_filepath, token_weight_filepath,
-                            seq_label_source, delimiter='\t',
+                            seq_weight_source, delimiter='\t',
                             add_end_seq=True):
     enc_data = []
     dec_data = []
     token_weights = []
-    seq_labels = []
+    seq_weights = []
     add_end = 1 if add_end_seq else 0
     with codecs.open(data_filepath, 'r', 'utf-8') as ifp:
         for line in ifp:
@@ -34,42 +34,42 @@ def read_parallel_text_file(data_filepath, token_weight_filepath,
             enc_data.append(parts[0].split())
             dec_data.append(parts[-1].split())
             token_weights.append([1.0] * (len(dec_data[-1]) + add_end))
-            seq_labels.append(1.0)
+            seq_weights.append(1.0)
     if _check_path(token_weight_filepath):
         with codecs.open(token_weight_filepath, 'r', 'utf-8') as ifp:
             for i, line in enumerate(ifp):
                 parts = line.strip().split()
                 for j, p in enumerate(parts):
                     token_weights[i][j] = float(p)
-    if _check_path(seq_label_source):
-        with codecs.open(seq_label_source, 'r', 'utf-8') as ifp:
+    if _check_path(seq_weight_source):
+        with codecs.open(seq_weight_source, 'r', 'utf-8') as ifp:
             for i, line in enumerate(ifp):
-                seq_labels[i] = float(line.strip())
-    return enc_data, dec_data, token_weights, seq_labels
+                seq_weights[i] = float(line.strip())
+    return enc_data, dec_data, token_weights, seq_weights
 
 
 def read_parallel_text_list(data_source, token_weight_source=None,
-                            seq_label_source=None, add_end_seq=True):
+                            seq_weight_source=None, add_end_seq=True):
     enc_data = []
     dec_data = []
     token_weights = []
-    seq_labels = []
+    seq_weights = []
     add_end = 1 if add_end_seq else 0
     for i in range(len(data_source)):
         enc_data.append(data_source[i][0].split())
         dec_data.append(data_source[i][1].split())
         token_weights.append([1.0] * (len(dec_data[-1]) + add_end))
-        seq_labels.append(1.0)
+        seq_weights.append(1.0)
     if (token_weight_source is not None and
             isinstance(token_weight_source, six.string_types)):
         for i, line in enumerate(token_weight_source):
             for j, p in enumerate(line):
                 token_weights[i][j] = p
-    if (seq_label_source is not None and
-            isinstance(seq_label_source, six.string_types)):
-        for i, line in enumerate(seq_label_source):
-            seq_labels[i] = float(line.strip())
-    return enc_data, dec_data, token_weights, seq_labels
+    if (seq_weight_source is not None and
+            isinstance(seq_weight_source, six.string_types)):
+        for i, line in enumerate(seq_weight_source):
+            seq_weights[i] = float(line.strip())
+    return enc_data, dec_data, token_weights, seq_weights
 
 
 class Seq2SeqIterator(TextIterator, EnvGenerator):
@@ -111,19 +111,19 @@ class Seq2SeqIterator(TextIterator, EnvGenerator):
     @property
     def label_keys(self):
         return set(['decoder_label', 'decoder_label_weight',
-                    'decoder_seq_label'])
+                    'decoder_seq_weight'])
 
     def initialize(self, data_source, token_weight_source=None,
-                   seq_label_source=None, _return_text=False):
+                   seq_weight_source=None, _return_text=False):
         if isinstance(data_source, six.string_types):
             enc_text, dec_text, tk_w, seq_w = read_parallel_text_file(
                 data_source, token_weight_source,
-                seq_label_source, self.opt.seq_delimiter,
+                seq_weight_source, self.opt.seq_delimiter,
                 self.opt.add_end_seq)
         else:
             enc_text, dec_text, tk_w, seq_w = read_parallel_text_list(
                 data_source, token_weight_source,
-                seq_label_source, self.opt.add_end_seq)
+                seq_weight_source, self.opt.add_end_seq)
         enc_data = self.in_vocab.w2i(enc_text)
         dec_data = self.out_vocab.w2i(dec_text)
         self.data = zip(enc_data, dec_data, tk_w, seq_w)
@@ -181,7 +181,7 @@ class Seq2SeqIterator(TextIterator, EnvGenerator):
                 size + [self.max_out_dec_len], np.int32)
             self._b_weight = np.zeros(
                 size + [self.max_out_dec_len], np.float32)
-            self._b_seq_label = np.zeros(size, np.float32)
+            self._b_seq_weight = np.zeros(size, np.float32)
             self._b_enc_seq_len = np.zeros(size, np.int32)
             self._b_dec_seq_len = np.zeros(size, np.int32)
             self._b_pointers = np.zeros(size, np.int32)
@@ -192,7 +192,7 @@ class Seq2SeqIterator(TextIterator, EnvGenerator):
         self._b_dec_output[:] = self.dec_pad_id
         self._b_dec_input[:] = self.dec_pad_id
         self._b_weight[:] = 0
-        self._b_seq_label[:] = 0
+        self._b_seq_weight[:] = 0
         self._b_enc_seq_len[:] = 0
         self._b_dec_seq_len[:] = 0
         if self.opt.add_start_seq:
@@ -232,7 +232,7 @@ class Seq2SeqIterator(TextIterator, EnvGenerator):
                     self._b_dec_input[i_batch, 1:]
                 self._b_weight[i_batch, 0:dec_end] = tk_w[0:dec_end]
                 self._b_dec_seq_len[i_batch] = dec_end
-                self._b_seq_label[i_batch] = seq_w
+                self._b_seq_weight[i_batch] = seq_w
         return True
 
     def _increment_batch(self):
@@ -249,7 +249,7 @@ class Seq2SeqIterator(TextIterator, EnvGenerator):
         enc_input, enc_seq_len = self._b_enc_input, self._b_enc_seq_len
         dec_input, dec_seq_len = self._b_dec_input, self._b_dec_seq_len
         dec_label = self._b_dec_output
-        tok_weight, seq_weight = self._b_weight, self._b_seq_label
+        tok_weight, seq_weight = self._b_weight, self._b_seq_weight
         if self.opt.truncate_batch:
             enc_max_len = enc_seq_len.max()
             enc_input = enc_input[:, :enc_max_len]
@@ -340,5 +340,11 @@ class Seq2SeqIterator(TextIterator, EnvGenerator):
 
     def replace_weights(self, obs, new_weights):
         _l = obs.labels
+        new_weights = new_weights * _l.decoder_label_weight
         labels = _l._replace(decoder_label_weight=new_weights)
+        return obs._replace(labels=labels)
+
+    def replace_labels(self, obs, new_labels):
+        _l = obs.labels
+        labels = _l._replace(decoder_label=new_labels)
         return obs._replace(labels=labels)

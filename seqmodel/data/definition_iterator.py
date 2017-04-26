@@ -80,7 +80,7 @@ class Word2DefIterator(Seq2SeqIterator):
         return keys
 
     def initialize(self, data_source, token_weight_source=None,
-                   seq_label_source=None, feature_source=None,
+                   seq_weight_source=None, feature_source=None,
                    _return_text=False):
         enc_text, dec_text = super(Word2DefIterator, self).initialize(
             data_source, _return_text=True)

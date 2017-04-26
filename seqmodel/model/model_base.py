@@ -37,6 +37,7 @@ class ModelBase(object):
 
     def __call__(self, is_training=False, reuse_variable=False):
         self.is_training = is_training
+        self.reuse_variable = reuse_variable
         self._nodes = Bunch()
         with tf.variable_scope(self.name, reuse=reuse_variable):
             return self._build()
@@ -47,45 +48,6 @@ class ModelBase(object):
         Create model nodes and return
         """
         raise NotImplementedError
-
-    @staticmethod
-    def map_feeddict(model, data, no_features=False, no_labels=False,
-                     _custom_feed=None, **kwargs):
-        """ Create a generic feed dict by matching keys
-            in data and model.feed
-            kwargs:
-                no_features: If true, do not map model.feed.features
-                no_labels: If true, do not map model.feed.labels
-            Returns:
-                feed_dict
-        """
-        feed_dict = _custom_feed
-        if feed_dict is None:
-            feed_dict = {}
-        for key in feed_dict:
-            if callable(feed_dict[key]):
-                feed_dict[key] = feed_dict[key](data)
-        if not no_features:
-            for k in model.feed.features:
-                if k in data.features:
-                    feed_dict[model.feed.features[k]] = data.features[k]
-        if not no_labels:
-            for k in model.labels:
-                if k in data.labels:
-                    feed_dict[model.feed.labels[k]] = data.labels[k]
-        return feed_dict
-
-    @staticmethod
-    def get_fetch(model, _custom_fetch=None, **kwargs):
-        """ Create an empty fetch dictionary
-
-            Returns:
-                fetch
-        """
-        fetch = _custom_fetch
-        if fetch is None:
-            fetch = Bunch()
-        return fetch
 
 
 class ExecutableModel(object):

@@ -1,5 +1,4 @@
 import sys
-import cPickle
 import numpy as np
 from gensim.models import KeyedVectors
 
@@ -30,4 +29,4 @@ for i, word in enumerate(words):
 print('- Unknown words: {}'.format(unk))
 print('- Writing output...')
 with open(out_path, 'w') as ofp:
-    cPickle.dump(obj=vocab2vec, file=ofp)
+    np.save(ofp, vocab2vec)

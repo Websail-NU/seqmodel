@@ -34,19 +34,20 @@ def no_dropout_if_not_training(rnn_cell_opt, is_training):
     return rnn_cell_opt
 
 
-def create_rnn_cell_from_opt(opt):
+def create_rnn_cell_from_opt(opt, reuse=False):
     """ Create an RNN cell from module name. """
     if opt.cell_class.startswith('tf'):
         cell_class = eval(opt.cell_class)
     else:
         cell_class = locate(opt.cell_class)
-    cell = cell_class(**opt.cell_opt)
+    cell_opt = Bunch(opt.cell_opt, reuse=reuse)
+    cell = cell_class(**cell_opt)
     if opt.get('vrrn', False):
         cell = rnn_cells.ResidualWrapper(cell)
     return cell
 
 
-def _get_rnn_cells(opt, num_cells, only_drop_input_first=True):
+def _get_rnn_cells(opt, num_cells, only_drop_input_first=True, reuse=False):
     """ Create a homogenous RNN cells. """
     cells = []
     vrrn = opt.get('vrrn', False)
@@ -56,7 +57,7 @@ def _get_rnn_cells(opt, num_cells, only_drop_input_first=True):
     state_keep_prob = opt.get('state_keep_prob', 1.0)
     input_size = opt.get('input_size', opt.cell_opt.num_units)
     for icell in range(num_cells):
-        cell = create_rnn_cell_from_opt(opt)
+        cell = create_rnn_cell_from_opt(opt, reuse)
         input_keep_prob_ = input_keep_prob
         # Only the first cell need an input dropout
         if icell > 0 and only_drop_input_first:
@@ -74,25 +75,25 @@ def _get_rnn_cells(opt, num_cells, only_drop_input_first=True):
     return cells
 
 
-def get_rnn_cell(opt):
+def get_rnn_cell(opt, reuse=False):
     if opt.get('parallel_cells', 0) > 1:
         opt = copy.deepcopy(opt)
         input_keep_prob = opt.input_keep_prob
         opt.input_keep_prob = 1.0
-        cells = _get_rnn_cells(opt, opt.parallel_cells)
+        cells = _get_rnn_cells(opt, opt.parallel_cells, reuse=reuse)
         new_opt = copy.deepcopy(opt)
         new_opt.cell_opt.num_units = opt.get('num_p_units',
                                              new_opt.cell_opt.num_units)
-        m_cell = _get_rnn_cells(new_opt, 1)[0]
+        m_cell = _get_rnn_cells(new_opt, 1, reuse=reuse)[0]
         final_cell = rnn_cells.ParallelCellWrapper([m_cell] + cells)
         if input_keep_prob < 1.0:
             final_cell = DropoutWrapper(final_cell,
                                         input_keep_prob=input_keep_prob)
     elif opt.num_layers > 1:
-        cells = _get_rnn_cells(opt, opt.num_layers)
+        cells = _get_rnn_cells(opt, opt.num_layers, reuse=reuse)
         final_cell = tf.contrib.rnn.MultiRNNCell(cells)
     else:
-        cells = _get_rnn_cells(opt, 1)
+        cells = _get_rnn_cells(opt, 1, reuse=reuse)
         final_cell = cells[0]
     if opt.is_attr_set("output_all_states") and opt.output_all_states:
         final_cell = rnn_cells.OutputStateWrapper(final_cell)
@@ -154,10 +155,12 @@ class BasicRNNModule(GraphModule):
         logit: (Optional) Options to create output logit.
     """
 
-    def __init__(self, opt, name='basic_rnn', is_training=False):
+    def __init__(self, opt, name='basic_rnn', is_training=False,
+                 reuse_cell=False):
         GraphModule.__init__(self, name)
         self.opt = opt
         self.is_training = is_training
+        self.reuse_cell = reuse_cell
         self.opt.rnn_cell = no_dropout_if_not_training(
             self.opt.rnn_cell, self.is_training)
 
@@ -169,8 +172,7 @@ class BasicRNNModule(GraphModule):
                      logit=graph_util.default_logit_opt())
 
     def _build(self, inputs, sequence_length,
-               logit_fn=graph_util.create_logit_layer,
-               *args, **kwargs):
+               logit_fn=graph_util.create_logit_layer, *args, **kwargs):
         """
         Create unrolled RNN graph. Return Decoder output and states.
         args:
@@ -192,7 +194,7 @@ class BasicRNNModule(GraphModule):
 
     def _initialize(self, inputs, initial_state=None,
                     create_zero_initial_state=False, *args, **kwargs):
-        self.cell = get_rnn_cell(self.opt.rnn_cell)
+        self.cell = get_rnn_cell(self.opt.rnn_cell, reuse=self.reuse_cell)
         self.initial_state = initial_state
         create_zero_initial_state = (create_zero_initial_state or
                                      self.opt.create_zero_initial_state)
@@ -256,8 +258,10 @@ class FixedContextRNNModule(BasicRNNModule):
         logit: (Optional) Options to create output logit.
     """
 
-    def __init__(self, opt, name='fix_context_rnn', is_training=False):
-        super(FixedContextRNNModule, self).__init__(opt, name, is_training)
+    def __init__(self, opt, name='fix_context_rnn', is_training=False,
+                 reuse_cell=False):
+        super(FixedContextRNNModule, self).__init__(
+            opt, name, is_training, reuse_cell)
         self._output_keep_prob = self.opt.rnn_cell.output_keep_prob
         self.opt.rnn_cell.output_keep_prob = 1.0  # manual dropout
 
@@ -299,7 +303,8 @@ class FixedContextRNNModule(BasicRNNModule):
                     create_zero_initial_state=False, *args, **kwargs):
 
         self.cell = get_rnn_cell(Bunch(self.opt.rnn_cell,
-                                       output_keep_prob=1.0))
+                                       output_keep_prob=1.0),
+                                 reuse=self.reuse_cell)
         self.initial_state = initial_state
         create_zero_initial_state = (create_zero_initial_state or
                                      self.opt.create_zero_initial_state)

@@ -12,10 +12,6 @@ from seqmodel.experiment import basic_agent
 from seqmodel import model
 
 
-TransitionTuple = collections.namedtuple(
-    "TransitionTuple", ("state", "action", "reward"))
-
-
 class PolicyAgent(basic_agent.BasicAgent):
     def __init__(self, opt, sess, logger=None, name='policy_agent'):
         super(PolicyAgent, self).__init__(opt, sess, logger, name)
@@ -23,11 +19,11 @@ class PolicyAgent(basic_agent.BasicAgent):
     @staticmethod
     def default_opt():
         return Bunch(
+            discount_factor=0.99,
             optim=agent.Agent.default_opt().optim,
             policy_model=Bunch(
                 model_class='seqmodel.model.seq2seq_model.BasicSeq2SeqModel',
-                model_opt=model.seq2seq_model.BasicSeq2SeqModel.default_opt()),
-            value_model=None)
+                model_opt=model.seq2seq_model.BasicSeq2SeqModel.default_opt()))
 
     def initialize_model(self, with_training=False, init_scale=None):
         with tf.variable_scope(self.name + "/policy"):
@@ -37,17 +33,13 @@ class PolicyAgent(basic_agent.BasicAgent):
             self.training_model = self.training_policy
             self.eval_model = self.eval_policy
 
-    def acc_discounted_rewards(self, rewards, discount_factor=0.99):
-        R = np.zeros_like(rewards)
-        r_tplus1 = np.zeros([rewards.shape[1]])
-        for i in range(len(rewards) - 1, -1, -1):
-            R[i, :] = rewards[i, :] + discount_factor * r_tplus1
-            r_tplus1 = R[i, :]
-        return R
-
-    def compute_return(self, env, states, rewards):
-        rewards = self.acc_discounted_rewards(rewards)
-        return env.create_transition_return(states, rewards)
+    def initialize_optim(self, loss=None, lr=None,
+                         pg_loss=None):
+        super(PolicyAgent, self).initialize_optim(loss, lr)
+        if pg_loss is None:
+            self.pg_train_op = self.train_op
+        else:
+            self.pg_train_op, self.lr = self._build_train_op(pg_loss, lr=lr)
 
     def rollout(self, env, init_obs=None, max_steps=100,
                 temperature=1.0, greedy=False, **kwargs):
@@ -68,7 +60,7 @@ class PolicyAgent(basic_agent.BasicAgent):
         packed_transitions, packed_rewards = env.packed_transitions
         return env.transitions, packed_transitions, packed_rewards
 
-    def run_rl_epoch(self, env, train_op=None, max_steps=100, temperature=1.0,
+    def run_rl_epoch(self, env, update=False, max_steps=100, temperature=1.0,
                      greedy=False, verbose=True, **kwargs):
         info = RLRunningInfo()
         obs = env.reset()
@@ -77,18 +69,52 @@ class PolicyAgent(basic_agent.BasicAgent):
                 env, obs, max_steps, temperature, greedy, **kwargs)
             rewards = np.array(rewards)
             info.step += 1
-            info.num_episodes += rewards.shape[1]  # XXX: over-counting
+            # XXX: over-counting
+            info.num_episodes += rewards.shape[1]
             info.eval_cost += np.sum(rewards)
-            if train_op is not None:
-                pg_data = self.compute_return(env, states, rewards)
-                _, tr_loss, _, _ = self.training_model.train(
-                    self.sess, pg_data, train_op, **kwargs)
-                info.training_cost += tr_loss * obs.num_tokens
-            info.num_tokens += obs.num_tokens
+            if update:
+                returns, targets = self._compute_return(
+                    states, rewards, **kwargs)
+                pg_loss = self._update_policy(env, states, returns, **kwargs)
+                b_loss = self._update_baseline(env, states, targets, **kwargs)
+                info.training_cost += pg_loss * states.num_tokens
+                info.baseline_cost += b_loss
+            info.num_tokens += states.num_tokens
             self.end_step(info, verbose=verbose, **kwargs)
             obs = env.reset()
         info.end_time = time.time()
         return info
+
+    def _compute_return(self, states, rewards, **kwargs):
+        R = self._acc_discounted_rewards(rewards)
+        baseline = self._compute_baseline(states, rewards, **kwargs)
+        returns = R - baseline
+        return returns, R
+
+    def _update_policy(self, env, states, returns, **kwargs):
+        assert hasattr(self, 'pg_train_op'),\
+            "pg_train_op is None. Optimizer is not initialized."
+        pg_data = env.create_transition_return(states, returns)
+        _, tr_loss, _, _ = self.training_policy.train(
+            self.sess, pg_data, self.pg_train_op, **kwargs)
+        return tr_loss
+
+    def _update_baseline(self, env, states, rewards, **kwargs):
+        return 0.0
+
+    def _acc_discounted_rewards(self, rewards):
+        discount_factor = self.opt.discount_factor
+        R = np.zeros_like(rewards)
+        r_tplus1 = np.zeros([rewards.shape[1]])
+        for i in range(len(rewards) - 1, -1, -1):
+            R[i, :] = rewards[i, :] + discount_factor * r_tplus1
+            r_tplus1 = R[i, :]
+        return R
+
+    def _compute_baseline(self, states, rewards, **kwargs):
+        baseline = np.zeros_like(rewards)
+        # baseline[:] = 0.5
+        return baseline
 
     def evaluate_policy(self, env, max_steps=100, temperature=1.0, greedy=True,
                         verbose=False, **kwargs):
@@ -98,13 +124,8 @@ class PolicyAgent(basic_agent.BasicAgent):
         return info
 
     def policy_gradient(self, train_env, batch_size, valid_env=None,
-                        valid_batch_size=1, train_op=None, max_steps=100,
-                        temperature=1.0, greedy=False, verbose=True, **kwargs):
-        if train_op is None:
-            if train_op is None:
-                assert hasattr(self, 'train_op'),\
-                    "train_op is None and optimizer is not initialized."
-                train_op = self.train_op
+                        valid_batch_size=1, max_steps=100, temperature=1.0,
+                        greedy=False, verbose=True, **kwargs):
         if hasattr(self, '_training_state'):
             training_state = self._training_state
         else:
@@ -118,7 +139,7 @@ class PolicyAgent(basic_agent.BasicAgent):
                 break
             self.sess.run(tf.assign(self.lr, new_lr))
             tr_info = self.run_rl_epoch(
-                train_env, train_op=train_op, max_steps=max_steps,
+                train_env, update=True, max_steps=max_steps,
                 temperature=temperature, greedy=greedy,
                 training_loss_denom=batch_size,
                 report_mode='training', **kwargs)
@@ -132,3 +153,55 @@ class PolicyAgent(basic_agent.BasicAgent):
             self.end_epoch(training_state, verbose, tr_info, val_info,
                            **kwargs)
         return training_state
+
+
+class ActorCriticAgent(PolicyAgent):
+    @staticmethod
+    def default_opt():
+        _opt = model.seq2seq_model.BasicSeq2SeqModel.default_opt()
+        value_opt = Bunch(
+            _opt, output_mode='logit', loss_type='mse')
+        value_opt.decoder.rnn_opt.logit = Bunch(
+            value_opt.decoder.rnn_opt.logit,
+            out_vocab_size=1, name_prefix='regression')
+        return Bunch(
+            PolicyAgent.default_opt(),
+            value_model=Bunch(
+                model_class='seqmodel.model.seq2seq_model.BasicSeq2SeqModel',
+                model_opt=value_opt))
+
+    def initialize_model(self, with_training=False, init_scale=None):
+        super(ActorCriticAgent, self).initialize_model(
+            with_training, init_scale)
+        with tf.variable_scope(self.name + "/value"):
+            self.eval_value, self.training_value =\
+                agent.create_model_from_opt(
+                    self.opt.value_model, create_training_model=with_training)
+
+    def initialize_optim(self, loss=None, lr=None,
+                         pg_loss=None, val_loss=None):
+        super(ActorCriticAgent, self).initialize_optim(loss, lr, pg_loss)
+        if val_loss is None:
+            val_loss = self.training_value.training_loss
+        self.b_train_op, self.lr = self._build_train_op(
+            val_loss, lr=self.lr)
+
+    def _compute_return(self, states, rewards, **kwargs):
+        # TODO: Bootstrap?
+        baseline = self._compute_baseline(states, rewards, **kwargs)
+        R = self._acc_discounted_rewards(rewards)
+        returns = R - baseline
+        return returns, R
+
+    def _update_baseline(self, env, states, targets, **kwargs):
+        assert hasattr(self, 'b_train_op'),\
+            "b_train_op is None. Optimizer is not initialized."
+        value_data = env.create_transition_value(states, targets)
+        eval_loss, _, _, _ = self.training_value.train(
+            self.sess, value_data, self.b_train_op)
+        return eval_loss
+
+    def _compute_baseline(self, states, _r, **kwargs):
+        values, _, _ = self.eval_value.predict(
+            self.sess, states.features, **kwargs)
+        return np.squeeze(values, axis=-1)

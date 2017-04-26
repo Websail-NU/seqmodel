@@ -1,7 +1,21 @@
 {
-  "agent_class": "seqmodel.experiment.basic_agent.BasicAgent",
+  "agent_class": "seqmodel.experiment.policy_agent.PolicyAgent",
   "agent_opt": {
-    "model": {
+    "discount_factor": 0.98,
+    "optim": {
+      "clip_gradients": 5.0,
+      "init_scale": 0.04,
+      "learning_rate": 0.3,
+      "lr_decay_every": 1,
+      "lr_decay_factor": 0.5,
+      "lr_decay_imp_ratio": 1,
+      "lr_decay_wait": 4,
+      "lr_min": 1e-06,
+      "lr_start_decay_at": 5,
+      "max_epochs": 5,
+      "name": "GradientDescentOptimizer"
+    },
+    "policy_model": {
       "model_class": "seqmodel.model.definition_model.DefinitionModel",
       "model_opt": {
         "decoder": {
@@ -50,7 +64,7 @@
           "decoder_trainable": false,
           "decoder_vocab_size": 27665,
           "encoder_dim": 300,
-          "encoder_init_filepath": "../../data/common_wordnet_defs/lemma_senses/enc_emb.npy", 
+          "encoder_init_filepath": "../../data/common_wordnet_defs/lemma_senses/enc_emb.npy",
           "encoder_trainable": false,
           "encoder_vocab_size": 31267,
           "word_feature_dim": 2,
@@ -107,19 +121,6 @@
           "use_word": true
         }
       }
-    },
-    "optim": {
-      "clip_gradients": 10.0,
-      "init_scale": 0.04,
-      "learning_rate": 1.0,
-      "lr_decay_every": 1,
-      "lr_decay_factor": 0.75,
-      "lr_decay_imp_ratio": 1,
-      "lr_decay_wait": 4,
-      "lr_min": 1e-06,
-      "lr_start_decay_at": 10,
-      "max_epochs": 20,
-      "name": "GradientDescentOptimizer"
     }
   },
   "data_dir": "../../data/common_wordnet_defs/lemma_senses/",
@@ -155,7 +156,7 @@
   },
   "writeout_opt": {
     "checkpoint_dir": "model/",
-    "experiment_dir": "experiment/dm/tmp",
+    "experiment_dir": "experiment/dm/tmp3",
     "log_file": "experiment.log",
     "report_step_every": 1000,
     "training_state": "training_state.json"
