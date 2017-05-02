@@ -146,7 +146,8 @@
     "add_start_seq": true,
     "seq_delimiter": "\t",
     "shuffle": true,
-    "truncate_batch": true
+    "truncate_batch": true,
+    "reweight_duplicate_words": true
   },
   "vocab_files": {
     "char_vocab": "char_vocab.txt",

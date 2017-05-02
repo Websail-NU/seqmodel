@@ -89,6 +89,7 @@ class SeqModel(ModelBase):
             if seq_weight is not None:
                 weight = tf.multiply(weight, seq_weight)
             logit = tf.squeeze(logit, axis=-1)
+            # weight = tf.cast(tf.not_equal(weight, 0), tf.float32)
             loss = tf.losses.mean_squared_error(
                 labels=label, predictions=logit, weights=weight)
             losses = Bunch(tokens_loss=loss,

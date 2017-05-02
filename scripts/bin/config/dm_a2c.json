@@ -1,18 +1,18 @@
 {
   "agent_class": "seqmodel.experiment.policy_agent.ActorCriticAgent",
   "agent_opt": {
-    "discount_factor": 0.98,
+    "discount_factor": 0.5,
     "optim": {
       "clip_gradients": 5.0,
       "init_scale": 0.04,
-      "learning_rate": 0.3,
+      "learning_rate": 0.1,
       "lr_decay_every": 1,
       "lr_decay_factor": 0.5,
       "lr_decay_imp_ratio": 1,
       "lr_decay_wait": 4,
       "lr_min": 1e-06,
-      "lr_start_decay_at": 5,
-      "max_epochs": 5,
+      "lr_start_decay_at": 40,
+      "max_epochs": 40,
       "name": "GradientDescentOptimizer"
     },
     "policy_model": {
@@ -254,7 +254,8 @@
     "add_start_seq": true,
     "seq_delimiter": "\t",
     "shuffle": true,
-    "truncate_batch": true
+    "truncate_batch": true,
+    "reweight_duplicate_words": true
   },
   "vocab_files": {
     "char_vocab": "char_vocab.txt",
@@ -263,7 +264,7 @@
   },
   "writeout_opt": {
     "checkpoint_dir": "model/",
-    "experiment_dir": "experiment/dm/tmp3",
+    "experiment_dir": "experiment/dm/a2c-tmp",
     "log_file": "experiment.log",
     "report_step_every": 1000,
     "training_state": "training_state.json"

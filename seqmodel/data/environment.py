@@ -104,9 +104,8 @@ class Env(object):
             self._ref_state, self._init_obs = self._generator.reset(
                 re_init=self._re_init)
             self._ref_state = copy.deepcopy(self._ref_state)
-            self._init_obs = copy.deepcopy(self._init_obs)
-            self._cur_obs = self._init_obs
-        return self._init_obs
+        self._cur_obs = copy.deepcopy(self._init_obs)
+        return self._cur_obs
 
     def step(self, action):
         """

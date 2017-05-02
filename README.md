@@ -20,13 +20,16 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - [x] Use sequence weight when computing loss
 
 ### Agent
-- [ ] Rollout more than a batch before updating policy and value networks
+- [x] Rollout more than a batch before updating policy and value networks
+- [x] Sample and rerank
 - [ ] Bootstrap last state if not terminal
 
 ### Data
 - [x] Polysemous words should get lower weight during the training (sequence weight)
+- [x] Option to remove duplicate words
 - [ ] New reward functions
 
 ### Scripts
 - [ ] More flexible scripts to create configuration templates
 - [ ] Refactor policy gradient definition modeling script
+- [x] Compute BLEU score from top hypothesis
