@@ -8,7 +8,7 @@ def xent_loss(logit, label, weight, seq_weight=None):
     Args:
         logit: A tensor of logits
         label: A tensor of labels (same shape as logit)
-        weight: A tensor of weights (same shape as logit)
+        weight: A tensor of weights
     Return:
         batch losses
         traning loss: NLL / loss_denom
@@ -19,14 +19,34 @@ def xent_loss(logit, label, weight, seq_weight=None):
     loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
         logits=logit, labels=label)
     sum_loss = tf.reduce_sum(tf.multiply(loss, weight))
-    mean_loss = tf.div(sum_loss, tf.reduce_sum(weight) + 1e-12)
+    mean_loss = _safe_div(sum_loss, tf.reduce_sum(weight))
     if seq_weight is not None:
         sum_loss = tf.reduce_sum(tf.multiply(
             loss, tf.multiply(weight, seq_weight)))
     loss_denom = tf.placeholder_with_default(
         1.0, shape=None, name="training_loss_denom")
-    training_loss = tf.div(sum_loss, loss_denom)
+    training_loss = _safe_div(sum_loss, loss_denom)
     return loss, training_loss, loss_denom, mean_loss
+
+
+def ent_loss(distribution, weight, seq_weight=None):
+    """
+    Compute entropy loss (negative entropy)
+    Args:
+        logit: A tensor of logits
+        distribution: A tensor of distribution (same shape as logit)
+        weight: A tensor of weights
+    Return:
+        mean entropy loss
+    """
+    if seq_weight is not None:
+        weight = tf.multiply(weight, seq_weight)
+    loss = -1 * distribution * tf.log(distribution)
+    sum_loss = tf.reduce_sum(loss * tf.expand_dims(weight, axis=-1))
+    num_dist = tf.reduce_sum(weight) * tf.cast(tf.shape(distribution)[-1],
+                                               tf.float32)
+    mean_loss = _safe_div(sum_loss, num_dist)
+    return mean_loss
 
 
 def slow_feature_loss(feature, weight, delta=1.0):
@@ -68,3 +88,24 @@ def l2_loss(var_list):
     l2_loss = tf.reduce_sum(tf.add_n(
         [tf.nn.l2_loss(var) for var in var_list]))
     return l2_loss
+
+
+def _safe_div(numerator, denominator, name="value"):
+    """
+    Adapted from Tensorflow losses
+
+    Computes a safe divide which returns 0 if the denominator is zero.
+    Note that the function contains an additional conditional check that is
+    necessary for avoiding situations where the loss is zero causing NaNs to
+    creep into the gradient computation.
+    Args:
+    numerator: An arbitrary `Tensor`.
+    denominator: `Tensor` whose shape matches `numerator`
+    name: An optional name for the returned op.
+    Returns:
+    The element-wise value of the numerator divided by the denominator.
+    """
+    return tf.where(tf.equal(denominator, 0),
+                    tf.zeros_like(numerator),
+                    tf.div(numerator, denominator),
+                    name=name)

@@ -17,6 +17,7 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - [ ] Refactor dropout (replace static values of `keep_prob` with placeholders).
 - [ ] Replace highway-like update with GRU-like update in definition model (to replicate original paper)
 - [ ] Cache encoder state in ExeSeq2SeqModel such that we don't need to fetch the same thing all the time
+- [ ] Add entropy regulization
 - [x] Use sequence weight when computing loss
 
 ### Agent
