@@ -48,11 +48,13 @@ class PolicyAgent(basic_agent.BasicAgent):
         obs = init_obs or env.reset()
         assert obs is not None, "Observation is None."
         for t_step in range(max_steps):
-            distribution, state, _ = self.eval_policy.predict(
+            output, state, _ = self.eval_policy.predict(
                 self.sess, obs.features, state=state, new_seq=new_seq,
-                logit_temperature=temperature, **kwargs)
-            sampled_action, likelihood = agent.select_from_distribution(
-                distribution, greedy)
+                logit_temperature=temperature,
+                output_key=agent.get_output_key(greedy), **kwargs)
+            sampled_action, likelihood = output
+            sampled_action = sampled_action[-1]
+            likelihood = likelihood[-1]
             obs, _, done, _ = env.step(sampled_action)
             new_seq = False
             if all(done):

@@ -13,15 +13,16 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 
 ### Model
 - [ ] Make it possible to share variables between 2 different models
-- [ ] Use tensorflow's dynamic_decode
 - [ ] Pass `reuse` when building graph (not create an object)
 - [ ] Refactor dropout (replace static values of `keep_prob` with placeholders).
 - [ ] Replace highway-like update with GRU-like update in definition model (to replicate original paper)
+- [ ] Cache encoder state in ExeSeq2SeqModel such that we don't need to fetch the same thing all the time
 - [x] Use sequence weight when computing loss
 
 ### Agent
 - [x] Rollout more than a batch before updating policy and value networks
 - [x] Sample and rerank
+- [x] Select argmax or sample rather than fetch distribution
 - [ ] Bootstrap last state if not terminal
 
 ### Data

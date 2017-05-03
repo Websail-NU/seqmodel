@@ -63,7 +63,8 @@ class ExecutableModel(object):
         self._no_op = tf.no_op()
         self._fetches = {}
 
-    def predict(self, sess, feature_tuple, state=None, **kwargs):
+    def predict(self, sess, feature_tuple, state=None,
+                output_key='prediction', **kwargs):
         """ Run model for prediction
             Args:
                 sess: tensorflow session
@@ -78,7 +79,8 @@ class ExecutableModel(object):
                 model state
                 info (from info_fetch)
         """
-        fetch = self._get_fetch(self._PREDICT_, **kwargs)
+        fetch = self._get_fetch(
+            self._PREDICT_, output_key=output_key, **kwargs)
         feed = self._get_feed(
             self._PREDICT_, feature_tuple, state=state, **kwargs)
         result = sess.run(fetch, feed)
@@ -137,12 +139,16 @@ class ExecutableModel(object):
             self._t_loss = self._nodes.losses.training_loss
         return self._t_loss
 
-    def _get_fetch(self, mode, info_fetch=None, **kwargs):
+    def _get_fetch(self, mode, info_fetch=None, output_key='prediction',
+                   **kwargs):
         info_fetch = self._get_info_fetch(info_fetch, **kwargs)
-        if mode in self._fetches:
-            return self._fetches[mode] + info_fetch
+        mode_key = mode
         if mode == self._PREDICT_:
-            fetch_ = [self._nodes.output.prediction]
+            mode_key = mode + output_key
+        if mode_key in self._fetches:
+            return self._fetches[mode_key] + info_fetch
+        if mode == self._PREDICT_:
+            fetch_ = [self._nodes.output[output_key]]
         elif mode == self._TRAIN_:
             fetch_ = [self._nodes.losses.eval_loss,
                       self._nodes.losses.training_loss]
@@ -151,8 +157,8 @@ class ExecutableModel(object):
         else:
             raise ValueError("{} is a not valid mode".format(mode))
         fetch_.append(self._get_state_fetch(**kwargs))
-        self._fetches[mode] = fetch_
-        return self._fetches[mode] + info_fetch
+        self._fetches[mode_key] = fetch_
+        return self._fetches[mode_key] + info_fetch
 
     def _get_info_fetch(self, fetch, **kwargs):
         if fetch is None:

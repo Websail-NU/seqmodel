@@ -61,6 +61,8 @@ class SeqModel(ModelBase):
         if decoder_output.is_attr_set('logit'):
             output.logit = decoder_output.logit
             output.distribution = decoder_output.distribution
+            output.max_pred = decoder_output.max_pred
+            output.sample_pred = decoder_output.sample_pred
             setting.logit_temperature = decoder_output.logit_temperature
             logit_temperature = setting.logit_temperature
             output.prediction = output[self.opt.output_mode]

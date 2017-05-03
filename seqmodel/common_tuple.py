@@ -37,6 +37,8 @@ Word2SeqFeatureTuple = namedtuple(
 """
 For sampling
 """
+IndexScoreTuple = namedtuple(
+    "IndexScoreTuple", ("index", "score"))
 EnvTransitionTuple = namedtuple(
     "EnvTransitionTuple", ("state", "action", "reward"))
 
