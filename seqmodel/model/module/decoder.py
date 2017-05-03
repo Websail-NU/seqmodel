@@ -5,6 +5,7 @@ from pydoc import locate
 import tensorflow as tf
 
 from seqmodel.bunch import Bunch
+from seqmodel.common_tuple import IndexScoreTuple
 from seqmodel.model.module.graph_module import GraphModule
 from seqmodel.model.module.rnn_module import BasicRNNModule
 
@@ -45,6 +46,24 @@ class RNNDecoder(Decoder):
     def default_opt():
         return Bunch(init_with_encoder_state=True)
 
+    def _select_from_distribution(self, logit, distribution):
+        max_idx = tf.argmax(logit, axis=-1)
+        max_prob = tf.reduce_max(distribution, axis=-1)
+        logit_shape = tf.shape(logit)
+        logit_dim = logit_shape[-1]
+        logit_2d = tf.reshape(logit, [-1, logit_dim])
+        dist_2d = tf.reshape(distribution, [-1, logit_dim])
+        sample_idx = tf.cast(tf.multinomial(logit_2d, 1), dtype=tf.int32)
+        gather_idx = tf.expand_dims(
+            tf.range(start=0, limit=tf.shape(sample_idx)[0]), axis=-1)
+        gather_idx = tf.concat([gather_idx, sample_idx], axis=-1)
+        sample_prob = tf.gather_nd(dist_2d, gather_idx)
+        sample_idx = tf.reshape(sample_idx, logit_shape[:-1])
+        sample_prob = tf.reshape(sample_prob, logit_shape[:-1])
+        max_tuple = IndexScoreTuple(max_idx, max_prob)
+        sample_tuple = IndexScoreTuple(sample_idx, sample_prob)
+        return max_tuple, sample_tuple
+
     def decode(self, inputs, context, sequence_length, rnn_module,
                context_for_rnn=None, *args, **kwargs):
         """ Create RNN graph for decoding.
@@ -73,4 +92,8 @@ class RNNDecoder(Decoder):
             outputs.logit = self.rnn.logit
             outputs.logit_temperature = self.rnn.logit_temperature
             outputs.distribution = self.rnn.distribution
+            max_tuple, sample_tuple = self._select_from_distribution(
+                outputs.logit, outputs.distribution)
+            outputs.max_pred = max_tuple
+            outputs.sample_pred = sample_tuple
         return outputs

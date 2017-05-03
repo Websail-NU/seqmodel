@@ -14,6 +14,7 @@ from seqmodel.experiment.context import Context
 from seqmodel import experiment as exp
 from seqmodel import model
 from seqmodel import data
+from seqmodel.data.env.language import LangRewardMode
 
 
 def _restore_params(sess):
@@ -49,12 +50,15 @@ def _create_references(context):
 
 
 def main():
+    reward_names = ['match', 'mxmatch', 'bleu', 'mxbleu']
     start_time = time.time()
     context_config_filepath = sys.argv[1]
+    reward_mode = int(sys.argv[2])
     # sess_config = tf.ConfigProto(device_count={'GPU': 0})
     # sess = tf.Session(config = sess_config)
     with tf.Session() as sess:
-        context = Context.from_config_file(sess, context_config_filepath)
+        context = Context.from_config_file(sess, context_config_filepath,
+                                           reward_names[reward_mode])
         context.write_config()
         context.logger.info('Initializing graphs and models...')
         context.initialize_agent(with_training=True)
@@ -67,11 +71,19 @@ def main():
         sess.run(tf.global_variables_initializer())
         _restore_params(sess)
         references = _create_references(context)
-        train_env = data.env.Word2SeqEnv(context.iterators.train, references)
-        valid_env = data.env.Word2SeqEnv(context.iterators.valid, references)
-        test_env = data.env.Word2SeqEnv(context.iterators.test, references)
-        context.agent.policy_gradient(train_env, 32, valid_env, 32,
-                                      max_steps=40, context=context)
+        context.iterators.train._remove_duplicate_words()
+        context.iterators.valid._remove_duplicate_words()
+        # context.iterators.test._remove_duplicate_words()
+        train_env = data.env.Word2SeqEnv(
+            context.iterators.train, references,
+            reward_mode=reward_mode)
+        valid_env = data.env.Word2SeqEnv(
+            context.iterators.valid, references,
+            reward_mode=reward_mode)
+        # test_env = data.env.Word2SeqEnv(context.iterators.test, references)
+        context.agent.policy_gradient(
+            train_env, 128, valid_env, 32, max_steps=40, context=context,
+            num_acc_rollouts=1)
     context.logger.info('Total time: {}s'.format(time.time() - start_time))
 
 

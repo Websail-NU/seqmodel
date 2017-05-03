@@ -76,6 +76,14 @@ def select_from_distribution(distribution, greedy=False):
     return choices, dist[np.arange(len(dist)), choices]
 
 
+def get_output_key(greedy=False, argmax_key="max_pred",
+                   sample_key="sample_pred"):
+    if greedy:
+        return argmax_key
+    else:
+        return sample_key
+
+
 @six.add_metaclass(abc.ABCMeta)
 class Agent(object):
     """

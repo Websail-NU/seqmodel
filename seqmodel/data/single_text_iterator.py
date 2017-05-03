@@ -233,8 +233,8 @@ class TokenIterator(TextIterator):
                 seq_len[ib] = 1
         num_tokens = float(np.sum(seq_len > 0))
         features = _f._replace(inputs=inputs, input_seq_len=seq_len)
-        new_obs = _f._replace(features=features, new_seq=False,
-                              num_tokens=num_tokens)
+        new_obs = observation._replace(features=features, new_seq=False,
+                                       num_tokens=num_tokens)
         return new_obs, action, seq_len == 0, None
 
     # XXX: Fix this methods

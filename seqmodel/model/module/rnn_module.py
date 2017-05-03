@@ -186,7 +186,7 @@ class BasicRNNModule(GraphModule):
             logit_fn: a function or template to create logit
                       (Default: graph_util.create_logit_layer)
         """
-        final_output = self.step(inputs, sequence_length, *args, **kwargs)
+        final_output = self._run_rnn(inputs, sequence_length, *args, **kwargs)
         if self.opt.is_attr_set('logit'):
             final_output = self._add_logit(logit_fn, final_output.cell_output,
                                            final_output, *args, **kwargs)
@@ -225,8 +225,8 @@ class BasicRNNModule(GraphModule):
         final_output._logit_b = logit_b
         return final_output
 
-    def step(self, inputs, sequence_length, rnn_fn=tf.nn.dynamic_rnn,
-             *args, **kwargs):
+    def _run_rnn(self, inputs, sequence_length, rnn_fn=tf.nn.dynamic_rnn,
+                 *args, **kwargs):
         inputs, cell, initial_state = self._initialize(inputs, *args, **kwargs)
         cell_output, final_state = rnn_fn(
             cell=cell,
@@ -282,7 +282,7 @@ class FixedContextRNNModule(BasicRNNModule):
         _multiples.insert(time_dim, tf.shape(inputs)[time_dim])
         tiled_context = tf.tile(tf.expand_dims(context, time_dim), _multiples)
         # TODO: transform input
-        final_output = self.step(inputs, sequence_length, *args, **kwargs)
+        final_output = self._run_rnn(inputs, sequence_length, *args, **kwargs)
         # transform output
         _carried_output_cell = final_output.cell_output
         if self._output_keep_prob < 1.0:

@@ -1,18 +1,18 @@
 {
   "agent_class": "seqmodel.experiment.policy_agent.PolicyAgent",
   "agent_opt": {
-    "discount_factor": 0.98,
+    "discount_factor": 0.9,
     "optim": {
       "clip_gradients": 5.0,
       "init_scale": 0.04,
-      "learning_rate": 0.3,
+      "learning_rate": 0.05,
       "lr_decay_every": 1,
       "lr_decay_factor": 0.5,
       "lr_decay_imp_ratio": 1,
       "lr_decay_wait": 4,
       "lr_min": 1e-06,
-      "lr_start_decay_at": 5,
-      "max_epochs": 5,
+      "lr_start_decay_at": 40,
+      "max_epochs": 40,
       "name": "GradientDescentOptimizer"
     },
     "policy_model": {
@@ -28,7 +28,7 @@
             "create_zero_initial_state": false,
             "logit": {
               "name_prefix": "logit",
-              "out_vocab_size": 27665,
+              "out_vocab_size": 18440,
               "trainable": true,
               "use_bias": true
             },
@@ -54,19 +54,19 @@
           }
         },
         "embedding": {
-          "char_dim": 28,
+          "char_dim": 55,
           "char_init_filepath": null,
           "char_one_hot": true,
           "char_trainable": false,
-          "char_vocab_size": 28,
+          "char_vocab_size": 55,
           "decoder_dim": 300,
-          "decoder_init_filepath": "../../data/common_wordnet_defs/lemma_senses/dec_emb.npy",
+          "decoder_init_filepath": "../../data/common_wordnet_defs/lemma_senses_pruned/dec_emb.npy",
           "decoder_trainable": false,
-          "decoder_vocab_size": 27665,
+          "decoder_vocab_size": 18440,
           "encoder_dim": 300,
-          "encoder_init_filepath": "../../data/common_wordnet_defs/lemma_senses/enc_emb.npy",
+          "encoder_init_filepath": "../../data/common_wordnet_defs/lemma_senses_pruned/enc_emb.npy",
           "encoder_trainable": false,
-          "encoder_vocab_size": 31267,
+          "encoder_vocab_size": 35135,
           "word_feature_dim": 2,
           "word_feature_init_filepath": null,
           "word_feature_trainable": false,
@@ -123,7 +123,7 @@
       }
     }
   },
-  "data_dir": "../../data/common_wordnet_defs/lemma_senses/",
+  "data_dir": "../../data/common_wordnet_defs/lemma_senses_pruned/",
   "data_source": {
     "test": "test.txt",
     "train": "train.txt",
@@ -147,7 +147,8 @@
     "add_start_seq": true,
     "seq_delimiter": "\t",
     "shuffle": true,
-    "truncate_batch": true
+    "truncate_batch": true,
+    "reweight_duplicate_words": true
   },
   "vocab_files": {
     "char_vocab": "char_vocab.txt",
@@ -156,7 +157,7 @@
   },
   "writeout_opt": {
     "checkpoint_dir": "model/",
-    "experiment_dir": "experiment/dm/tmp3",
+    "experiment_dir": "experiment/dm/pg",
     "log_file": "experiment.log",
     "report_step_every": 1000,
     "training_state": "training_state.json"

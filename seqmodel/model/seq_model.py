@@ -61,6 +61,8 @@ class SeqModel(ModelBase):
         if decoder_output.is_attr_set('logit'):
             output.logit = decoder_output.logit
             output.distribution = decoder_output.distribution
+            output.max_pred = decoder_output.max_pred
+            output.sample_pred = decoder_output.sample_pred
             setting.logit_temperature = decoder_output.logit_temperature
             logit_temperature = setting.logit_temperature
             output.prediction = output[self.opt.output_mode]
@@ -78,15 +80,18 @@ class SeqModel(ModelBase):
             decoder_output.final_state, loss_denom, logit_temperature)
         return model
 
-    def _loss(self, logit, label, weight):
+    def _loss(self, logit, label, weight, seq_weight=None):
         if self.opt.loss_type == 'xent':
             t_loss, training_loss, loss_denom, eval_loss = xent_loss(
-                logit, label, weight)
+                logit, label, weight, seq_weight)
             losses = Bunch(tokens_loss=t_loss,
                            training_loss=training_loss,
                            eval_loss=eval_loss)
         elif self.opt.loss_type == 'mse':
+            if seq_weight is not None:
+                weight = tf.multiply(weight, seq_weight)
             logit = tf.squeeze(logit, axis=-1)
+            # weight = tf.cast(tf.not_equal(weight, 0), tf.float32)
             loss = tf.losses.mean_squared_error(
                 labels=label, predictions=logit, weights=weight)
             losses = Bunch(tokens_loss=loss,

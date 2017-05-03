@@ -61,13 +61,16 @@ class Seq2SeqModel(seq_model.SeqModel):
         if decoder_output.is_attr_set('logit'):
             output.logit = decoder_output.logit
             output.distribution = decoder_output.distribution
+            output.max_pred = decoder_output.max_pred
+            output.sample_pred = decoder_output.sample_pred
             setting.logit_temperature = decoder_output.logit_temperature
             logit_temperature = setting.logit_temperature
             output.prediction = output[self.opt.output_mode]
         assert output.logit is not None,\
             "Need logit node to compute xent loss."
         losses, loss_denom = self._loss(output.logit, labels.decoder_label,
-                                        labels.decoder_label_weight)
+                                        labels.decoder_label_weight,
+                                        labels.decoder_seq_weight)
         setting.training_loss_denom = loss_denom
         if not output.is_attr_set('prediction'):
             output.prediction = output.rnn
@@ -150,6 +153,8 @@ class BasicSeq2SeqModel(Seq2SeqModel):
             self._label_type(), [None, None], name='decoder_label')
         nodes.decoder_label_weight = tf.placeholder(
             tf.float32, [None, None], name='decoder_label_weight')
+        nodes.decoder_seq_weight = tf.placeholder(
+            tf.float32, [None], name='decoder_seq_weight')
         embedding_name = 'encoder_embedding'
         emb_opt = self.opt.embedding
         if self.opt.decoder.share.encoder_embedding:
@@ -177,7 +182,7 @@ class BasicSeq2SeqModel(Seq2SeqModel):
             nodes.decoder_seq_len)
         labels = Seq2SeqLabelTuple(
             nodes.decoder_label, nodes.decoder_label_weight,
-            tf.placeholder(tf.float32, [None], name='_seq_weight'))
+            nodes.decoder_seq_weight)
         return (features, labels, nodes.encoder_lookup,
                 nodes.decoder_lookup, nodes)
 

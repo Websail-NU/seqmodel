@@ -90,11 +90,13 @@ class BasicAgent(agent.Agent):
         new_seq = True
         samples, likelihoods = [], []
         for t_step in range(max_steps):
-            distribution, state, _ = model.predict(
+            output, state, _ = model.predict(
                 self.sess, obs.features, state=state, new_seq=new_seq,
-                logit_temperature=temperature, **kwargs)
-            sampled_action, likelihood = agent.select_from_distribution(
-                distribution, greedy)
+                logit_temperature=temperature,
+                output_key=agent.get_output_key(greedy), **kwargs)
+            sampled_action, likelihood = output
+            sampled_action = sampled_action[-1]
+            likelihood = likelihood[-1]
             samples.append(sampled_action)
             likelihoods.append(likelihood)
             obs, _, done, _ = env.step(sampled_action)

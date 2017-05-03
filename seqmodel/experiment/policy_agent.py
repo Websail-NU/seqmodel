@@ -48,11 +48,13 @@ class PolicyAgent(basic_agent.BasicAgent):
         obs = init_obs or env.reset()
         assert obs is not None, "Observation is None."
         for t_step in range(max_steps):
-            distribution, state, _ = self.eval_policy.predict(
+            output, state, _ = self.eval_policy.predict(
                 self.sess, obs.features, state=state, new_seq=new_seq,
-                logit_temperature=temperature, **kwargs)
-            sampled_action, likelihood = agent.select_from_distribution(
-                distribution, greedy)
+                logit_temperature=temperature,
+                output_key=agent.get_output_key(greedy), **kwargs)
+            sampled_action, likelihood = output
+            sampled_action = sampled_action[-1]
+            likelihood = likelihood[-1]
             obs, _, done, _ = env.step(sampled_action)
             new_seq = False
             if all(done):
@@ -61,9 +63,10 @@ class PolicyAgent(basic_agent.BasicAgent):
         return env.transitions, packed_transitions, packed_rewards
 
     def run_rl_epoch(self, env, update=False, max_steps=100, temperature=1.0,
-                     greedy=False, verbose=True, **kwargs):
+                     greedy=False, num_acc_rollouts=1, verbose=True, **kwargs):
         info = RLRunningInfo()
         obs = env.reset()
+        _acc_rollouts = []
         while obs is not None:
             _, states, rewards = self.rollout(
                 env, obs, max_steps, temperature, greedy, **kwargs)
@@ -72,18 +75,29 @@ class PolicyAgent(basic_agent.BasicAgent):
             # XXX: over-counting
             info.num_episodes += rewards.shape[1]
             info.eval_cost += np.sum(rewards)
+            info.num_tokens += states.num_tokens
             if update:
                 returns, targets = self._compute_return(
                     states, rewards, **kwargs)
-                pg_loss = self._update_policy(env, states, returns, **kwargs)
-                b_loss = self._update_baseline(env, states, targets, **kwargs)
-                info.training_cost += pg_loss * states.num_tokens
-                info.baseline_cost += b_loss
-            info.num_tokens += states.num_tokens
+                _acc_rollouts.append((states, returns, targets))
+                if len(_acc_rollouts) >= num_acc_rollouts:
+                    self._update(env, _acc_rollouts, info, **kwargs)
+                    _acc_rollouts[:] = []
             self.end_step(info, verbose=verbose, **kwargs)
             obs = env.reset()
+        if len(_acc_rollouts) > 0:
+            self._update(env, _acc_rollouts, info)
         info.end_time = time.time()
         return info
+
+    def _update(self, env, acc_rollouts, info, **kwargs):
+        for states, returns, targets in acc_rollouts:
+            pg_loss = self._update_policy(
+                env, states, returns, **kwargs)
+            b_loss = self._update_baseline(
+                env, states, targets, **kwargs)
+            info.training_cost += pg_loss * states.num_tokens
+            info.baseline_cost += b_loss
 
     def _compute_return(self, states, rewards, **kwargs):
         R = self._acc_discounted_rewards(rewards)
@@ -125,7 +139,8 @@ class PolicyAgent(basic_agent.BasicAgent):
 
     def policy_gradient(self, train_env, batch_size, valid_env=None,
                         valid_batch_size=1, max_steps=100, temperature=1.0,
-                        greedy=False, verbose=True, **kwargs):
+                        greedy=False, num_acc_rollouts=1, verbose=True,
+                        **kwargs):
         if hasattr(self, '_training_state'):
             training_state = self._training_state
         else:
@@ -141,8 +156,8 @@ class PolicyAgent(basic_agent.BasicAgent):
             tr_info = self.run_rl_epoch(
                 train_env, update=True, max_steps=max_steps,
                 temperature=temperature, greedy=greedy,
-                training_loss_denom=batch_size,
-                report_mode='training', **kwargs)
+                training_loss_denom=batch_size, report_mode='training',
+                num_acc_rollouts=num_acc_rollouts, **kwargs)
             info = tr_info
             if valid_env is not None:
                 valid_env.restart(batch_size=batch_size)
