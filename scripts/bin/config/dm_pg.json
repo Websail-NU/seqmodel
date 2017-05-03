@@ -1,11 +1,11 @@
 {
   "agent_class": "seqmodel.experiment.policy_agent.PolicyAgent",
   "agent_opt": {
-    "discount_factor": 0.5,
+    "discount_factor": 0.9,
     "optim": {
       "clip_gradients": 5.0,
       "init_scale": 0.04,
-      "learning_rate": 0.1,
+      "learning_rate": 0.05,
       "lr_decay_every": 1,
       "lr_decay_factor": 0.5,
       "lr_decay_imp_ratio": 1,
@@ -28,7 +28,7 @@
             "create_zero_initial_state": false,
             "logit": {
               "name_prefix": "logit",
-              "out_vocab_size": 27665,
+              "out_vocab_size": 29226,
               "trainable": true,
               "use_bias": true
             },
@@ -54,19 +54,19 @@
           }
         },
         "embedding": {
-          "char_dim": 28,
+          "char_dim": 55,
           "char_init_filepath": null,
           "char_one_hot": true,
           "char_trainable": false,
-          "char_vocab_size": 28,
+          "char_vocab_size": 55,
           "decoder_dim": 300,
           "decoder_init_filepath": "../../data/common_wordnet_defs/lemma_senses/dec_emb.npy",
           "decoder_trainable": false,
-          "decoder_vocab_size": 27665,
+          "decoder_vocab_size": 29226,
           "encoder_dim": 300,
           "encoder_init_filepath": "../../data/common_wordnet_defs/lemma_senses/enc_emb.npy",
           "encoder_trainable": false,
-          "encoder_vocab_size": 31267,
+          "encoder_vocab_size": 35093,
           "word_feature_dim": 2,
           "word_feature_init_filepath": null,
           "word_feature_trainable": false,
@@ -157,7 +157,7 @@
   },
   "writeout_opt": {
     "checkpoint_dir": "model/",
-    "experiment_dir": "experiment/dm/pg-tmp",
+    "experiment_dir": "experiment/dm/pg",
     "log_file": "experiment.log",
     "report_step_every": 1000,
     "training_state": "training_state.json"
