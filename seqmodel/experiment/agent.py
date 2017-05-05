@@ -39,7 +39,10 @@ def create_model_from_opt(opt, create_training_model=False):
 def get_optimizer(lr_var, optim_name, module='tf.train'):
     """ Create optimizer """
     optim_class = eval("{}.{}".format(module, optim_name))
-    optimizer = optim_class(lr_var)
+    if optim_name == "AdamOptimizer":
+        optimizer = optim_class(lr_var, epsilon=1e-4)
+    else:
+        optimizer = optim_class(lr_var)
     return optimizer
 
 
@@ -139,7 +142,9 @@ class Agent(object):
 
     def _build_train_op(self, loss, lr=None):
         """ Create training operation and learning rate variable"""
-        if lr is None:
+        if lr is None and hasattr(self, 'lr'):
+            lr = self.lr
+        elif lr is None:
             lr = tf.Variable(self.opt.optim.learning_rate, trainable=False,
                              name='learning_rate')
         global_step = tf.contrib.framework.get_or_create_global_step()

@@ -78,6 +78,14 @@ class Bunch(neobunch.Bunch):
             cloned[k] = self[k]
         return cloned
 
+    def get_nested_value(self, key_list, check_key=True):
+        if check_key and key_list[0] not in self:
+            return None
+        if len(key_list) == 1:
+            return self[key_list[0]]
+        else:
+            return self[key_list[0]].get_nested_value(key_list[1:])
+
     @staticmethod
     def _deepcopy_values(bunch):
         for k in bunch.keys():

@@ -15,12 +15,14 @@ from seqmodel import model
 class PolicyAgent(basic_agent.BasicAgent):
     def __init__(self, opt, sess, logger=None, name='policy_agent'):
         super(PolicyAgent, self).__init__(opt, sess, logger, name)
+        self._policy_update_info = ['losses.entropy_loss']
 
     @staticmethod
     def default_opt():
         return Bunch(
             discount_factor=0.99,
-            optim=agent.Agent.default_opt().optim,
+            optim=Bunch(agent.Agent.default_opt().optim,
+                        reg_entropy_weight=0.0),
             policy_model=Bunch(
                 model_class='seqmodel.model.seq2seq_model.BasicSeq2SeqModel',
                 model_opt=model.seq2seq_model.BasicSeq2SeqModel.default_opt()))
@@ -33,13 +35,17 @@ class PolicyAgent(basic_agent.BasicAgent):
             self.training_model = self.training_policy
             self.eval_model = self.eval_policy
 
-    def initialize_optim(self, loss=None, lr=None,
-                         pg_loss=None):
+    def initialize_optim(self, loss=None, lr=None, pg_loss=None):
         super(PolicyAgent, self).initialize_optim(loss, lr)
-        if pg_loss is None:
-            self.pg_train_op = self.train_op
-        else:
+        if pg_loss is not None:
             self.pg_train_op, self.lr = self._build_train_op(pg_loss, lr=lr)
+        elif self.opt.optim.reg_entropy_weight > 0.0:
+            pg_loss = self.training_policy.training_loss +\
+                self.opt.optim.reg_entropy_weight *\
+                self.training_policy.entropy_loss
+            self.pg_train_op, self.lr = self._build_train_op(pg_loss, lr=lr)
+        else:
+            self.pg_train_op = self.train_op
 
     def rollout(self, env, init_obs=None, max_steps=100,
                 temperature=1.0, greedy=False, **kwargs):
@@ -92,12 +98,13 @@ class PolicyAgent(basic_agent.BasicAgent):
 
     def _update(self, env, acc_rollouts, info, **kwargs):
         for states, returns, targets in acc_rollouts:
-            pg_loss = self._update_policy(
+            pg_loss, ent_loss = self._update_policy(
                 env, states, returns, **kwargs)
             b_loss = self._update_baseline(
                 env, states, targets, **kwargs)
             info.training_cost += pg_loss * states.num_tokens
             info.baseline_cost += b_loss
+            info.entropy_cost += ent_loss
 
     def _compute_return(self, states, rewards, **kwargs):
         R = self._acc_discounted_rewards(rewards)
@@ -109,9 +116,13 @@ class PolicyAgent(basic_agent.BasicAgent):
         assert hasattr(self, 'pg_train_op'),\
             "pg_train_op is None. Optimizer is not initialized."
         pg_data = env.create_transition_return(states, returns)
-        _, tr_loss, _, _ = self.training_policy.train(
-            self.sess, pg_data, self.pg_train_op, **kwargs)
-        return tr_loss
+        _, tr_loss, _, info = self.training_policy.train(
+            self.sess, pg_data, self.pg_train_op,
+            info_fetch=self._policy_update_info, **kwargs)
+        ent_loss = 0.0
+        if info['losses.entropy_loss'] is not None:
+            ent_loss = info['losses.entropy_loss']
+        return tr_loss, ent_loss
 
     def _update_baseline(self, env, states, rewards, **kwargs):
         return 0.0

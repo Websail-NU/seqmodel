@@ -70,7 +70,8 @@ class Seq2SeqModel(seq_model.SeqModel):
             "Need logit node to compute xent loss."
         losses, loss_denom = self._loss(output.logit, labels.decoder_label,
                                         labels.decoder_label_weight,
-                                        labels.decoder_seq_weight)
+                                        labels.decoder_seq_weight,
+                                        output.distribution)
         setting.training_loss_denom = loss_denom
         if not output.is_attr_set('prediction'):
             output.prediction = output.rnn

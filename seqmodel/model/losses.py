@@ -41,10 +41,10 @@ def ent_loss(distribution, weight, seq_weight=None):
     """
     if seq_weight is not None:
         weight = tf.multiply(weight, seq_weight)
-    loss = -1 * distribution * tf.log(distribution)
-    sum_loss = tf.reduce_sum(loss * tf.expand_dims(weight, axis=-1))
-    num_dist = tf.reduce_sum(weight) * tf.cast(tf.shape(distribution)[-1],
-                                               tf.float32)
+    neg_entropy = tf.reduce_sum(
+        distribution * tf.log(distribution + 1e-6), axis=-1)
+    sum_loss = tf.reduce_sum(neg_entropy * weight)
+    num_dist = tf.reduce_sum(weight)
     mean_loss = _safe_div(sum_loss, num_dist)
     return mean_loss
 
