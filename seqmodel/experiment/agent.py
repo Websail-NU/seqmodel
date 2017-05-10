@@ -79,10 +79,17 @@ def select_from_distribution(distribution, greedy=False):
     return choices, dist[np.arange(len(dist)), choices]
 
 
-def get_output_key(greedy=False, argmax_key="max_pred",
-                   sample_key="sample_pred"):
-    if greedy:
+def get_output_key(greedy=False, only_id=False,
+                   argmax_key="max_pred",
+                   sample_key="sample_pred",
+                   argmax_id="max_id",
+                   sample_id="sample_id"):
+    if greedy and only_id:
+        return argmax_id
+    elif greedy:
         return argmax_key
+    elif not greedy and only_id:
+        return sample_id
     else:
         return sample_key
 

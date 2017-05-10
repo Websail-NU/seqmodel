@@ -111,8 +111,7 @@ class Word2DefIterator(Seq2SeqIterator):
             if word_id in words:
                 continue
             words.add(word_id)
-            new_data.append((entry[0], entry[1], entry[2],
-                             entry[3] / 1.0))
+            new_data.append((entry[0], entry[1], entry[2], 1.0))
             new_extra_data.append(extra)
         self.data = new_data
         self.extra_data = new_extra_data

@@ -15,6 +15,9 @@ class CopyEnv(Env):
         super(CopyEnv, self).__init__(generator, re_init)
         self._mode = reward_mode
 
+    def get_ref_actions(self, obs, **kwargs):
+        return self._ref_state.labels.decoder_label
+
     def _reward(self, action, new_obs, done):
         step = len(self.transitions)
         lengths = self._ref_state.features.decoder_seq_len

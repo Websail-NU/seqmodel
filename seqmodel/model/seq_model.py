@@ -63,6 +63,8 @@ class SeqModel(ModelBase):
             output.distribution = decoder_output.distribution
             output.max_pred = decoder_output.max_pred
             output.sample_pred = decoder_output.sample_pred
+            output.max_id = decoder_output.max_id
+            output.sample_id = decoder_output.sample_id
             setting.logit_temperature = decoder_output.logit_temperature
             logit_temperature = setting.logit_temperature
             output.prediction = output[self.opt.output_mode]
@@ -92,8 +94,8 @@ class SeqModel(ModelBase):
             ent_loss = loss_util.ent_loss(distribution, weight, seq_weight)
             losses.entropy_loss = ent_loss
         elif self.opt.loss_type == 'mse':
-            if seq_weight is not None:
-                weight = tf.multiply(weight, seq_weight)
+            # if seq_weight is not None:
+            #     weight = tf.multiply(weight, seq_weight)
             logit = tf.squeeze(logit, axis=-1)
             # weight = tf.cast(tf.not_equal(weight, 0), tf.float32)
             loss = tf.losses.mean_squared_error(

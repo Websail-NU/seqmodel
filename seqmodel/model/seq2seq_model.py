@@ -63,6 +63,8 @@ class Seq2SeqModel(seq_model.SeqModel):
             output.distribution = decoder_output.distribution
             output.max_pred = decoder_output.max_pred
             output.sample_pred = decoder_output.sample_pred
+            output.max_id = decoder_output.max_id
+            output.sample_id = decoder_output.sample_id
             setting.logit_temperature = decoder_output.logit_temperature
             logit_temperature = setting.logit_temperature
             output.prediction = output[self.opt.output_mode]

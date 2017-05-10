@@ -9,7 +9,7 @@
           "opt": {
             "init_with_encoder_state": true
           },
-          "rnn_class_name": "seqmodel.model.rnn_module.FixedContextRNNModule",
+          "rnn_class_name": "seqmodel.model.rnn_module.BasicRNNModule",
           "rnn_opt": {
             "create_zero_initial_state": false,
             "logit": {
@@ -59,7 +59,7 @@
           "word_feature_vocab_size": 2
         },
         "encoder": {
-          "class_name": "seqmodel.model.encoder.DefWordEncoder",
+          "class_name": "seqmodel.model.encoder.RNNEncoder",
           "opt": {
             "word_info_keep_prob": 0.75
           },
@@ -102,24 +102,24 @@
         "output_mode": "distribution",
         "word_context": {
           "share_feature_dec_embedding": false,
-          "use_chars": true,
+          "use_chars": false,
           "use_features": false,
-          "use_word": true
+          "use_word": false
         }
       }
     },
     "optim": {
       "clip_gradients": 10.0,
       "init_scale": 0.04,
-      "learning_rate": 0.3,
+      "learning_rate": 0.001,
       "lr_decay_every": -1,
       "lr_decay_factor": 0.75,
-      "lr_decay_imp_ratio": 0.98,
+      "lr_decay_imp_ratio": 0.995,
       "lr_decay_wait": 2,
-      "lr_min": 5e-03,
-      "lr_start_decay_at": 15,
+      "lr_min": 1e-05,
+      "lr_start_decay_at": 5,
       "max_epochs": 30,
-      "name": "GradientDescentOptimizer"
+      "name": "AdamOptimizer"
     }
   },
   "data_dir": "../../data/common_wordnet_defs/lemma_senses_pruned/",
@@ -156,7 +156,7 @@
   },
   "writeout_opt": {
     "checkpoint_dir": "model/",
-    "experiment_dir": "experiment/dm/tmp",
+    "experiment_dir": "experiment/wn_lemma_pruned/mle_lm",
     "log_file": "experiment.log",
     "report_step_every": 1000,
     "training_state": "training_state.json"

@@ -6,6 +6,7 @@ import numpy as np
 import tensorflow as tf
 
 from seqmodel.bunch import Bunch
+from seqmodel import common_tuple
 from seqmodel.experiment.run_info import *
 from seqmodel.experiment import agent
 from seqmodel.experiment import basic_agent
@@ -21,6 +22,7 @@ class PolicyAgent(basic_agent.BasicAgent):
     def default_opt():
         return Bunch(
             discount_factor=0.99,
+            ref_seq_weight=0.0,
             optim=Bunch(agent.Agent.default_opt().optim,
                         reg_entropy_weight=0.0),
             policy_model=Bunch(
@@ -54,13 +56,16 @@ class PolicyAgent(basic_agent.BasicAgent):
         obs = init_obs or env.reset()
         assert obs is not None, "Observation is None."
         for t_step in range(max_steps):
+            # distribution, state, _ = self.eval_policy.predict(
+            #     self.sess, obs.features, state=state, new_seq=new_seq,
+            #     logit_temperature=temperature, **kwargs)
+            # sampled_action, likelihood = agent.select_from_distribution(
+            #     distribution, greedy)
             output, state, _ = self.eval_policy.predict(
                 self.sess, obs.features, state=state, new_seq=new_seq,
                 logit_temperature=temperature,
-                output_key=agent.get_output_key(greedy), **kwargs)
-            sampled_action, likelihood = output
-            sampled_action = sampled_action[-1]
-            likelihood = likelihood[-1]
+                output_key=agent.get_output_key(greedy, True), **kwargs)
+            sampled_action = output[-1]
             obs, _, done, _ = env.step(sampled_action)
             new_seq = False
             if all(done):
@@ -68,8 +73,19 @@ class PolicyAgent(basic_agent.BasicAgent):
         packed_transitions, packed_rewards = env.packed_transitions
         return env.transitions, packed_transitions, packed_rewards
 
+    def rollout_gold(self, env, init_obs=None):
+        obs = init_obs or env.reset()
+        gold_actions = env.get_ref_actions(init_obs)
+        for actions in gold_actions:
+            _, _, done, _ = env.step(actions)
+            if all(done):
+                break
+        packed_transitions, packed_rewards = env.packed_transitions
+        return env.transitions, packed_transitions, packed_rewards
+
     def run_rl_epoch(self, env, update=False, max_steps=100, temperature=1.0,
-                     greedy=False, num_acc_rollouts=1, verbose=True, **kwargs):
+                     greedy=False, num_rollouts=1, num_acc_rollouts=1,
+                     verbose=True, **kwargs):
         info = RLRunningInfo()
         obs = env.reset()
         _acc_rollouts = []
@@ -82,13 +98,37 @@ class PolicyAgent(basic_agent.BasicAgent):
             info.num_episodes += rewards.shape[1]
             info.eval_cost += np.sum(rewards)
             info.num_tokens += states.num_tokens
+            # Start training section
             if update:
+                if num_rollouts > 1:
+                    for _ in range(1, num_rollouts):
+                        init_obs = env.reset(new_obs=False)
+                        _, x_states, x_rewards = self.rollout(
+                            env, init_obs, max_steps, temperature, greedy,
+                            **kwargs)
+                        info.num_tokens += x_states.num_tokens
+                        states = common_tuple.concat_data_tuple(
+                            states, x_states)
+                        rewards = common_tuple.hstack_with_padding(
+                            rewards, np.array(x_rewards))
+                if self.opt.ref_seq_weight > 0:
+                    init_obs = env.reset(new_obs=False)
+                    _, g_states, g_rewards = self.rollout_gold(env, init_obs)
+                    info.num_tokens += g_states.num_tokens
+                    g_states.labels.decoder_seq_weight[:] =\
+                        self.opt.ref_seq_weight
+                    states.labels.decoder_seq_weight[:] =\
+                        1.0 - self.opt.ref_seq_weight
+                    states = common_tuple.concat_data_tuple(states, g_states)
+                    rewards = common_tuple.hstack_with_padding(
+                        rewards, np.array(g_rewards))
                 returns, targets = self._compute_return(
                     states, rewards, **kwargs)
                 _acc_rollouts.append((states, returns, targets))
                 if len(_acc_rollouts) >= num_acc_rollouts:
                     self._update(env, _acc_rollouts, info, **kwargs)
                     _acc_rollouts[:] = []
+            # End training section
             self.end_step(info, verbose=verbose, **kwargs)
             obs = env.reset()
         if len(_acc_rollouts) > 0:
@@ -138,7 +178,7 @@ class PolicyAgent(basic_agent.BasicAgent):
 
     def _compute_baseline(self, states, rewards, **kwargs):
         baseline = np.zeros_like(rewards)
-        # baseline[:] = 0.5
+        baseline[:] = 1e-2
         return baseline
 
     def evaluate_policy(self, env, max_steps=100, temperature=1.0, greedy=True,

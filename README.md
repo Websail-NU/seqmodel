@@ -14,8 +14,8 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 ### Model
 - [ ] Make it possible to share variables between 2 different models
 - [ ] Pass `reuse` when building graph (not create an object)
-- [ ] Refactor dropout (replace static values of `keep_prob` with placeholders).
-- [ ] Replace highway-like update with GRU-like update in definition model (to replicate original paper)
+- [ ] Reuse placeholder variables when creating a model with `reuse=True`
+- [x] Replace highway-like update with GRU-like update in definition model (to replicate original paper)
 - [ ] Cache encoder state in ExeSeq2SeqModel such that we don't need to fetch the same thing all the time
 
 ### Agent
@@ -23,9 +23,8 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - [ ] Bootstrap last state if not terminal
 
 ### Data
-- [x] Polysemous words should get lower weight during the training (sequence weight)
-- [x] Option to remove duplicate words
 - [ ] New reward functions
+- [ ] Handle different padding ids when concat data tuples
 
 ### Scripts
 - [ ] More flexible scripts to create configuration templates

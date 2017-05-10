@@ -146,8 +146,20 @@ class Seq2SeqIterator(TextIterator, EnvGenerator):
         self.dec_pad_id = self.out_vocab.w2i(
             self.out_vocab.special_symbols.end_seq)
         self._batch_size = -1
+        self._refs = self._create_references()
         if _return_text:
             return enc_text, dec_text
+
+    def _create_references(self):
+        references = {}
+        for entry in self.data:
+            key = tuple(entry[0])
+            values = references.get(key, [])
+            value = list(entry[1])
+            value.append(self.dec_pad_id)
+            values.append(value)
+            references[key] = values
+        return references
 
     def init_batch(self, batch_size, no_label_seq=False):
         self._no_label_seq = no_label_seq
@@ -273,6 +285,40 @@ class Seq2SeqIterator(TextIterator, EnvGenerator):
         batch = Seq2SeqTuple(features, labels, num_tokens)
         return batch
 
+    def format_data(self, seq_list, max_len, padding=None):
+        if padding is None:
+            padding = self.dec_pad_id
+        labels = np.zeros((max_len, len(seq_list)), dtype=np.int32)
+        labels[:] = padding
+        for ir in range(len(seq_list)):
+            labels[0:len(seq_list[ir]), ir] = seq_list[ir]
+        return labels
+
+    def get_batch_refs(self, batch):
+        batch_refs = []
+        empty_ref = [[self.dec_pad_id]]
+        # max_len = 0
+        # num_refs = 0
+        for ib in range(batch.features.encoder_input.shape[1]):
+            enc_input = batch.features.encoder_input[:, ib]
+            key = tuple(enc_input[1:-1])
+            refs = empty_ref
+            if key in self._refs:
+                refs = self._refs[key]
+            # num_refs += len(refs)
+            # max_len = max(max_len, len(max(refs, key=lambda x: len(x))))
+            batch_refs.append(refs)
+        # make array
+        # labels = np.zeros((max_len, len(batch_refs)), dtype=np.int32)
+        # padding = 0
+        # labels[:] = padding
+        # for ir in range(len(batch_refs)):
+        #     labels[0:len(batch_refs[ir]), ir] = batch_refs[ir]
+        return batch_refs
+
+    def get_refs(self, batch, ib):
+        return self._refs[tuple(batch.features.encoder_input[1: -1, ib])]
+
     def reset(self, re_init=False):
         assert self._batch_size > 0,\
             "Iterator has not been initialized for batch (init_batch)"
@@ -280,6 +326,7 @@ class Seq2SeqIterator(TextIterator, EnvGenerator):
         if batch is None:
             if re_init:
                 self.init_batch(self._batch_size)
+                batch = self.next_batch()
             else:
                 return None, None
         _f = batch.features
