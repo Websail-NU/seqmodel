@@ -288,7 +288,7 @@ class FixedContextRNNModule(BasicRNNModule):
         if self._output_keep_prob < 1.0:
             final_output.cell_output = tf.nn.dropout(
                 final_output.cell_output, self._output_keep_prob)
-        updated_output = graph_util.create_update_layer(
+        updated_output = graph_util.create_gru_layer(
             final_output.cell_output, tiled_context, _carried_output_cell)
         if self._output_keep_prob < 1.0:
             updated_output = tf.nn.dropout(

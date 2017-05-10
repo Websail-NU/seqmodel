@@ -53,7 +53,7 @@ def create_embedding_var(vocab_size, dim, trainable=True, name='embedding',
                 init_emb, dtype=tf.float32))
 
 
-def create_update_layer(transform, extra, carried):
+def create_highway_layer(transform, extra, carried):
     transform_dim = int(transform.get_shape()[-1])
     carried_dim = int(carried.get_shape()[-1])
     extra_dim = int(extra.get_shape()[-1])
@@ -68,6 +68,24 @@ def create_update_layer(transform, extra, carried):
     t = tf.sigmoid(tf.slice(z, [0, 0, 0], [-1, -1, carried_dim]))
     h = tf.tanh(tf.slice(z, [0, 0, carried_dim], [-1, -1, -1]))
     return tf.multiply(h - carried, t) + carried
+
+
+def create_gru_layer(transform, extra, carried):
+    transform_dim = int(transform.get_shape()[-1])
+    carried_dim = int(carried.get_shape()[-1])
+    extra_dim = int(extra.get_shape()[-1])
+    in_size = transform_dim + extra_dim
+    out_size = carried_dim + extra_dim
+    zr_w = tf.get_variable("gate_zr_w", [in_size, out_size])
+    zr_b = tf.get_variable("gate_zr_b", [out_size])
+    zr = matmul(tf.concat([extra, transform], -1), zr_w) + zr_b
+    z = tf.sigmoid(tf.slice(zr, [0, 0, 0], [-1, -1, carried_dim]))
+    r = tf.sigmoid(tf.slice(zr, [0, 0, carried_dim], [-1, -1, -1]))
+    h_w = tf.get_variable("h_w", [in_size, carried_dim])
+    h_b = tf.get_variable("h_b", [carried_dim])
+    scaled_extra = tf.multiply(r, extra)
+    h = tf.tanh(matmul(tf.concat([scaled_extra, transform], -1), h_w) + h_b)
+    return tf.multiply(h - carried, z) + carried
 
 
 def matmul(mat, mat2d, transpose_b=False):
