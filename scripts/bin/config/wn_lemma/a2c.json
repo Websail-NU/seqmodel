@@ -6,7 +6,7 @@
     "optim": {
       "clip_gradients": 10.0,
       "init_scale": 0.04,
-      "learning_rate": 0.0005,
+      "learning_rate": 0.001,
       "lr_decay_every": -1,
       "lr_decay_factor": 0.75,
       "lr_decay_imp_ratio": 0.995,
@@ -15,7 +15,7 @@
       "lr_start_decay_at": 30,
       "max_epochs": 30,
       "name": "AdamOptimizer",
-      "reg_entropy_weight": 0.01
+      "reg_entropy_weight": 0.005
     },
     "policy_model": {
       "model_class": "seqmodel.model.definition_model.DefinitionModel",

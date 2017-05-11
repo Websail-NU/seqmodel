@@ -19,7 +19,8 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - [ ] Cache encoder state in ExeSeq2SeqModel such that we don't need to fetch the same thing all the time
 
 ### Agent
-- [ ] Add teacher forcing
+- [x] Add teacher forcing
+- [ ] TD(lambda)
 - [ ] Bootstrap last state if not terminal
 
 ### Data
