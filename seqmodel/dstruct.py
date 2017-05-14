@@ -80,7 +80,7 @@ class Vocabulary(object):
         return set(self._w2i.keys())
 
     @staticmethod
-    def from_vocab_file(filepath, special_symbols=None):
+    def from_vocab_file(filepath):
         vocab = Vocabulary()
         with codecs.open(filepath, 'r', 'utf-8') as ifp:
             for line in ifp:
