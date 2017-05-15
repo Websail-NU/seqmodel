@@ -1,6 +1,14 @@
 import numpy as np
 
 
+def get_with_dot_key(d, key):
+    keys = key.split('.')
+    cur_d = d
+    for k in keys:
+        cur_d = cur_d[k]
+    return cur_d
+
+
 def vstack_list(data, padding=0, dtype=np.int32):
     lengths = list(map(len, data))
     max_len = max(lengths)
