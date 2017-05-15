@@ -126,8 +126,8 @@ def seq_batch_iter(in_data, out_data, batch_size=1, shuffle=True, keep_sentence=
     """wrapper of batch_iter to format seq data"""
     keep_state = not keep_sentence
     for x, y in batch_iter(batch_size, shuffle, in_data, out_data):
-        x_arr, x_len = util.vstack_list(x)
-        y_arr, y_len = util.vstack_list(y)
+        x_arr, x_len = util.hstack_list(x)
+        y_arr, y_len = util.hstack_list(y)
         seq_weight = np.where(y_len > 0, 1, 0).astype(np.float32)
         token_weight, num_tokens = util.masked_full_like(
             y_arr, 1, num_non_padding=y_len)
@@ -139,8 +139,8 @@ def seq_batch_iter(in_data, out_data, batch_size=1, shuffle=True, keep_sentence=
 def seq2seq_batch_iter(enc_data, dec_data, batch_size=1, shuffle=True):
     """wrapper of batch_iter to format seq2seq data"""
     for x, y in batch_iter(batch_size, shuffle, enc_data, dec_data):
-        enc, enc_len = util.vstack_list(x)
-        dec, dec_len = util.vstack_list(y)
+        enc, enc_len = util.hstack_list(x)
+        dec, dec_len = util.hstack_list(y)
         in_dec = dec[:-1, :]
         out_dec = dec[1:, :]
         seq_weight = np.where(dec_len > 0, 1, 0)

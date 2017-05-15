@@ -1,3 +1,6 @@
+import os
+import logging as py_logging
+
 import numpy as np
 
 
@@ -9,7 +12,7 @@ def get_with_dot_key(d, key):
     return cur_d
 
 
-def vstack_list(data, padding=0, dtype=np.int32):
+def hstack_list(data, padding=0, dtype=np.int32):
     lengths = list(map(len, data))
     max_len = max(lengths)
     arr = np.zeros((max_len, len(data)), dtype=dtype)
@@ -26,3 +29,34 @@ def masked_full_like(np_data, value, num_non_padding=None, padding=0, dtype=np.f
         for i, last in enumerate(num_non_padding):
             arr[last:, i] = 0
     return arr, total_non_pad
+
+
+def get_logger(log_file_path=None, name="default_log"):
+    root_logger = py_logging.getLogger(name)
+    handlers = root_logger.handlers
+
+    def _check_file_handler(logger, filepath):
+        for handler in logger.handlers:
+            if isinstance(handler, py_logging.FileHandler):
+                handler.baseFilename
+                return handler.baseFilename == os.path.abspath(filepath)
+        return False
+
+    if (log_file_path is not None and not
+            _check_file_handler(root_logger, log_file_path)):
+        log_formatter = py_logging.Formatter(
+            "%(asctime)s [%(levelname)-5.5s] %(message)s",
+            datefmt='%Y/%m/%d %H:%M:%S')
+        file_handler = py_logging.FileHandler(log_file_path)
+        file_handler.setFormatter(log_formatter)
+        root_logger.addHandler(file_handler)
+    if any([type(h) == py_logging.StreamHandler for h in handlers]):
+        return root_logger
+    level_format = "\x1b[36m[%(levelname)-5.5s]\x1b[0m"
+    log_formatter = py_logging.Formatter(
+        "{}%(message)s".format(level_format))
+    console_handler = py_logging.StreamHandler()
+    console_handler.setFormatter(log_formatter)
+    root_logger.addHandler(console_handler)
+    root_logger.setLevel(py_logging.INFO)
+    return root_logger
