@@ -4,6 +4,14 @@ import logging as py_logging
 import numpy as np
 
 
+def dict_with_key_startswith(d, prefix):
+    return {k[len(prefix):]: v for k, v in d.items() if k.startswith(prefix)}
+
+
+def dict_with_key_endswith(d, suffix):
+    return {k[:-len(suffix)]: v for k, v in d.items() if k.endswith(suffix)}
+
+
 def get_with_dot_key(d, key):
     keys = key.split('.')
     cur_d = d

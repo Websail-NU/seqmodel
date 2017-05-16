@@ -1,8 +1,11 @@
 from contextlib import contextmanager
-
 import six
+from pydoc import locate
+
 import numpy as np
 import tensorflow as tf
+
+from seqmodel import dstruct
 
 
 def _safe_div(numerator, denominator, name='safe_div'):
@@ -82,6 +85,8 @@ def create_cells(num_units, num_layers, cell_class=tf.contrib.rnn.BasicLSTMCell,
     """return an RNN cell with optionally DropoutWrapper and MultiRNNCell."""
     cells = []
     for layer in range(num_layers):
+        if isinstance(cell_class, six.string_types):
+            cell_class = locate(cell_class)
         cell = cell_class(num_units, reuse=reuse)
         if any(kp < 1.0 for kp in [in_keep_prob, out_keep_prob, state_keep_prob]):
             cell = tf.contrib.rnn.DropoutWrapper(
@@ -191,7 +196,7 @@ def create_gru_layer(transform, extra, carried):
 #  ##      ##         ##     ##
 # ####    ##           #######
 # get_X() have side-effect on tensorflow collection
-# if add_to_collection is True (default), the functions will add non-variable nodes to
+# if add_to_collection is True (default), the functions will add placeholders to
 # 'model_inputs' collection
 
 
@@ -224,31 +229,27 @@ def get_seq_label_placeholders(label_dtype=tf.int32, prefix='decoder',
     return label, tk_w, seq_w
 
 
-def get_lookup(inputs, emb_vars=None, onehot=False, vocab_size=None, dim=None,
-               trainable=True, init=None, lookup_name='input_lookup',
-               emb_name='embedding', add_to_collection=True, collect_key='model_inputs'):
-    """return lookup, and embedding variable (None if onehot),
-    create if no existed in collection. If add_to_collection is True,
-    this function adds lookup to tensorflow collection."""
-    with tf_collection(collect_key, add_to_collection) as get:
-        if onehot:
-            assert vocab_size is not None, 'onehot needs vocab_size to be set.'
-            lookup = get(lookup_name, tf.one_hot(inputs, vocab_size, axis=-1,
-                                                 dtype=tf.float32, name=lookup_name))
-            return lookup, None  # RETURN IS HERE TOO!
-        if emb_vars is None:
-            size_is_not_none = vocab_size is not None and dim is not None
-            assert size_is_not_none or init is not None,\
-                'If emb_vars and init is None, vocab_size and dim must be set.'
-            emb_vars = create_2d_tensor(vocab_size, dim, trainable, init, emb_name)
-        lookup = get(lookup_name, tf.nn.embedding_lookup(
-            emb_vars, inputs, name=lookup_name))
+def create_lookup(inputs, emb_vars=None, onehot=False, vocab_size=None, dim=None,
+                  trainable=True, init=None, lookup_name='input_lookup',
+                  emb_name='embedding'):
+    """return lookup, and embedding variable (None if onehot)"""
+    if onehot:
+        assert vocab_size is not None, 'onehot needs vocab_size to be set.'
+        lookup = tf.one_hot(inputs, vocab_size, axis=-1, dtype=tf.float32,
+                            name=lookup_name)
+        return lookup, None  # RETURN IS HERE TOO!
+    if emb_vars is None:
+        size_is_not_none = vocab_size is not None and dim is not None
+        assert size_is_not_none or init is not None,\
+            'If emb_vars and init is None, vocab_size and dim must be set.'
+        emb_vars = create_2d_tensor(vocab_size, dim, trainable, init, emb_name)
+    lookup = tf.nn.embedding_lookup(emb_vars, inputs, name=lookup_name)
     return lookup, emb_vars
 
 
 def get_logit_layer(inputs, logit_w=None, logit_b=None, output_size=None,
                     use_bias=True, temperature=None, trainable=True,
-                    init=None, prefix='logit', collect_temperature=True,
+                    init=None, prefix='logit', add_to_collection=True,
                     collect_key='model_inputs'):
     """return logit with temperature layer and variables"""
     if logit_w is None:
@@ -261,12 +262,33 @@ def get_logit_layer(inputs, logit_w=None, logit_b=None, output_size=None,
             logit_b = tf.get_variable(f'{prefix}_b', [output_size], dtype=tf.float32)
         logit = logit + logit_b
     if temperature is None:
-        with tf_collection(collect_key, collect_temperature) as get:
+        with tf_collection(collect_key, add_to_collection) as get:
             temp_key = f'{prefix}_temperature'
             temperature = get(temp_key, tf.placeholder_with_default(
                 1.0, shape=None, name=temp_key))
     logit = logit / temperature
     return logit, temperature, logit_w, logit_b
+
+
+def select_from_logit(logit, distribution=None):
+    if distribution is None:
+        distribution = tf.nn.softmax(logit)
+    max_idx = tf.argmax(logit, axis=-1)
+    max_prob = tf.reduce_max(distribution, axis=-1)
+    logit_shape = tf.shape(logit)
+    logit_dim = logit_shape[-1]
+    logit_2d = tf.reshape(logit, [-1, logit_dim])
+    dist_2d = tf.reshape(distribution, [-1, logit_dim])
+    sample_idx = tf.cast(tf.multinomial(logit_2d, 1), dtype=tf.int32)
+    gather_idx = tf.expand_dims(
+        tf.range(start=0, limit=tf.shape(sample_idx)[0]), axis=-1)
+    gather_idx = tf.concat([gather_idx, sample_idx], axis=-1)
+    sample_prob = tf.gather_nd(dist_2d, gather_idx)
+    sample_idx = tf.reshape(sample_idx, logit_shape[:-1])
+    sample_prob = tf.reshape(sample_prob, logit_shape[:-1])
+    max_tuple = dstruct.IndexScoreTuple(max_idx, max_prob)
+    sample_tuple = dstruct.IndexScoreTuple(sample_idx, sample_prob)
+    return distribution, max_tuple, sample_tuple
 
 
 # ##        #######   ######   ######

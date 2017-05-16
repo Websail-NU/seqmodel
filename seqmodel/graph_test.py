@@ -48,11 +48,20 @@ class TestGraph(unittest.TestCase):
         self.assertEqual(tdnn.get_shape()[-1], 160,
                          'default fileter setting results in feature size of 160')
 
-    def test_placeholders(self):
+    def test_input_output(self):
         input_, seq_len_ = graph.get_seq_input_placeholders()
         input2_, seq2_len_ = graph.get_seq_input_placeholders()
         self.assertEqual(input_, input2_, 'reuse placeholders of the same name')
         label_, tk_w, seq_w = graph.get_seq_label_placeholders()
-        lookup, emb_vars = graph.get_lookup(input_, vocab_size=10, dim=5)
-        onehot, __ = graph.get_lookup(input_, onehot=True, vocab_size=10,
-                                      lookup_name='onehotlookup')
+        emb_init = np.random.randn(10, 5)
+        lookup, emb_vars = graph.create_lookup(input_, vocab_size=10, dim=5,
+                                               init=emb_init)
+        onehot, __ = graph.create_lookup(input_, onehot=True, vocab_size=10,
+                                         lookup_name='onehotlookup')
+        self.sess.run(tf.global_variables_initializer())
+        emb_tf = self.sess.run(emb_vars)
+        self.assertTrue(np.all(np.abs(emb_tf - emb_init) < 1e-5), 'init embedding works')
+        output = self.sess.run(onehot, {input_: [[1]]})
+        self.assertEqual(output.shape, (1, 1, 10), 'onehot works')
+        self.assertEqual(output[0, 0, 1], 1, 'onehot works')
+        self.assertEqual(np.sum(output), 1, 'onehot works')

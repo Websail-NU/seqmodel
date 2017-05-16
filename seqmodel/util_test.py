@@ -8,6 +8,20 @@ from seqmodel import util
 
 class TestUtil(unittest.TestCase):
 
+    def test_dict_with_key_startswith(self):
+        people = {'biggus_': 'dickus', 'incontinentia_': 'buttocks',
+                  'jew:jesus': 'christ', 'jew:brian': 'cohen'}
+        jew = {'jesus': 'christ', 'brian': 'cohen'}
+        jew_ = util.dict_with_key_startswith(people, 'jew:')
+        self.assertEqual(jew, jew_, 'filter and remove prefix')
+
+    def test_dict_with_key_endswith(self):
+        people = {'biggus_': 'dickus', 'incontinentia_': 'buttocks',
+                  'jew:jesus': 'christ', 'jew:brian': 'cohen'}
+        roman = {'biggus': 'dickus', 'incontinentia': 'buttocks'}
+        roman_ = util.dict_with_key_endswith(people, '_')
+        self.assertEqual(roman, roman_, 'filter and remove suffix')
+
     def test_get_with_dot_key(self):
         x, n, o, b = range(4)
         y = {'n': n, 'o': o}

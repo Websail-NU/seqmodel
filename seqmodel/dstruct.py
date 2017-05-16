@@ -17,8 +17,7 @@ import six
 BatchTuple = collections.namedtuple(
     'BatchTuple', ('features', 'labels', 'num_tokens', 'keep_state'))
 
-SeqFeatureTuple = collections.namedtuple(
-    'SeqFeatureTuple', ('inputs', 'seq_len'))
+SeqFeatureTuple = collections.namedtuple('SeqFeatureTuple', ('inputs', 'seq_len'))
 SeqLabelTuple = collections.namedtuple(
     'SeqLabelTuple', ('label', 'label_weight', 'seq_weight'))
 
@@ -26,6 +25,9 @@ SeqLabelTuple = collections.namedtuple(
 Seq2SeqFeatureTuple = collections.namedtuple(
     'Seq2SeqFeatureTuple', ('encoder', 'decoder'))
 
+OutputStateTuple = collections.namedtuple('OutputStateTuple', ('output', 'state'))
+
+IndexScoreTuple = collections.namedtuple('IndexScoreTuple', ('index', 'score'))
 
 # ##     ##  #######   ######     ###    ########
 # ##     ## ##     ## ##    ##   ## ##   ##     ##

@@ -1,8 +1,21 @@
 import six
+import warnings
+from collections import ChainMap
 
 import tensorflow as tf
 
 from seqmodel import util
+from seqmodel import dstruct
+from seqmodel import graph as tfg
+
+
+# ##     ##  #######  ########  ######## ##
+# ###   ### ##     ## ##     ## ##       ##
+# #### #### ##     ## ##     ## ##       ##
+# ## ### ## ##     ## ##     ## ######   ##
+# ##     ## ##     ## ##     ## ##       ##
+# ##     ## ##     ## ##     ## ##       ##
+# ##     ##  #######  ########  ######## ########
 
 
 class Model(object):
@@ -17,8 +30,12 @@ class Model(object):
         self._predict_key = {None: Model._PREDICT_}
         self.check_feed_dict = check_feed_dict
 
-    def build_graph(self, feature_feed, predict_fetch, label_feed=None, train_fetch=None,
-                    eval_fetch=None, node_dict=None):
+    def build_graph(self, *args, **kwargs):
+        warnings.warn('build_graph is not implemented, use set_graph instead.')
+        self.set_graph(*args, **kwargs)
+
+    def set_graph(self, feature_feed, predict_fetch, label_feed=None, train_fetch=None,
+                  eval_fetch=None, node_dict=None):
         self._features = feature_feed
         self._labels = label_feed
         self._predict_fetch = predict_fetch
@@ -47,8 +64,7 @@ class Model(object):
             Returns:
                 prediction result (from predict_fetch[predict_key])
                 extra (from extra_fetch)"""
-        mode = self._predict_key.setdefault(predict_key,
-                                            f'{Model._PREDICT_}.{predict_key}')
+        mode = self._predict_key.setdefault(predict_key, (Model._PREDICT_, predict_key))
         fetch = self._get_fetch(mode, predict_key=predict_key,
                                 extra_fetch=extra_fetch, **kwargs)
         feed = self._get_feed(Model._PREDICT_, features=features, **kwargs)
@@ -92,9 +108,9 @@ class Model(object):
     def _get_fetch(self, mode, extra_fetch=None, **kwargs):
         if mode in self._fetches:
             fetch = self._fetches[mode]
-        elif mode.startswith(Model._PREDICT_) and len(mode) > 1:
+        elif mode[0] == Model._PREDICT_ and len(mode) > 1:
             fetch = self._fetches.setdefault(
-                mode, [util.get_with_dot_key(self._predict_fetch, mode[2:]),
+                mode, [util.get_with_dot_key(self._predict_fetch, mode[1]),
                        self._no_op])  # ignore 'p.'
         else:
             raise ValueError(f'{mode} is a not valid mode')
@@ -138,3 +154,107 @@ class Model(object):
             if value is None:
                 raise ValueError(f'None value found for {key}')
         return feed_dict
+
+
+#  ######  ########  #######
+# ##    ## ##       ##     ##
+# ##       ##       ##     ##
+#  ######  ######   ##     ##
+#       ## ##       ##  ## ##
+# ##    ## ##       ##    ##
+#  ######  ########  ##### ##
+
+
+class SeqModel(Model):
+
+    _STATE_ = 's'
+
+    @classmethod
+    def default_opt(cls):
+        opt = {'emb:vocab_size': 14, 'emb:dim': 32, 'emb:trainable': True,
+               'emb:init': None, 'cell:num_units': 32, 'cell:num_layers': 1,
+               'cell:cell_class': 'tensorflow.contrib.rnn.BasicLSTMCell',
+               'cell:in_keep_prob': 1.0, 'cell:out_keep_prob': 1.0,
+               'cell:state_keep_prob': 1.0, 'cell:variational': False,
+               'out:logit': True, 'logit:output_size': 14, 'logit:use_bias': True,
+               'logit:trainable': True, 'logit:init': None, 'loss:type': 'xent',
+               'share:input_emb_logit': False}
+        return opt
+
+    def build_graph(self, opt=None, initial_state=None, reuse=False, name='seq_model',
+                    collect_key='seq_model', **kwargs):
+        opt = opt if opt else {}
+        chain_opt = ChainMap(kwargs, opt, self.default_opt())
+        self._collect_key = collect_key
+        self._name = name
+        with tf.variable_scope(name, reuse=reuse):
+            return self._build(chain_opt, initial_state, reuse, **kwargs)
+
+    def _build(self, opt, initial_state=None, reuse=False, **kwargs):
+        # VARIABLES END WITH '_' WILL BE ADDED TO NODE DICTIONARY
+        collect_kwargs = {'add_to_collection': True, 'collect_key': self._collect_key}
+        # input and embedding
+        input_, seq_len_ = tfg.get_seq_input_placeholders(**collect_kwargs)
+        emb_opt = util.dict_with_key_startswith(opt, 'emb:')
+        lookup_, emb_vars_ = tfg.create_lookup(input_, **emb_opt)
+        # cell and rnn
+        cell_opt = util.dict_with_key_startswith(opt, 'cell:')
+        cell_ = tfg.create_cells(reuse=reuse, input_size=opt['emb:dim'], **cell_opt)
+        cell_output_, initial_state_, final_state_ = tfg.create_rnn(
+            cell_, lookup_, seq_len_, initial_state)
+        predict_fetch = {'cell_output': cell_output_}
+        # output
+        label_feed = None
+        if opt['out:logit']:
+            logit_w_ = emb_vars_ if opt['share:input_emb_logit'] else None
+            logit_opt = util.dict_with_key_startswith(opt, 'logit:')
+            logit_, temperature_, logit_w_, logit_b_ = tfg.get_logit_layer(
+                cell_output_, logit_w=logit_w_, **logit_opt, **collect_kwargs)
+            dist_, dec_max_, dec_sample_ = tfg.select_from_logit(logit_)
+            # label
+            label_, token_weight_, seq_weight_ = tfg.get_seq_label_placeholders(
+                label_dtype=tf.int32, **collect_kwargs)
+            # format
+            predict_fetch.update({
+                'logit': logit_, 'dist': dist_, 'dec_max': dec_max_,
+                'dec_max_id': dec_max_.index, 'dec_sample': dec_sample_,
+                'dec_sample_id': dec_sample_.index})
+            label_feed = dstruct.SeqLabelTuple(label_, token_weight_, seq_weight_)
+        nodes = util.dict_with_key_endswith(locals(), '_')
+        graph_args = {'feature_feed': dstruct.SeqFeatureTuple(input_, seq_len_),
+                      'predict_fetch': predict_fetch,
+                      'label_feed': label_feed,
+                      'node_dict': nodes}
+        self.set_graph(**graph_args)
+        return nodes
+
+    def _get_fetch(self, mode, extra_fetch=None, fetch_state=False, **kwargs):
+        fetch = super()._get_fetch(mode, extra_fetch, **kwargs)
+        if fetch_state:
+            fetch[0] = self._fetches.setdefault(
+                f'{SeqModel._STATE_}:{fetch}, {mode}',
+                dstruct.OutputStateTuple(fetch[0], self._state_fetch))
+        return fetch
+
+    def _get_feed_lite(self, mode, features, labels=None, state=None, **kwargs):
+        feed_dict = super()._get_feed_lite(mode, features, labels, **kwargs)
+        if state is not None:
+            self._feed_state(feed_dict, self._state_feed, state)
+        return feed_dict
+
+    @classmethod
+    def _feed_state(cls, feed_dict, state_vars, state_vals):
+        if isinstance(state_vars, dict):  # flatten nested dict (maybe remove later)
+            for k in state_vars:
+                cls._feed_state(feed_dict, state_vars[k], state_vals[k])
+        else:
+            feed_dict[state_vars] = state_vals
+        return feed_dict
+
+#  ######  ########  #######   #######   ######  ########  #######
+# ##    ## ##       ##     ## ##     ## ##    ## ##       ##     ##
+# ##       ##       ##     ##        ## ##       ##       ##     ##
+#  ######  ######   ##     ##  #######   ######  ######   ##     ##
+#       ## ##       ##  ## ## ##              ## ##       ##  ## ##
+# ##    ## ##       ##    ##  ##        ##    ## ##       ##    ##
+#  ######  ########  ##### ## #########  ######  ########  ##### ##
