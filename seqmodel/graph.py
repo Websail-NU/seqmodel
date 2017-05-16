@@ -68,7 +68,6 @@ def matmul(mat, mat2d, transpose_b=False):
     outputs = tf.matmul(flat_mat3d, mat2d, transpose_b=transpose_b)
     return tf.reshape(outputs, output_shape)
 
-
 #####################################
 #     ######  ########  #######     #
 #    ##    ## ##       ##     ##    #
@@ -188,7 +187,6 @@ def create_gru_layer(transform, extra, carried):
     scaled_extra = tf.multiply(r, extra)
     h = tf.tanh(matmul(tf.concat([scaled_extra, transform], -1), h_w) + h_b)
     return tf.multiply(h - carried, z) + carried
-
 
 #######################################
 #    ####          ##     #######     #
