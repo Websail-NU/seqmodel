@@ -8,13 +8,15 @@ import numpy as np
 from seqmodel import dstruct
 from seqmodel import util
 
-# ########  ########    ###    ########     ######## #### ##       ########  ######
-# ##     ## ##         ## ##   ##     ##    ##        ##  ##       ##       ##    ##
-# ##     ## ##        ##   ##  ##     ##    ##        ##  ##       ##       ##
-# ########  ######   ##     ## ##     ##    ######    ##  ##       ######    ######
-# ##   ##   ##       ######### ##     ##    ##        ##  ##       ##             ##
-# ##    ##  ##       ##     ## ##     ##    ##        ##  ##       ##       ##    ##
-# ##     ## ######## ##     ## ########     ##       #### ######## ########  ######
+##################################################
+#    ######## #### ##       ########  ######     #
+#    ##        ##  ##       ##       ##    ##    #
+#    ##        ##  ##       ##       ##          #
+#    ######    ##  ##       ######    ######     #
+#    ##        ##  ##       ##             ##    #
+#    ##        ##  ##       ##       ##    ##    #
+#    ##       #### ######## ########  ######     #
+##################################################
 
 
 @contextmanager
@@ -90,14 +92,15 @@ def read_seq2seq_data(tokenized_lines, in_vocab, out_vocab):
         dec_data.append(dec_)
     return enc_data, dec_data
 
-
-# ########     ###    ########  ######  ##     ##
-# ##     ##   ## ##      ##    ##    ## ##     ##
-# ##     ##  ##   ##     ##    ##       ##     ##
-# ########  ##     ##    ##    ##       #########
-# ##     ## #########    ##    ##       ##     ##
-# ##     ## ##     ##    ##    ##    ## ##     ##
-# ########  ##     ##    ##     ######  ##     ##
+#########################################################
+#    ########     ###    ########  ######  ##     ##    #
+#    ##     ##   ## ##      ##    ##    ## ##     ##    #
+#    ##     ##  ##   ##     ##    ##       ##     ##    #
+#    ########  ##     ##    ##    ##       #########    #
+#    ##     ## #########    ##    ##       ##     ##    #
+#    ##     ## ##     ##    ##    ##    ## ##     ##    #
+#    ########  ##     ##    ##     ######  ##     ##    #
+#########################################################
 
 
 def batch_iter(batch_size, shuffle, data, *more_data):
@@ -118,8 +121,9 @@ def batch_iter(batch_size, shuffle, data, *more_data):
     for i in range(num_batch):
         yield ([d_[pos[p + i]] for p in pointers] for d_ in all_data)
     if left_over > 0:
-        yield ([d_[pos[p + num_batch]] for p in pointers[:left_over]]  # add [] as a pad
-               + [[] for __ in range(batch_size - left_over)] for d_ in all_data)
+        # add [] as a pad
+        yield ([d_[pos[p + num_batch]] for p in pointers[:left_over]] +
+               [[] for __ in range(batch_size - left_over)] for d_ in all_data)
 
 
 def seq_batch_iter(in_data, out_data, batch_size=1, shuffle=True, keep_sentence=True):

@@ -1,61 +1,39 @@
-import json
-import copy
 import collections
 import codecs
 import six
 
-
-########################################################
-#    ######## ##     ## ########  ##       ########    #
-#       ##    ##     ## ##     ## ##       ##          #
-#       ##    ##     ## ##     ## ##       ##          #
-#       ##    ##     ## ########  ##       ######      #
-#       ##    ##     ## ##        ##       ##          #
-#       ##    ##     ## ##        ##       ##          #
-#       ##     #######  ##        ######## ########    #
-########################################################
+from seqmodel.bunch import Bunch
 
 
-BatchTuple = collections.namedtuple(
-    'BatchTuple', ('features', 'labels', 'num_tokens', 'keep_state'))
-
-SeqFeatureTuple = collections.namedtuple('SeqFeatureTuple', ('inputs', 'seq_len'))
-SeqLabelTuple = collections.namedtuple(
-    'SeqLabelTuple', ('label', 'label_weight', 'seq_weight'))
-
-
-Seq2SeqFeatureTuple = collections.namedtuple(
-    'Seq2SeqFeatureTuple', ('encoder', 'decoder'))
-
-OutputStateTuple = collections.namedtuple('OutputStateTuple', ('output', 'state'))
-
-IndexScoreTuple = collections.namedtuple('IndexScoreTuple', ('index', 'score'))
-
-##########################################################
-#    ##     ##  #######   ######     ###    ########     #
-#    ##     ## ##     ## ##    ##   ## ##   ##     ##    #
-#    ##     ## ##     ## ##        ##   ##  ##     ##    #
-#    ##     ## ##     ## ##       ##     ## ########     #
-#     ##   ##  ##     ## ##       ######### ##     ##    #
-#      ## ##   ##     ## ##    ## ##     ## ##     ##    #
-#       ###     #######   ######  ##     ## ########     #
-##########################################################
+_special_symbols = Bunch(
+    unknown='<unk>',
+    start_seq='<s>',
+    end_encode='</enc>',
+    start_decode='<dec>',
+    end_seq='</s>'
+)
 
 
 class Vocabulary(object):
-
-    special_symbols = {'end_seq': '</s>', 'start_seq': '<s>',
-                       'end_encode': '</enc>', 'unknown': '<unk>'}
-
-    def __init__(self):
+    """
+    A mapping between words and indexes.
+    """
+    def __init__(self, special_symbols=None):
         self._w2i = {}
         self._i2w = []
         self._i2freq = {}
         self._vocab_size = 0
+        self._special_symbols = special_symbols
+        if self._special_symbols is None:
+            self._special_symbols = _special_symbols
 
     @property
     def vocab_size(self):
         return self._vocab_size
+
+    @property
+    def special_symbols(self):
+        return self._special_symbols
 
     def add(self, word, count):
         self._w2i[word] = self._vocab_size
@@ -65,8 +43,8 @@ class Vocabulary(object):
 
     def w2i(self, word):
         if isinstance(word, six.string_types):
-            if self.special_symbols['unknown'] in self._w2i:
-                unk_id = self._w2i[self.special_symbols['unknown']]
+            if self.special_symbols.unknown in self._w2i:
+                unk_id = self._w2i[self.special_symbols.unknown]
                 return self._w2i.get(word, unk_id)
             else:
                 return self._w2i[word]
@@ -86,7 +64,7 @@ class Vocabulary(object):
         return set(self._w2i.keys())
 
     @staticmethod
-    def from_vocab_file(filepath):
+    def from_vocab_file(filepath, special_symbols=None):
         vocab = Vocabulary()
         with codecs.open(filepath, 'r', 'utf-8') as ifp:
             for line in ifp:

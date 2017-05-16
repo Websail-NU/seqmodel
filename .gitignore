@@ -7,3 +7,5 @@ __pycache__
 /scripts/data/_cached
 /scripts/bin/experiment
 /notebook/experiment
+*.sublime-project
+*.sublime-workspace
