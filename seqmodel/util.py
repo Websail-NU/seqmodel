@@ -39,7 +39,12 @@ def masked_full_like(np_data, value, num_non_padding=None, padding=0, dtype=np.f
     return arr, total_non_pad
 
 
-def get_logger(log_file_path=None, name='default_log'):
+_log_level = {None: py_logging.NOTSET, 'debug': py_logging.DEBUG,
+              'info': py_logging.INFO, 'warning': py_logging.WARNING,
+              'error': py_logging.ERROR, 'critical': py_logging.CRITICAL}
+
+
+def get_logger(log_file_path=None, name='default_log', level=None):
     root_logger = py_logging.getLogger(name)
     handlers = root_logger.handlers
 
@@ -65,5 +70,5 @@ def get_logger(log_file_path=None, name='default_log'):
     console_handler = py_logging.StreamHandler()
     console_handler.setFormatter(log_formatter)
     root_logger.addHandler(console_handler)
-    root_logger.setLevel(py_logging.INFO)
+    root_logger.setLevel(_log_level[level])
     return root_logger

@@ -137,6 +137,32 @@ class Vocabulary(object):
 ##########################################################################
 
 
+class TrainingState(object):
+    def __init__(self, learning_rate=1e-4, cur_epoch=0,
+                 cur_eval=float('inf'), last_imp_eval=float('inf'),
+                 best_eval=float('inf'), best_epoch=-1, last_imp_epoch=-1,
+                 imp_wait=0):
+        self.learning_rate = learning_rate
+        self.cur_epoch = cur_epoch
+        self.cur_eval = cur_eval
+        self.last_imp_eval = last_imp_eval
+        self.best_eval = best_eval
+        self.best_epoch = best_epoch
+        self.last_imp_epoch = last_imp_epoch
+        self.imp_wait = imp_wait
+
+    def summary(self, mode='train'):
+        return f'ep: {self.cur_epoch}, lr: {self.learning_rate:.6f}'
+
+    def update_epoch(self, info):
+        cur_eval = info.eval_loss
+        if self.best_eval > cur_eval:
+            self.best_eval = cur_eval
+            self.best_epoch = self.cur_epoch
+        self.cur_epoch += 1
+        self.cur_eval = cur_eval
+
+
 class RunningInfo(object):
     def __init__(self, start_time=None, end_time=None,
                  eval_loss=0.0, train_loss=0.0,

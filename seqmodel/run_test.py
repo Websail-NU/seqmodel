@@ -8,6 +8,7 @@ from seqmodel import generator
 from seqmodel.dstruct import Vocabulary
 from seqmodel import model as tfm
 from seqmodel import run
+from seqmodel import util
 
 
 class TestRun(tf.test.TestCase):
@@ -45,3 +46,30 @@ class TestRun(tf.test.TestCase):
                 train_info = run_fn(train_op=train_op)
             self.assertLess(train_info.eval_loss, eval_info.eval_loss,
                             'after training, eval loss is lower.')
+
+    def test_train(self):
+        logger = util.get_logger(level='warning')
+        data = generator.read_seq_data(
+            self.gen(), self.vocab, self.vocab, keep_sentence=False, seq_len=20)
+        batch_iter = partial(generator.seq_batch_iter, *data,
+                             batch_size=13, shuffle=True, keep_sentence=False)
+        with self.test_session(config=self.sess_config) as sess:
+            m = tfm.SeqModel()
+            n = m.build_graph()
+            m.set_default_feed('train_loss_denom', 13)
+            optimizer = tf.train.AdamOptimizer()
+            train_op = optimizer.minimize(m.training_loss)
+            sess.run(tf.global_variables_initializer())
+            train_run_fn = partial(run.run_epoch, sess, m, batch_iter, train_op=train_op)
+            eval_run_fn = partial(run.run_epoch, sess, m, batch_iter)
+
+            def stop_early(*args, **kwargs):
+                pass
+
+            eval_info = eval_run_fn()
+            train_state = run.train(train_run_fn, logger, max_epoch=3,
+                                    valid_run_epoch_fn=eval_run_fn,
+                                    end_epoch_fn=stop_early)
+            self.assertLess(train_state.best_eval, eval_info.eval_loss,
+                            'after training, eval loss is lower.')
+            self.assertEqual(train_state.cur_epoch, 3, 'train for max epoch')

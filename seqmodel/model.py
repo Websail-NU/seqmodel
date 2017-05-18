@@ -36,7 +36,7 @@ class Model(object):
         self.set_graph(*args, **kwargs)
 
     def set_graph(self, feature_feed, predict_fetch, label_feed=None, train_fetch=None,
-                  eval_fetch=None, node_dict=None):
+                  eval_fetch=None, node_dict=None, default_feed=None):
         self._features = feature_feed
         self._labels = label_feed
         self._predict_fetch = predict_fetch
@@ -46,6 +46,7 @@ class Model(object):
         self._fetches[Model._PREDICT_] = [predict_fetch, self._no_op]
         self._fetches[Model._TRAIN_] = [train_fetch, self._no_op, self._no_op]
         self._fetches[Model._EVAL_] = [eval_fetch, self._no_op]
+        self._default_feed = {} if default_feed is None else default_feed
 
     @property
     def training_loss(self):
@@ -111,6 +112,12 @@ class Model(object):
         result = sess.run(fetch, feed)
         return result
 
+    def set_default_feed(self, key, value):
+        if isinstance(key, six.string_types):
+            self._default_feed[util.get_with_dot_key(self._nodes, key)] = value
+        else:
+            self._default_feed[key] = value
+
     def _get_fetch(self, mode, extra_fetch=None, **kwargs):
         if mode in self._fetches:
             fetch = self._fetches[mode]
@@ -143,12 +150,14 @@ class Model(object):
         return fetch_nodes
 
     def _get_feed_lite(self, mode, features, labels=None, **kwargs):
-        feed_dict = dict(zip(self._features, features))
+        feed_dict = dict(self._default_feed)
+        feed_dict.update(zip(self._features, features))
         if mode == self._TRAIN_ or mode == self._EVAL_:
             assert labels is not None,\
-                'Need label data for training or evaluation'
+                'Need label data for training or evaluation.'
             feed_dict.update(zip(self._labels, labels))
         return feed_dict
+        # return ChainMap(feed_dict, self._default_feed)  #  no ChainMap no supported!
 
     def _get_feed_safe(self, mode, features, labels=None, **kwargs):
         feed_dict = self._get_feed_lite(mode, features, labels, **kwargs)

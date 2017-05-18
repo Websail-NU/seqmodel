@@ -41,9 +41,10 @@ class TestModel(tf.test.TestCase):
     def test_run(self):
         with self.test_session(config=self.sess_config) as sess:
             m = model.Model(check_feed_dict=False)
-            m.set_graph([self.f_feed], {'x': self.f_fetch}, label_feed=[self.l_feed],
-                        train_fetch=self.t_fetch, eval_fetch=self.e_fetch,
-                        node_dict={'a': self.f_feed})
+            m.set_graph([self.f_feed], {'x': self.f_fetch},
+                        label_feed=[self.l_feed], train_fetch=self.t_fetch,
+                        eval_fetch=self.e_fetch,
+                        node_dict={'a': self.f_feed, 'b': self.e_fetch})
             test_input, test_label = 1, 10
             output, extra = m.predict(sess, [test_input], extra_fetch=['a'])
             self.assertEqual(output, {'x': test_input * 2}, 'prediction')
@@ -54,6 +55,27 @@ class TestModel(tf.test.TestCase):
             self.assertEqual(output, test_input * test_label * 3, 'train')
             output, __ = m.evaluate(sess, [test_input], [test_label])
             self.assertEqual(output, test_input * test_label * 4, 'eval')
+
+    def test_default_feed(self):
+        with self.test_session(config=self.sess_config) as sess:
+            m = model.Model(check_feed_dict=False)
+            m.set_graph([self.f_feed], {'x': self.f_fetch, 'y': self.e_fetch},
+                        label_feed=[self.l_feed], train_fetch=self.t_fetch,
+                        eval_fetch=self.e_fetch,
+                        node_dict={'a': self.f_feed, 'b': self.e_fetch},
+                        default_feed={self.e_fetch: 10})
+            test_input, test_label = 1, 10
+            output, __ = m.predict(sess, [test_input])
+            self.assertEqual(output, {'x': test_input * 2, 'y': 10},
+                             'prediction with default feed')
+            m.set_default_feed('b', 200)
+            print(m._default_feed)
+            output, __ = m.predict(sess, [test_input])
+            self.assertEqual(output, {'x': test_input * 2, 'y': 200},
+                             'change value of default feed')
+            m.set_default_feed('a', 100)
+            self.assertEqual(output, {'x': test_input * 2, 'y': 200},
+                             'default feed is overwritten')
 
 
 class TestSeqModel(tf.test.TestCase):
