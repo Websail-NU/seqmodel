@@ -19,14 +19,15 @@ class TestRun(tf.test.TestCase):
         super(TestRun, cls).setUpClass()
         data_dir = 'test_data/tiny_single'
         cls.vocab = Vocabulary.from_vocab_file(f'{data_dir}/vocab.txt')
-        cls.data = generator.read_seq_data(
-            generator.read_lines(f'{data_dir}/valid.txt', token_split=' '),
-            cls.vocab, cls.vocab, keep_sentence=False, seq_len=20)
+        cls.gen = partial(generator.read_lines, f'{data_dir}/valid.txt',
+                          token_split=' ')
         cls.num_lines = 1000
         cls.num_tokens = 5606
 
     def test_run_epoch(self):
-        batch_iter = partial(generator.seq_batch_iter, *self.data,
+        data = generator.read_seq_data(
+            self.gen(), self.vocab, self.vocab, keep_sentence=False, seq_len=20)
+        batch_iter = partial(generator.seq_batch_iter, *data,
                              batch_size=13, shuffle=True, keep_sentence=False)
         with self.test_session(config=self.sess_config) as sess:
             m = tfm.SeqModel()
