@@ -310,10 +310,10 @@ def xent_loss(logit, label, weight, seq_weight=None):
     # Internally logits and labels are reshaped into 2D and 1D...
     loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
         logits=logit, labels=label)
+    if seq_weight is not None:
+        weight = tf.multiply(weight, seq_weight)
     sum_loss = tf.reduce_sum(tf.multiply(loss, weight))
     mean_loss = _safe_div(sum_loss, tf.reduce_sum(weight))
-    if seq_weight is not None:
-        sum_loss = tf.reduce_sum(tf.multiply(loss, tf.multiply(weight, seq_weight)))
     loss_denom = tf.placeholder_with_default(1.0, shape=None, name='training_loss_denom')
     training_loss = _safe_div(sum_loss, loss_denom)
     return mean_loss, training_loss, loss_denom, loss

@@ -11,6 +11,11 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 
 ## TODO
 
+### Refactor
+- [ ] Move to python 3
+- [ ] Less OOP
+- [ ] Finish SeqModel
+
 ### Model
 - [ ] Make it possible to share variables between 2 different models
 - [ ] Pass `reuse` when building graph (not create an object)

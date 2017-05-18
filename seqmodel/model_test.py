@@ -3,107 +3,175 @@ import unittest
 import numpy as np
 import tensorflow as tf
 
+from seqmodel import dstruct
 from seqmodel import model
 
 
-class TestModel(unittest.TestCase):
+class TestModel(tf.test.TestCase):
+
+    sess_config = tf.ConfigProto(device_count={'GPU': 0})
 
     def setUp(self):
-        sess_config = tf.ConfigProto(device_count={'GPU': 0})
-        self.sess = tf.Session(config=sess_config)
+        super().setUp()
         self.f_feed = tf.placeholder(tf.int32, shape=None)
         self.l_feed = tf.placeholder(tf.int32, shape=None)
         self.f_fetch = self.f_feed * 2
         self.t_fetch = self.f_feed * self.l_feed * 3
         self.e_fetch = self.f_feed * self.l_feed * 4
 
-    def tearDown(self):
-        tf.reset_default_graph()
-        self.sess.close()
-
     def test_check_feed_dict(self):
-        test_input, ignore_input = 1, 2
-        m = model.Model(check_feed_dict=False)
-        self.assertEqual(m._get_feed, m._get_feed_lite, 'no check feed method')
-        m.set_graph([self.f_feed, None], self.f_fetch)
-        self.assertRaises(TypeError, m.predict, self.sess, (test_input, ignore_input))
-        m.check_feed_dict = True
-        self.assertEqual(m._get_feed, m._get_feed_safe, 'check feed method')
-        output, __ = m.predict(self.sess, (test_input, ignore_input))
-        self.assertEqual(output, test_input * 2, 'ignore none placeholder')
-        self.assertRaises(ValueError, m.predict, self.sess, (None, None))
+        with self.test_session(config=self.sess_config) as sess:
+            test_input, ignore_input = 1, 2
+            m = model.Model(check_feed_dict=False)
+            self.assertEqual(m._get_feed, m._get_feed_lite, 'no check feed method')
+            m.set_graph([self.f_feed, None], self.f_fetch)
+            self.assertRaises(TypeError, m.predict, sess, (test_input, ignore_input))
+            m.check_feed_dict = True
+            self.assertEqual(m._get_feed, m._get_feed_safe, 'check feed method')
+            output, __ = m.predict(sess, (test_input, ignore_input))
+            self.assertEqual(output, test_input * 2, 'ignore none placeholder')
+            self.assertRaises(ValueError, m.predict, sess, (None, None))
 
-        def ten_fn(*args):
-            return 10
+            def ten_fn(*args):
+                return 10
 
-        output, __ = m.predict(self.sess, [ten_fn])
-        self.assertEqual(output, ten_fn() * 2, 'callable works')
+            output, __ = m.predict(sess, [ten_fn])
+            self.assertEqual(output, ten_fn() * 2, 'callable works')
 
     def test_run(self):
-        m = model.Model(check_feed_dict=False)
-        m.set_graph([self.f_feed], {'x': self.f_fetch}, label_feed=[self.l_feed],
-                    train_fetch=self.t_fetch, eval_fetch=self.e_fetch,
-                    node_dict={'a': self.f_feed})
-        test_input, test_label = 1, 10
-        output, extra = m.predict(self.sess, [test_input], extra_fetch=['a'])
-        self.assertEqual(output, {'x': test_input * 2}, 'prediction')
-        self.assertEqual(extra, [test_input], 'extra')
-        output, __ = m.predict(self.sess, [test_input], predict_key='x')
-        self.assertEqual(output, test_input * 2, 'prediction key')
-        output, __ = m.train(self.sess, [test_input], [test_label], tf.no_op())
-        self.assertEqual(output, test_input * test_label * 3, 'train')
-        output, __ = m.evaluate(self.sess, [test_input], [test_label])
-        self.assertEqual(output, test_input * test_label * 4, 'eval')
+        with self.test_session(config=self.sess_config) as sess:
+            m = model.Model(check_feed_dict=False)
+            m.set_graph([self.f_feed], {'x': self.f_fetch}, label_feed=[self.l_feed],
+                        train_fetch=self.t_fetch, eval_fetch=self.e_fetch,
+                        node_dict={'a': self.f_feed})
+            test_input, test_label = 1, 10
+            output, extra = m.predict(sess, [test_input], extra_fetch=['a'])
+            self.assertEqual(output, {'x': test_input * 2}, 'prediction')
+            self.assertEqual(extra, [test_input], 'extra')
+            output, __ = m.predict(sess, [test_input], predict_key='x')
+            self.assertEqual(output, test_input * 2, 'prediction key')
+            output, __ = m.train(sess, [test_input], [test_label], tf.no_op())
+            self.assertEqual(output, test_input * test_label * 3, 'train')
+            output, __ = m.evaluate(sess, [test_input], [test_label])
+            self.assertEqual(output, test_input * test_label * 4, 'eval')
 
 
-class TestSeqModel(unittest.TestCase):
+class TestSeqModel(tf.test.TestCase):
 
-    def setUp(self):
-        sess_config = tf.ConfigProto(device_count={'GPU': 0})
-        self.sess = tf.Session(config=sess_config)
-
-    def tearDown(self):
-        tf.reset_default_graph()
-        self.sess.close()
+    sess_config = tf.ConfigProto(device_count={'GPU': 0})
 
     def test_build(self):
-        m = model.SeqModel(check_feed_dict=False)
-        opt = {'emb:vocab_size': 20, 'emb:dim': 5, 'cell:num_units': 10,
-               'cell:cell_class': 'tensorflow.contrib.rnn.BasicLSTMCell',
-               'logit:output_size': 2}
-        expected_vars = {'t/embedding:0': (20, 5),
-                         't/rnn/basic_lstm_cell/weights:0': (10 + 5, 10 * 4),
-                         't/rnn/basic_lstm_cell/biases:0': (10 * 4,),
-                         't/logit_w:0': (2, 10),
-                         't/logit_b:0': (2,)}
-        n = m.build_graph(opt, name='t')
-        for v in tf.global_variables():
-            self.assertTrue(v.name in expected_vars, 'expected variable scope/name')
-            self.assertEqual(v.shape, expected_vars[v.name], 'shape is correct')
+        with self.test_session(config=self.sess_config) as sess:
+            m = model.SeqModel(check_feed_dict=False)
+            opt = {'emb:vocab_size': 20, 'emb:dim': 5, 'cell:num_units': 10,
+                   'cell:cell_class': 'tensorflow.contrib.rnn.BasicLSTMCell',
+                   'logit:output_size': 2}
+            expected_vars = {'t/embedding:0': (20, 5),
+                             't/rnn/basic_lstm_cell/weights:0': (10 + 5, 10 * 4),
+                             't/rnn/basic_lstm_cell/biases:0': (10 * 4,),
+                             't/logit_w:0': (2, 10),
+                             't/logit_b:0': (2,)}
+            n = m.build_graph(opt, name='t')
+            for v in tf.global_variables():
+                self.assertTrue(v.name in expected_vars, 'expected variable scope/name')
+                self.assertEqual(v.shape, expected_vars[v.name], 'shape is correct')
+            for k, v in m._fetches.items():
+                if k is not None:
+                    self.assertNotEqual(v[0], v[1], 'fetch array is set')
 
     def test_build_no_output(self):
-        m = model.SeqModel(check_feed_dict=False)
-        n = m.build_graph(**{'out:logit': False})
-        self.assertTrue('logit' not in n, 'logit is not in nodes')
+        with self.test_session(config=self.sess_config) as sess:
+            m = model.SeqModel(check_feed_dict=False)
+            n = m.build_graph(**{'out:logit': False, 'out:loss': False})
+            self.assertTrue('logit' not in n, 'logit is not in nodes')
+            for k, v in m._fetches.items():
+                if k is None or k == m._TRAIN_ or k == m._EVAL_:
+                    self.assertEqual(v[0], v[1], 'fetch array is not set')
+                if k == m._PREDICT_:
+                    self.assertNotEqual(v[0], v[1], 'predict fetch array is set')
+            self.assertRaises(ValueError, m.build_graph, **{'out:logit': False})
 
     def test_build_overwrite_opt(self):
-        m = model.SeqModel(check_feed_dict=False)
-        opt = {'emb:vocab_size': 20, 'cell:in_keep_prob': 0.5, 'logit:output_size': 2}
-        n = m.build_graph(opt)
-        self.assertEqual(n['emb_vars'].get_shape()[0], 20,
-                         'overwrite default options')
-        self.assertEqual(type(n['cell']), tf.contrib.rnn.DropoutWrapper,
-                         'overwrite default options')
-        n = m.build_graph(opt, reuse=True, **{'cell:in_keep_prob': 1.0})
-        self.assertEqual(type(n['cell']), tf.contrib.rnn.BasicLSTMCell,
-                         'overwrite default options with kwargs')
+        with self.test_session(config=self.sess_config) as sess:
+            m = model.SeqModel(check_feed_dict=False)
+            opt = {'emb:vocab_size': 20, 'cell:in_keep_prob': 0.5,
+                   'logit:output_size': 2}
+            n = m.build_graph(opt)
+            self.assertEqual(n['emb_vars'].get_shape()[0], 20,
+                             'overwrite default options')
+            self.assertEqual(type(n['cell']), tf.contrib.rnn.DropoutWrapper,
+                             'overwrite default options')
+            n = m.build_graph(opt, reuse=True, **{'cell:in_keep_prob': 1.0})
+            self.assertEqual(type(n['cell']), tf.contrib.rnn.BasicLSTMCell,
+                             'overwrite default options with kwargs')
 
     def test_build_reuse(self):
-        m = model.SeqModel(check_feed_dict=False)
-        n = m.build_graph()
-        num_vars = len(tf.global_variables())
-        n = m.build_graph(reuse=True, **{'cell:in_keep_prob': 1.0})
-        self.assertEqual(type(n['cell']), tf.contrib.rnn.BasicLSTMCell,
-                         'overwrite default options with kwargs')
-        num_vars_ = len(tf.global_variables())
-        self.assertEqual(num_vars, num_vars, 'no new variables when reuse is True')
+        with self.test_session(config=self.sess_config) as sess:
+            m = model.SeqModel(check_feed_dict=False)
+            n = m.build_graph()
+            num_vars = len(tf.global_variables())
+            n = m.build_graph(reuse=True, **{'cell:in_keep_prob': 1.0})
+            self.assertEqual(type(n['cell']), tf.contrib.rnn.BasicLSTMCell,
+                             'overwrite default options with kwargs')
+            num_vars_ = len(tf.global_variables())
+            self.assertEqual(num_vars, num_vars, 'no new variables when reuse is True')
+
+    def test_run(self):
+        with self.test_session(config=self.sess_config) as sess:
+            m = model.SeqModel(check_feed_dict=False)
+            n = m.build_graph({'logit:output_size': 2})
+            optimizer = tf.train.AdamOptimizer()
+            train_op = optimizer.minimize(m.training_loss)
+            sess.run(tf.global_variables_initializer())
+            seq = np.ones((4, 3))
+            seq_len = np.array([2, 3, 0])
+            # prediction
+            output, __ = m.predict(sess, (seq, seq_len), fetch_state=False)
+            co = output['cell_output']
+            for iseq in range(co.shape[1]):
+                np.testing.assert_array_equal(co[seq_len[iseq]:, iseq, :], 0,
+                                              'cell output is zero after seq_len')
+            for i in range(2):
+                self.assertEqual(output['dec_sample'][i].shape, (4, 3),
+                                 'sample shape is the same as input\'s')
+                self.assertEqual(output['dec_max'][i].shape, (4, 3),
+                                 'sample shape is the same as input\'s')
+            self.assertEqual(output['logit'].shape, (4, 3, 2), 'logit shape is correct')
+            self.assertEqual(output['dist'].shape, (4, 3, 2), 'dist shape is correct')
+            output, __ = m.predict(sess, (seq, seq_len), fetch_state=True,
+                                   predict_key='cell_output')
+            output2, __ = m.predict(sess, (seq, seq_len), fetch_state=True,
+                                    predict_key='cell_output')
+            output3, __ = m.predict(sess, (seq, seq_len), fetch_state=False,
+                                    state=output.state, predict_key='cell_output')
+            self.assertIsInstance(output, dstruct.OutputStateTuple, 'output with state')
+            np.testing.assert_allclose(output.output, output2.output,
+                                       err_msg='same input, same state, same output')
+            np.testing.assert_allclose(output.state.h, output2.state.h,
+                                       err_msg='same input, same state h')
+            np.testing.assert_allclose(output.state.c, output2.state.c,
+                                       err_msg='same input, same state c')
+            self.assertRaises(AssertionError, np.testing.assert_array_equal,
+                              output.output, output3)
+            # evaluation
+            output, __ = m.evaluate(sess, (seq, seq_len), (seq, seq, np.ones((3))))
+            self.assertNotEqual(output['eval_loss'], 0.0,
+                                'eval_loss is not zero')
+            output, __ = m.evaluate(sess, (seq, seq_len), (seq, seq, np.zeros((3))))
+            self.assertEqual(output['eval_loss'], 0.0,
+                             'eval_loss is zero if seq_weight is zero')
+            output, __ = m.evaluate(
+                sess, (seq, seq_len), (seq, np.zeros((4, 3)), np.ones((3))))
+            self.assertEqual(output['eval_loss'], 0.0,
+                             'eval_loss is zero if token_weight is zero')
+            # training
+            output, __ = m.train(sess, (seq, seq_len), (seq, seq, np.ones((3))),
+                                 m._no_op)
+            self.assertGreaterEqual(
+                output['train_loss'], output['eval_loss'],
+                'sum loss is at least larger than mean loss.')
+            for i in range(3):
+                output2, __ = m.train(sess, (seq, seq_len), (seq, seq, np.ones((3))),
+                                      train_op)
+            self.assertLess(output2['train_loss'], output['train_loss'],
+                            'training loss is lower after training')

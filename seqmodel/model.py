@@ -8,7 +8,6 @@ from seqmodel import util
 from seqmodel import dstruct
 from seqmodel import graph as tfg
 
-
 #########################################################
 #    ##     ##  #######  ########  ######## ##          #
 #    ###   ### ##     ## ##     ## ##       ##          #
@@ -45,8 +44,13 @@ class Model(object):
         train_fetch = self._no_op if train_fetch is None else train_fetch
         eval_fetch = self._no_op if eval_fetch is None else eval_fetch
         self._fetches[Model._PREDICT_] = [predict_fetch, self._no_op]
-        self._fetches[Model._TRAIN_] = [train_fetch, self._no_op]
+        self._fetches[Model._TRAIN_] = [train_fetch, self._no_op, self._no_op]
         self._fetches[Model._EVAL_] = [eval_fetch, self._no_op]
+
+    @property
+    def training_loss(self):
+        if hasattr(self, '_training_loss'):
+            return self._training_loss
 
     @property
     def check_feed_dict(self):
@@ -85,7 +89,7 @@ class Model(object):
                 training result (from train_fetch)
                 extra (from extra_fetch)"""
         fetch = self._get_fetch(Model._TRAIN_, extra_fetch=extra_fetch, **kwargs)
-        fetch.append(train_op)
+        fetch[-1] = train_op
         feed = self._get_feed(Model._TRAIN_, features=features, labels=labels,
                               **kwargs)
         result = sess.run(fetch, feed)
@@ -157,7 +161,6 @@ class Model(object):
                 raise ValueError(f'None value found for {key}')
         return feed_dict
 
-
 #####################################
 #     ######  ########  #######     #
 #    ##    ## ##       ##     ##    #
@@ -167,6 +170,7 @@ class Model(object):
 #    ##    ## ##       ##    ##     #
 #     ######  ########  ##### ##    #
 #####################################
+# VARIABLES END WITH '_' IN _BUILD_XX() WILL BE ADDED TO NODE DICTIONARY
 
 
 class SeqModel(Model):
@@ -180,13 +184,15 @@ class SeqModel(Model):
                'cell:cell_class': 'tensorflow.contrib.rnn.BasicLSTMCell',
                'cell:in_keep_prob': 1.0, 'cell:out_keep_prob': 1.0,
                'cell:state_keep_prob': 1.0, 'cell:variational': False,
-               'out:logit': True, 'logit:output_size': 14, 'logit:use_bias': True,
-               'logit:trainable': True, 'logit:init': None, 'loss:type': 'xent',
-               'share:input_emb_logit': False}
+               'out:logit': True, 'out:loss': True, 'logit:output_size': 14,
+               'logit:use_bias': True, 'logit:trainable': True, 'logit:init': None,
+               'loss:type': 'xent', 'share:input_emb_logit': False}
         return opt
 
     def build_graph(self, opt=None, initial_state=None, reuse=False, name='seq_model',
                     collect_key='seq_model', **kwargs):
+        """ build RNN graph with option (see default_opt() for configuration) and
+            optionally initial_state (zero state if none provided)"""
         opt = opt if opt else {}
         chain_opt = ChainMap(kwargs, opt, self.default_opt())
         self._collect_key = collect_key
@@ -194,8 +200,16 @@ class SeqModel(Model):
         with tf.variable_scope(name, reuse=reuse):
             return self._build(chain_opt, initial_state, reuse, **kwargs)
 
+    def set_graph(self, feature_feed, predict_fetch, label_feed=None, train_fetch=None,
+                  eval_fetch=None, node_dict=None, state_feed=None, state_fetch=None):
+        super().set_graph(feature_feed, predict_fetch, label_feed, train_fetch,
+                          eval_fetch, node_dict)
+        self._state_feed = state_feed
+        self._state_fetch = state_fetch
+        if train_fetch is not None:
+            self._training_loss = train_fetch['train_loss']
+
     def _build(self, opt, initial_state=None, reuse=False, **kwargs):
-        # VARIABLES END WITH '_' WILL BE ADDED TO NODE DICTIONARY
         collect_kwargs = {'add_to_collection': True, 'collect_key': self._collect_key}
         # input and embedding
         input_, seq_len_ = tfg.get_seq_input_placeholders(**collect_kwargs)
@@ -207,36 +221,63 @@ class SeqModel(Model):
         cell_output_, initial_state_, final_state_ = tfg.create_rnn(
             cell_, lookup_, seq_len_, initial_state)
         predict_fetch = {'cell_output': cell_output_}
-        # output
-        label_feed = None
-        if opt['out:logit']:
-            logit_w_ = emb_vars_ if opt['share:input_emb_logit'] else None
-            logit_opt = util.dict_with_key_startswith(opt, 'logit:')
-            logit_, temperature_, logit_w_, logit_b_ = tfg.get_logit_layer(
-                cell_output_, logit_w=logit_w_, **logit_opt, **collect_kwargs)
-            dist_, dec_max_, dec_sample_ = tfg.select_from_logit(logit_)
-            # label
-            label_, token_weight_, seq_weight_ = tfg.get_seq_label_placeholders(
-                label_dtype=tf.int32, **collect_kwargs)
-            # format
-            predict_fetch.update({
-                'logit': logit_, 'dist': dist_, 'dec_max': dec_max_,
-                'dec_max_id': dec_max_.index, 'dec_sample': dec_sample_,
-                'dec_sample_id': dec_sample_.index})
-            label_feed = dstruct.SeqLabelTuple(label_, token_weight_, seq_weight_)
         nodes = util.dict_with_key_endswith(locals(), '_')
         graph_args = {'feature_feed': dstruct.SeqFeatureTuple(input_, seq_len_),
-                      'predict_fetch': predict_fetch,
-                      'label_feed': label_feed,
-                      'node_dict': nodes}
+                      'predict_fetch': predict_fetch, 'node_dict': nodes,
+                      'state_feed': initial_state_, 'state_fetch': final_state_}
+        # output
+        if opt['out:logit']:
+            logit, label_feed, output_fectch, output_nodes = self._build_logit(
+                opt, collect_kwargs, emb_vars_, cell_output_)
+            predict_fetch.update(output_fectch)
+            nodes.update(output_nodes)
+            graph_args.update(label_feed=label_feed)
+        # loss
+        if opt['out:logit'] and opt['out:loss']:
+            train_fetch, eval_fetch, loss_nodes = self._build_loss(
+                opt, logit, *label_feed)
+            nodes.update(loss_nodes)
+            graph_args.update(train_fetch=train_fetch, eval_fetch=eval_fetch)
+        elif not opt['out:logit'] and opt['out:loss']:
+            raise ValueError('out:logit is False, cannot build loss graph')
         self.set_graph(**graph_args)
         return nodes
+
+    def _build_logit(self, opt, collect_kwargs, emb_vars, cell_output):
+        # logit
+        logit_w_ = emb_vars if opt['share:input_emb_logit'] else None
+        logit_opt = util.dict_with_key_startswith(opt, 'logit:')
+        logit_, temperature_, logit_w_, logit_b_ = tfg.get_logit_layer(
+            cell_output, logit_w=logit_w_, **logit_opt, **collect_kwargs)
+        dist_, dec_max_, dec_sample_ = tfg.select_from_logit(logit_)
+        # label
+        label_, token_weight_, seq_weight_ = tfg.get_seq_label_placeholders(
+            label_dtype=tf.int32, **collect_kwargs)
+        # format
+        predict_fetch = {
+            'logit': logit_, 'dist': dist_, 'dec_max': dec_max_,
+            'dec_max_id': dec_max_.index, 'dec_sample': dec_sample_,
+            'dec_sample_id': dec_sample_.index}
+        label_feed = dstruct.SeqLabelTuple(label_, token_weight_, seq_weight_)
+        nodes = util.dict_with_key_endswith(locals(), '_')
+        return logit_, label_feed, predict_fetch, nodes
+
+    def _build_loss(self, opt, logit, label, weight, seq_weight):
+        if opt['loss:type'] == 'xent':
+            mean_loss_, train_loss_, train_loss_denom_, loss_ = tfg.xent_loss(
+                logit, label, weight, seq_weight)
+            train_fetch = {'train_loss': train_loss_, 'eval_loss': mean_loss_}
+            eval_fetch = {'eval_loss': mean_loss_}
+        else:
+            raise ValueError(f'{opt["loss:type"]} is not supported, use (xent or mse)')
+        nodes = util.dict_with_key_endswith(locals(), '_')
+        return train_fetch, eval_fetch, nodes
 
     def _get_fetch(self, mode, extra_fetch=None, fetch_state=False, **kwargs):
         fetch = super()._get_fetch(mode, extra_fetch, **kwargs)
         if fetch_state:
             fetch[0] = self._fetches.setdefault(
-                f'{SeqModel._STATE_}:{fetch}, {mode}',
+                f'{SeqModel._STATE_}:{fetch_state}, o:{mode}',
                 dstruct.OutputStateTuple(fetch[0], self._state_fetch))
         return fetch
 
