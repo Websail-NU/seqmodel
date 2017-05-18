@@ -34,12 +34,13 @@ class TestRun(tf.test.TestCase):
             optimizer = tf.train.AdamOptimizer()
             train_op = optimizer.minimize(m.training_loss)
             sess.run(tf.global_variables_initializer())
-            eval_info = run.run_epoch(sess, m, batch_iter)
+            run_fn = partial(run.run_epoch, sess, m, batch_iter)
+            eval_info = run_fn()
             self.assertEqual(eval_info.num_tokens, self.num_lines + self.num_tokens,
                              'run uses all tokens')
             self.assertAlmostEqual(eval_info.eval_loss, np.log(self.vocab.vocab_size),
                                    places=1, msg='eval loss is close to uniform.')
             for __ in range(3):
-                train_info = run.run_epoch(sess, m, batch_iter, train_op=train_op)
+                train_info = run_fn(train_op=train_op)
             self.assertLess(train_info.eval_loss, eval_info.eval_loss,
                             'after training, eval loss is lower.')
