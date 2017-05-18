@@ -3,7 +3,8 @@ import copy
 import collections
 import codecs
 import six
-
+import time
+import math
 
 ########################################################
 #    ######## ##     ## ########  ##       ########    #
@@ -123,3 +124,73 @@ class Vocabulary(object):
         for w in keep_vocab.word_set():
             mask[full_vocab.w2i(w)] = 1
         return mask
+
+
+##########################################################################
+#    ########  ##     ## ##    ##    #### ##    ## ########  #######     #
+#    ##     ## ##     ## ###   ##     ##  ###   ## ##       ##     ##    #
+#    ##     ## ##     ## ####  ##     ##  ####  ## ##       ##     ##    #
+#    ########  ##     ## ## ## ##     ##  ## ## ## ######   ##     ##    #
+#    ##   ##   ##     ## ##  ####     ##  ##  #### ##       ##     ##    #
+#    ##    ##  ##     ## ##   ###     ##  ##   ### ##       ##     ##    #
+#    ##     ##  #######  ##    ##    #### ##    ## ##        #######     #
+##########################################################################
+
+
+class RunningInfo(object):
+    def __init__(self, start_time=None, end_time=None,
+                 eval_loss=0.0, train_loss=0.0,
+                 num_tokens=0, step=0):
+        self._start_time = start_time or time.time()
+        self._end_time = end_time
+        self._eval_loss = eval_loss
+        self._train_loss = train_loss
+        self._num_tokens = num_tokens
+        self._step = step
+
+    @property
+    def eval_loss(self):
+        return self._eval_loss / self._num_tokens
+
+    @property
+    def train_loss(self):
+        return self._train_loss / self._step
+
+    @ property
+    def num_tokens(self):
+        return self._num_tokens
+
+    @ property
+    def step(self):
+        return self._step
+
+    @property
+    def wps(self):
+        end_time = self._end_time
+        if end_time is None:
+            end_time = time.time()
+        return self._num_tokens / (end_time - self._start_time)
+
+    def update_step(self, result, num_tokens):
+        if 'train_loss' in result:
+            self._train_loss += result['train_loss']
+        if 'eval_loss' in result:
+            self._eval_loss += result['eval_loss'] * num_tokens
+        self._num_tokens += num_tokens
+        self._step += 1
+
+    def end(self):
+        self._end_time = time.time()
+
+    def summary(self, mode='train'):
+        exp_loss = math.exp(self.eval_loss)
+        if mode == 'train':
+            return (f'@{self._step} tr_loss: {self.train_loss:.5f}, '
+                    f'eval_loss: {self.eval_loss:.5f} ({exp_loss:.5f}), '
+                    f'wps: {self.wps:.1f}')
+        else:
+            return (f'@{self._step} eval_loss: {self.eval_loss:.5f} ({exp_loss:.5f}), '
+                    f'wps: {self.wps:.1f}')
+
+    def __str__(self):
+        return f'{self.__class__.__name__}: {vars(self)}'

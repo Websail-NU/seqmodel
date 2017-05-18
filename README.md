@@ -2,7 +2,7 @@
 
 A code base for creating and running sequence models of language. Including
 language modeling, definition modeling, and common encoder-decoder stuffs.
-**Required python 3.6**
+**Required python 3.6**.
 
 ## Overview
 - dstruct.py: basic data structures and tuples
