@@ -20,5 +20,5 @@ cp _cached/simple-examples/data/ptb.char.test.txt ../../data/ptb-char/test.txt
 cp _cached/simple-examples/data/ptb.char.train.txt ../../data/ptb-char/train.txt
 cp _cached/simple-examples/data/ptb.char.valid.txt ../../data/ptb-char/valid.txt
 echo "[3/3] Generating vocab files..."
-python generate_vocab.py ../../data/ptb/ --end_seq
-python generate_vocab.py ../../data/ptb-char/ --end_seq
+python gen_vocab.py ../../data/ptb/ --end_seq
+python gen_vocab.py ../../data/ptb-char/ --end_seq

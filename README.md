@@ -18,11 +18,12 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - [x] SeqModel
 - [x] Basic running function
 - [x] Learning rate update function
-- [ ] Scripts to get data
+- [x] Scripts to get data
 - [ ] Seq2SeqModel
 - [ ] Sampled-based running functions
 - [ ] Definition data reader
 - [ ] DefinitionModel
+- [ ] Scripts to get definition data
 
 
 ### Model

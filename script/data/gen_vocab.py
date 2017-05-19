@@ -5,15 +5,17 @@ import os
 import operator
 
 sys.path.insert(0, '../../')
-from seqmodel.data.vocab import _special_symbols  # noqa
+from seqmodel.dstruct import Vocabulary  # noqa
+
+special_symbols = Vocabulary.special_symbols
 
 
 def write_vocab(path, vocab, opt):
     opt = vars(opt)
     with codecs.open(path, 'w', 'utf-8') as ofp:
-        for k in _special_symbols:
+        for k in special_symbols:
             if opt[k]:
-                ofp.write('{}\n'.format(_special_symbols[k]))
+                ofp.write('{}\n'.format(special_symbols[k]))
         vocab = sorted(vocab.items(),
                        key=operator.itemgetter(1), reverse=True)
         for word, count in vocab:
@@ -44,7 +46,6 @@ parser.add_argument("--unknown", action='store_true')
 parser.add_argument("--start_seq", action='store_true')
 parser.add_argument("--end_seq", action='store_true')
 parser.add_argument("--end_encode", action='store_true')
-parser.add_argument("--start_decode", action='store_true')
 
 args = parser.parse_args()
 vocabs = [{}]

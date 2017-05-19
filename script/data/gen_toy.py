@@ -6,7 +6,9 @@ import copy
 import numpy as np
 
 sys.path.insert(0, '../../')
-from seqmodel.data.vocab import _special_symbols  # noqa
+from seqmodel.dstruct import Vocabulary  # noqa
+
+special_symbols = Vocabulary.special_symbols
 
 # simple state-transition matrix
 # row is state (position)
@@ -28,7 +30,7 @@ transitions = transitions / np.reshape(
     transitions.sum(axis=1), [max_seq_len, 1])
 choices = 'a b c d e f g h i j'.split()
 valid_choices = list(choices)
-choices.append(_special_symbols.end_seq)
+choices.append(special_symbols['end_seq'])
 
 
 def ensure_dir(directory):
@@ -40,7 +42,7 @@ def generate_sample():
     tokens = []
     for p in range(max_seq_len):
         t = np.random.choice(choices, p=transitions[p])
-        if t == _special_symbols.end_seq:
+        if t == special_symbols['end_seq']:
             break
         tokens.append(t)
     return tokens
@@ -70,10 +72,10 @@ def write_samples(path, n, mode, random_seq=False):
 
 def write_vocab(path):
     with open(path, 'w') as ofp:
-        for k in _special_symbols.keys():
-            ofp.write('{}\n'.format(_special_symbols[k]))
+        for k in special_symbols.keys():
+            ofp.write('{}\n'.format(special_symbols[k]))
         for c in choices:
-            if c == _special_symbols.end_seq:
+            if c == special_symbols['end_seq']:
                 break
             ofp.write('{}\n'.format(c))
 
