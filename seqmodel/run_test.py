@@ -9,6 +9,7 @@ from seqmodel.dstruct import Vocabulary
 from seqmodel import model as tfm
 from seqmodel import run
 from seqmodel import util
+from seqmodel import dstruct
 
 
 class TestRun(tf.test.TestCase):
@@ -73,3 +74,24 @@ class TestRun(tf.test.TestCase):
             self.assertLess(train_state.best_eval, eval_info.eval_loss,
                             'after training, eval loss is lower.')
             self.assertEqual(train_state.cur_epoch, 3, 'train for max epoch')
+
+    def test_lr_update(self):
+        d = {'lr': 1}
+
+        def set_lr(lr):
+            d['lr'] = lr
+
+        train_state = dstruct.TrainingState(learning_rate=1.0, cur_epoch=1)
+        run.update_learning_rate(set_lr, train_state, start_decay_at=0, decay_every=1,
+                                 decay_factor=0.5)
+        self.assertEqual(train_state.learning_rate, 0.5, 'decay learning rate at 0')
+        self.assertEqual(d['lr'], 0.5, 'learning rate is set')
+        run.update_learning_rate(set_lr, train_state, start_decay_at=2, decay_every=1,
+                                 decay_factor=0.5)
+        self.assertEqual(train_state.learning_rate, 0.5, 'decay learning rate at 2')
+        self.assertEqual(d['lr'], 0.5, 'learning rate is not change')
+        run.update_learning_rate(set_lr, train_state, start_decay_at=0, decay_every=2,
+                                 decay_factor=0.5)
+        self.assertEqual(train_state.learning_rate, 0.5, 'decay lr every 2, not at 0')
+        self.assertEqual(d['lr'], 0.5, 'learning rate is not change')
+        # TODO: need more test for adaptive decay

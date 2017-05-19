@@ -16,7 +16,8 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 
 ### Refactor:
 - [x] SeqModel
-- [ ] Basic running function
+- [x] Basic running function
+- [x] Learning rate update function
 - [ ] Scripts to get data
 - [ ] Seq2SeqModel
 - [ ] Sampled-based running functions
