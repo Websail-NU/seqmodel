@@ -197,3 +197,8 @@ class TestSeqModel(tf.test.TestCase):
                                       train_op)
             self.assertLess(output2['train_loss'], output['train_loss'],
                             'training loss is lower after training')
+            m.set_default_feed('train_loss_denom', 10)
+            output3, __ = m.train(sess, (seq, seq_len), (seq, seq, np.ones((3))),
+                                  m._no_op)
+            self.assertAlmostEqual(output3['train_loss'], output2['train_loss'] / 10,
+                                   places=1, msg='training loss denom is used')

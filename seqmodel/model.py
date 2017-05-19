@@ -244,7 +244,7 @@ class SeqModel(Model):
         # loss
         if opt['out:logit'] and opt['out:loss']:
             train_fetch, eval_fetch, loss_nodes = self._build_loss(
-                opt, logit, *label_feed)
+                opt, logit, *label_feed, collect_kwargs)
             nodes.update(loss_nodes)
             graph_args.update(train_fetch=train_fetch, eval_fetch=eval_fetch)
         elif not opt['out:logit'] and opt['out:loss']:
@@ -271,10 +271,14 @@ class SeqModel(Model):
         nodes = util.dict_with_key_endswith(locals(), '_')
         return logit_, label_feed, predict_fetch, nodes
 
-    def _build_loss(self, opt, logit, label, weight, seq_weight):
+    def _build_loss(self, opt, logit, label, weight, seq_weight, collect_kwargs):
         if opt['loss:type'] == 'xent':
-            mean_loss_, train_loss_, train_loss_denom_, loss_ = tfg.xent_loss(
-                logit, label, weight, seq_weight)
+            with tfg.tf_collection(**collect_kwargs) as get:
+                name = f'{self._name}_train_loss_denom'
+                train_loss_denom_ = get(
+                    name, tf.placeholder_with_default(1.0, shape=None, name=name))
+            mean_loss_, train_loss_, loss_ = tfg.xent_loss(
+                logit, label, weight, seq_weight, train_loss_denom_)
             train_fetch = {'train_loss': train_loss_, 'eval_loss': mean_loss_}
             eval_fetch = {'eval_loss': mean_loss_}
         else:

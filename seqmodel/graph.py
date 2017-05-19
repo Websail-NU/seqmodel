@@ -1,3 +1,4 @@
+import warnings
 from contextlib import contextmanager
 import six
 from pydoc import locate
@@ -302,11 +303,12 @@ def select_from_logit(logit, distribution=None):
 #    ##       ##     ## ##    ## ##    ##    #
 #    ########  #######   ######   ######     #
 ##############################################
+# TODO: remove placeholders
 
 
-def xent_loss(logit, label, weight, seq_weight=None):
+def xent_loss(logit, label, weight, seq_weight=None, loss_denom=None):
     """return negative log likelihood (cross-entropy loss).
-    Return includes NLL/sum weight, NLL/loss_denom, loss_denom, token NLL"""
+    Return includes NLL/sum weight, NLL[/loss_denom], token NLL"""
     # Internally logits and labels are reshaped into 2D and 1D...
     loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
         logits=logit, labels=label)
@@ -314,9 +316,11 @@ def xent_loss(logit, label, weight, seq_weight=None):
         weight = tf.multiply(weight, seq_weight)
     sum_loss = tf.reduce_sum(tf.multiply(loss, weight))
     mean_loss = _safe_div(sum_loss, tf.reduce_sum(weight))
-    loss_denom = tf.placeholder_with_default(1.0, shape=None, name='training_loss_denom')
-    training_loss = _safe_div(sum_loss, loss_denom)
-    return mean_loss, training_loss, loss_denom, loss
+    if loss_denom is not None:
+        training_loss = _safe_div(sum_loss, loss_denom)
+    else:
+        training_loss = sum_loss
+    return mean_loss, training_loss, loss
 
 
 def ent_loss(distribution, weight, seq_weight=None):
@@ -361,3 +365,21 @@ def l2_loss(var_list):
     l2_loss = tf.reduce_sum(tf.add_n(
         [tf.nn.l2_loss(var) for var in var_list]))
     return l2_loss
+
+
+def create_train_op(loss, optim_class=tf.train.AdamOptimizer, learning_rate=0.001,
+                    clip_gradients=5.0, **optim_kwarg):
+    """return train operation graph"""
+    if isinstance(optim_class, six.string_types):
+        optim_class = locate(optim_class)
+    optim = optim_class(learning_rate=learning_rate, **optim_kwarg)
+    g_v_pairs = optim.compute_gradients(loss)
+    grads, tvars = [], []
+    for g, v in g_v_pairs:
+        if g is None:
+            continue
+        tvars.append(v)
+        grads.append(g)
+    clipped_grads, _norm = tf.clip_by_global_norm(grads, clip_gradients)
+    train_op = optim.apply_gradients(zip(clipped_grads, tvars))
+    return train_op
