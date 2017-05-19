@@ -69,7 +69,6 @@ class TestModel(tf.test.TestCase):
             self.assertEqual(output, {'x': test_input * 2, 'y': 10},
                              'prediction with default feed')
             m.set_default_feed('b', 200)
-            print(m._default_feed)
             output, __ = m.predict(sess, [test_input])
             self.assertEqual(output, {'x': test_input * 2, 'y': 200},
                              'change value of default feed')

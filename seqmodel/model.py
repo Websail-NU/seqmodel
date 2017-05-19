@@ -8,6 +8,10 @@ from seqmodel import util
 from seqmodel import dstruct
 from seqmodel import graph as tfg
 
+
+__all__ = ['Model', 'SeqModel']
+
+
 #########################################################
 #    ##     ##  #######  ########  ######## ##          #
 #    ###   ### ##     ## ##     ## ##       ##          #
@@ -277,7 +281,7 @@ class SeqModel(Model):
                 name = f'{self._name}_train_loss_denom'
                 train_loss_denom_ = get(
                     name, tf.placeholder_with_default(1.0, shape=None, name=name))
-            mean_loss_, train_loss_, loss_ = tfg.xent_loss(
+            mean_loss_, train_loss_, loss_ = tfg.create_xent_loss(
                 logit, label, weight, seq_weight, train_loss_denom_)
             train_fetch = {'train_loss': train_loss_, 'eval_loss': mean_loss_}
             eval_fetch = {'eval_loss': mean_loss_}

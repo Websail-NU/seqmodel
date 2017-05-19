@@ -9,6 +9,14 @@ import tensorflow as tf
 from seqmodel import dstruct
 
 
+__all__ = ['_safe_div', 'tf_collection', 'create_2d_tensor', 'matmul', 'create_cells',
+           'create_rnn', 'select_rnn_output', 'create_tdnn', 'create_highway_layer',
+           'create_gru_layer', 'get_seq_input_placeholders',
+           'get_seq_label_placeholders', 'create_lookup', 'get_logit_layer',
+           'select_from_logit', 'create_xent_loss', 'create_ent_loss',
+           'create_slow_feature_loss', 'create_l2_loss', 'create_train_op']
+
+
 def _safe_div(numerator, denominator, name='safe_div'):
     """Computes a safe divide which returns 0 if the denominator is zero."""
     return tf.where(tf.equal(denominator, 0),
@@ -303,10 +311,9 @@ def select_from_logit(logit, distribution=None):
 #    ##       ##     ## ##    ## ##    ##    #
 #    ########  #######   ######   ######     #
 ##############################################
-# TODO: remove placeholders
 
 
-def xent_loss(logit, label, weight, seq_weight=None, loss_denom=None):
+def create_xent_loss(logit, label, weight, seq_weight=None, loss_denom=None):
     """return negative log likelihood (cross-entropy loss).
     Return includes NLL/sum weight, NLL[/loss_denom], token NLL"""
     # Internally logits and labels are reshaped into 2D and 1D...
@@ -323,7 +330,7 @@ def xent_loss(logit, label, weight, seq_weight=None, loss_denom=None):
     return mean_loss, training_loss, loss
 
 
-def ent_loss(distribution, weight, seq_weight=None):
+def create_ent_loss(distribution, weight, seq_weight=None):
     """return average negative entropy."""
     if seq_weight is not None:
         weight = tf.multiply(weight, seq_weight)
@@ -335,7 +342,7 @@ def ent_loss(distribution, weight, seq_weight=None):
     return mean_loss
 
 
-def slow_feature_loss(feature, weight, delta=1.0):
+def create_slow_feature_loss(feature, weight, delta=1.0):
     """return a constrastive slow feature analysis loss
     Args:
         feature: A tensor of shape [batch, time, dim]
@@ -360,7 +367,7 @@ def slow_feature_loss(feature, weight, delta=1.0):
     return R2, tf.reduce_sum(R2) / tf.cast(batch_size, tf.float32)
 
 
-def l2_loss(var_list):
+def create_l2_loss(var_list):
     """return L2 norm of all variables in var_list."""
     l2_loss = tf.reduce_sum(tf.add_n(
         [tf.nn.l2_loss(var) for var in var_list]))

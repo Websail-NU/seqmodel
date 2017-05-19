@@ -2,8 +2,11 @@ from functools import partial
 import time
 import tensorflow as tf
 
-from seqmodel import model as tfm
 from seqmodel import dstruct as ds
+
+
+__all__ = ['_no_run', 'default_training_opt', 'update_learning_rate',
+           'is_done_training_early', 'run_epoch', 'train']
 
 
 def _no_run(*args, **kwargs):
@@ -11,7 +14,7 @@ def _no_run(*args, **kwargs):
 
 
 def default_training_opt():
-    return {'train:max_epoch': 1, 'train:init_lr': 0.001, 'lr:min_lr': 1e-6,
+    return {'train:max_epoch': 10, 'train:init_lr': 0.001, 'lr:min_lr': 1e-6,
             'train:optim_class': 'tensorflow.train.AdamOptimizer',
             'optim:epsilon': 1e-3, 'lr:start_decay_at': 1, 'lr:decay_every': 1,
             'lr:decay_factor': 1.0, 'lr:imp_ratio_threshold': 0, 'lr:imp_wait': 2}

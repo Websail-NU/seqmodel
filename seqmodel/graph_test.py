@@ -37,7 +37,7 @@ class TestGraph(tf.test.TestCase):
             for i, last in enumerate(self.seq_len):
                 if last == 0:
                     continue
-                self.assertAllEqual(o_[last - 1, i, :], x_[i])  # last relevant is correct
+                np.testing.assert_array_equal(o_[last - 1, i, :], x_[i])
 
     def test_tdnn(self):
         with self.test_session(config=self.sess_config) as sess:

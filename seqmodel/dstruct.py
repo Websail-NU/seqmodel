@@ -6,6 +6,11 @@ import six
 import time
 import math
 
+
+__all__ = ['BatchTuple', 'SeqFeatureTuple', 'SeqLabelTuple', 'Seq2SeqFeatureTuple',
+           'OutputStateTuple', 'IndexScoreTuple', 'Vocabulary', 'TrainingState',
+           'RunningInfo']
+
 ########################################################
 #    ######## ##     ## ########  ##       ########    #
 #       ##    ##     ## ##     ## ##       ##          #

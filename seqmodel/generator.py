@@ -8,6 +8,10 @@ import numpy as np
 from seqmodel import dstruct
 from seqmodel import util
 
+
+__all__ = ['open_files', 'read_lines', 'read_seq_data', 'read_seq2seq_data',
+           'batch_iter', 'seq_batch_iter', 'seq2seq_batch_iter']
+
 ##################################################
 #    ######## #### ##       ########  ######     #
 #    ##        ##  ##       ##       ##    ##    #
