@@ -10,23 +10,9 @@ def _no_run(*args, **kwargs):
     pass
 
 
-def run_epoch(sess, model, batch_iter, train_op=None):
-    info = ds.RunningInfo()
-    if train_op:
-        run_fn = partial(model.train, sess, train_op=train_op)
-    else:
-        run_fn = partial(model.evaluate, sess)
-    state = None
-    for batch in batch_iter():
-        result, __ = run_fn(batch.features, batch.labels, state=state,
-                            fetch_state=batch.keep_state)
-        if batch.keep_state and isinstance(result, ds.OutputStateTuple):
-            result, state = result
-        else:
-            state = None
-        info.update_step(result, batch.num_tokens)
-    info.end()
-    return info
+def default_lr_update_opt():
+    return {'lr:min_lr': 1e-6, 'lr:start_decay_at': 1, 'lr:decay_every': 1,
+            'lr:decay_factor': 1.0, 'lr:imp_ratio_threshold': 0, 'lr:imp_wait': 2}
 
 
 def update_learning_rate(set_lr_fn, train_state, min_lr=1e-6, start_decay_at=1,
@@ -37,7 +23,7 @@ def update_learning_rate(set_lr_fn, train_state, min_lr=1e-6, start_decay_at=1,
     if train_state.cur_epoch < start_decay_at or train_state.cur_epoch == 0:
         # waiting to start decay
         set_lr_fn(new_lr)
-        return old_lr  # EARLY RETURN
+        return old_lr  # EARLY RETURN!
     if decay_every > 0 and train_state.cur_epoch % decay_every == 0:
         # schedule decay
         new_lr = old_lr * decay_factor
@@ -64,16 +50,35 @@ def is_done_training_early(train_state, imp_wait=2):
     return train_state.imp_wait >= imp_wait
 
 
+def run_epoch(sess, model, batch_iter, train_op=None):
+    info = ds.RunningInfo()
+    if train_op:
+        run_fn = partial(model.train, sess, train_op=train_op)
+    else:
+        run_fn = partial(model.evaluate, sess)
+    state = None
+    for batch in batch_iter():
+        result, __ = run_fn(batch.features, batch.labels, state=state,
+                            fetch_state=batch.keep_state)
+        if batch.keep_state and isinstance(result, ds.OutputStateTuple):
+            result, state = result
+        else:
+            state = None
+        info.update_step(result, batch.num_tokens)
+    info.end()
+    return info
+
+
 def train(train_run_epoch_fn, logger, max_epoch=1, train_state=None,
-          valid_run_epoch_fn=_no_run, begin_epoch_fn=_no_run, end_epoch_fn=_no_run):
+          valid_run_epoch_fn=None, begin_epoch_fn=_no_run, end_epoch_fn=_no_run):
     train_state = ds.TrainingState() if train_state is None else train_state
     for epoch in range(max_epoch):
         begin_epoch_fn(train_state)
         logger.info(train_state.summary(mode='train'))
         state_info = train_run_epoch_fn()
         logger.info(state_info.summary(mode='train'))
-        valid_info = valid_run_epoch_fn()
-        if valid_info:
+        if valid_run_epoch_fn is not None:
+            valid_info = valid_run_epoch_fn()
             logger.info(valid_info.summary(mode='valid'))
             state_info = valid_info
         train_state.update_epoch(state_info)
