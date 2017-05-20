@@ -127,11 +127,10 @@ class Model(object):
         if mode in self._fetches:
             fetch = self._fetches[mode]
         elif mode[0] == Model._PREDICT_ and len(mode) > 1:
-            if mode not in self._fetches:
+            fetch = self._fetches.get(mode, None)
+            if fetch is None:
                 fetch = [util.get_with_dot_key(self._predict_fetch, mode[1]), self._no_op]
                 self._fetches[mode] = fetch
-            else:
-                fetch = self._fetches[mode]
         else:
             raise ValueError(f'{mode} is a not valid mode')
         extra_fetch = self._get_extra_fetch(extra_fetch, **kwargs)
