@@ -1,6 +1,7 @@
+import random
+
 from seqmodel.data.environment import Env
-from seqmodel.metric import sentence_bleu
-from seqmodel.metric import max_ref_sentence_bleu
+from seqmodel.metric import *
 
 
 class LangRewardMode(object):
@@ -12,11 +13,24 @@ class LangRewardMode(object):
 
 class Word2SeqEnv(Env):
 
-    def __init__(self, generator, references, re_init=False,
+    def __init__(self, generator, re_init=False,
                  reward_mode=LangRewardMode.SEN_BLEU):
         super(Word2SeqEnv, self).__init__(generator, re_init)
-        self._refs = references
         self._mode = reward_mode
+
+    def _select_reference(self, references):
+        # XXX: Just random for now
+        return random.choice(references)
+
+    def get_ref_actions(self, obs, **kwargs):
+        all_batch_refs = self._generator.get_batch_refs(obs)
+        batch_refs = []
+        max_len = 0
+        for references in all_batch_refs:
+            ref = self._select_reference(references)
+            max_len = max(max_len, len(ref))
+            batch_refs.append(ref)
+        return self._generator.format_data(batch_refs, max_len)
 
     def _reward(self, action, new_obs, done):
         step = len(self.transitions)
@@ -25,8 +39,8 @@ class Word2SeqEnv(Env):
         for ib in range(len(action)):
             if inactive_batch[ib]:
                 continue
-            word_id = self._ref_state.features.encoder_input[1, ib]
-            references = self._refs[word_id]
+            # word_id = self._ref_state.features.encoder_input[1, ib]
+            references = self._generator.get_refs(self._ref_state, ib)
             if (self._mode == LangRewardMode.SEN_BLEU or
                     self._mode == LangRewardMode.SEN_MAX_BLEU):
                 rewards[ib] = self._bleu_reward(
@@ -66,40 +80,11 @@ class Word2SeqEnv(Env):
             return 0.0
         candidate = [t.action[ib] for t in self.transitions]
         candidate.append(action)
-        best_avg_match = 0.0
-        best_match = None
-        for ir, ref in enumerate(references):
-            match = []
-            num_match = 0
-            for it in range(len(ref)):
-                if it >= len(candidate):
-                    break
-                else:
-                    match.append(float(candidate[it] == ref[it]))
-                    num_match += 1
-            avg_match = float(num_match) / len(ref)
-            if avg_match > best_avg_match:
-                best_avg_match = avg_match
-                best_match = match
+        best_avg_match, best_match, best_ref = max_word_overlap(
+            references, candidate)
         if best_match is None:
             return 0.0
-        length = float(len(best_match))
+        length = float(len(best_ref))
         for step, match in enumerate(best_match[:-1]):
             self._transitions[step].reward[ib] = match / length
         return best_match[-1] / length
-
-    # def _reward(self, action, new_obs, done):
-    #     step = len(self.transitions)
-    #     lengths = self._ref_state.features.decoder_seq_len
-    #     labels = self._ref_state.labels.decoder_label
-    #     inactive_batch = self._cur_obs.features.decoder_seq_len == 0
-    #     rewards = [0.0 for _ in range(len(action))]
-    #     if len(self._transitions) == 0:
-    #         return rewards
-    #     for ib in range(len(action)):
-    #         if inactive_batch[ib]:
-    #             continue
-    #         prev_action = self._transitions[-1].action[ib]
-    #         if action[ib] == prev_action:
-    #             rewards[ib] = -1
-    #     return rewards

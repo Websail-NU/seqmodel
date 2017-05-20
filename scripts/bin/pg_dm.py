@@ -31,22 +31,10 @@ def _restore_params(sess):
             key = key[:-2]
             var_list_value[key] = v
     saver = tf.train.Saver(var_list=var_list_policy)
-    saver.restore(sess, 'experiment/dm/mle/model/best')
+    saver.restore(sess, 'experiment/wn_lemma/mle_short/model/best')
     if len(var_list_value) > 0:
         saver = tf.train.Saver(var_list=var_list_value)
-        saver.restore(sess, 'experiment/dm/mle/model/best')
-
-
-def _create_references(context):
-    references = {}
-    for key in context.iterators:
-        def_data = context.iterators[key].data
-        for entry in def_data:
-            word = entry[0][0]
-            definitions = references.get(word, [])
-            definitions.append(entry[1])
-            references[word] = definitions
-    return references
+        saver.restore(sess, 'experiment/wn_lemma/mle_short/model/best')
 
 
 def main():
@@ -70,19 +58,16 @@ def main():
             context.logger.info('{}, {}'.format(v.name, v.get_shape()))
         sess.run(tf.global_variables_initializer())
         _restore_params(sess)
-        references = _create_references(context)
         context.iterators.train._remove_duplicate_words()
         context.iterators.valid._remove_duplicate_words()
         # context.iterators.test._remove_duplicate_words()
-        train_env = data.env.Word2SeqEnv(
-            context.iterators.train, references,
-            reward_mode=reward_mode)
-        valid_env = data.env.Word2SeqEnv(
-            context.iterators.valid, references,
-            reward_mode=reward_mode)
+        train_env = data.env.Word2SeqEnv(context.iterators.train,
+                                         reward_mode=reward_mode)
+        valid_env = data.env.Word2SeqEnv(context.iterators.valid,
+                                         reward_mode=reward_mode)
         # test_env = data.env.Word2SeqEnv(context.iterators.test, references)
         context.agent.policy_gradient(
-            train_env, 128, valid_env, 32, max_steps=40, context=context,
+            train_env, 64, valid_env, 32, max_steps=40, context=context,
             num_acc_rollouts=1)
     context.logger.info('Total time: {}s'.format(time.time() - start_time))
 

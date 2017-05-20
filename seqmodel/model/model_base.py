@@ -61,7 +61,7 @@ class ExecutableModel(object):
         self._features = feature_tuple
         self._labels = label_tuple
         self._no_op = tf.no_op()
-        self._fetches = {}
+        self._fetches = {'None': [self._no_op]}
 
     def predict(self, sess, feature_tuple, state=None,
                 output_key='prediction', **kwargs):
@@ -94,7 +94,7 @@ class ExecutableModel(object):
                 train_op: tensorflow optimizer node
                 state: previous state of the model
             Kwargs:
-                info_fetch: a list of nodes to fetch (for debugging)
+                info_fetch: a list of node name (str) to fetch (for debugging)
                 c_feed: a dictionary for custom feed
                 See _get_feed() and _get_fetch for full detail
             Returns:
@@ -162,8 +162,20 @@ class ExecutableModel(object):
 
     def _get_info_fetch(self, fetch, **kwargs):
         if fetch is None:
-            return [self._no_op]
-        return fetch
+            return self._fetches['None']
+        fetch_nodes = {}
+        cache_key = tuple(fetch)
+        if cache_key in self._fetches:
+            return self._fetches[cache_key]
+        for fetch_str in fetch:
+            node = self._nodes.get_nested_value(fetch_str.split('.'))
+            if node is None:
+                fetch_nodes[fetch_str] = self._no_op
+            else:
+                fetch_nodes[fetch_str] = node
+        info = [fetch_nodes]
+        self._fetches[cache_key] = info
+        return info
 
     def _set_state_fetch(self, **kwargs):
         return self._no_op

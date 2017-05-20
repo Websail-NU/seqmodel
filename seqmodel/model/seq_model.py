@@ -20,7 +20,7 @@ from seqmodel.model import rnn_module as rnn_module
 from seqmodel.model import decoder as decoder_module
 from seqmodel.model.model_base import ModelBase
 from seqmodel.model.model_base import ExecutableModel
-from seqmodel.model.losses import xent_loss
+from seqmodel.model import losses as loss_util
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -63,13 +63,16 @@ class SeqModel(ModelBase):
             output.distribution = decoder_output.distribution
             output.max_pred = decoder_output.max_pred
             output.sample_pred = decoder_output.sample_pred
+            output.max_id = decoder_output.max_id
+            output.sample_id = decoder_output.sample_id
             setting.logit_temperature = decoder_output.logit_temperature
             logit_temperature = setting.logit_temperature
             output.prediction = output[self.opt.output_mode]
         assert output.logit is not None,\
             "Need logit node to compute loss."
         losses, loss_denom = self._loss(
-            output.logit, labels.label, labels.label_weight)
+            output.logit, labels.label, labels.label_weight,
+            distribution=output.distribution)
         setting.training_loss_denom = loss_denom
         if not output.is_attr_set('prediction'):
             output.prediction = output.rnn
@@ -80,16 +83,19 @@ class SeqModel(ModelBase):
             decoder_output.final_state, loss_denom, logit_temperature)
         return model
 
-    def _loss(self, logit, label, weight, seq_weight=None):
+    def _loss(self, logit, label, weight, seq_weight=None, distribution=None):
         if self.opt.loss_type == 'xent':
-            t_loss, training_loss, loss_denom, eval_loss = xent_loss(
+            t_loss, training_loss, loss_denom, eval_loss = loss_util.xent_loss(
                 logit, label, weight, seq_weight)
             losses = Bunch(tokens_loss=t_loss,
                            training_loss=training_loss,
                            eval_loss=eval_loss)
+            weight = tf.cast(tf.not_equal(weight, 0), tf.float32)
+            ent_loss = loss_util.ent_loss(distribution, weight, seq_weight)
+            losses.entropy_loss = ent_loss
         elif self.opt.loss_type == 'mse':
-            if seq_weight is not None:
-                weight = tf.multiply(weight, seq_weight)
+            # if seq_weight is not None:
+            #     weight = tf.multiply(weight, seq_weight)
             logit = tf.squeeze(logit, axis=-1)
             # weight = tf.cast(tf.not_equal(weight, 0), tf.float32)
             loss = tf.losses.mean_squared_error(
@@ -145,6 +151,10 @@ class ExeSeqModel(ExecutableModel):
             assert state is not None,\
                 "new_seq is False, state cannot be None."
             rnn_module.feed_state(feed_dict, self._feed_state, state)
+
+    @property
+    def entropy_loss(self):
+        return self._nodes.losses.entropy_loss
 
 
 class BasicSeqModel(SeqModel):

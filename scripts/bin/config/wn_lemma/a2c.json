@@ -1,0 +1,274 @@
+{
+  "agent_class": "seqmodel.experiment.policy_agent.ActorCriticAgent",
+  "agent_opt": {
+    "discount_factor": 0.9,
+    "ref_seq_weight": 0.4,
+    "optim": {
+      "clip_gradients": 10.0,
+      "init_scale": 0.04,
+      "learning_rate": 0.001,
+      "lr_decay_every": -1,
+      "lr_decay_factor": 0.75,
+      "lr_decay_imp_ratio": 0.995,
+      "lr_decay_wait": 2,
+      "lr_min": 1e-05,
+      "lr_start_decay_at": 30,
+      "max_epochs": 30,
+      "name": "AdamOptimizer",
+      "reg_entropy_weight": 0.005
+    },
+    "policy_model": {
+      "model_class": "seqmodel.model.definition_model.DefinitionModel",
+      "model_opt": {
+        "decoder": {
+          "class_name": "seqmodel.model.decoder.RNNDecoder",
+          "opt": {
+            "init_with_encoder_state": true
+          },
+          "rnn_class_name": "seqmodel.model.rnn_module.FixedContextRNNModule",
+          "rnn_opt": {
+            "create_zero_initial_state": false,
+            "logit": {
+              "name_prefix": "logit",
+              "out_vocab_size": 27300,
+              "trainable": true,
+              "use_bias": true
+            },
+            "rnn_cell": {
+              "cell_class": "tf.contrib.rnn.BasicLSTMCell",
+              "cell_opt": {
+                "num_units": 300
+              },
+              "input_keep_prob": 0.75,
+              "num_layers": 2,
+              "output_all_states": false,
+              "output_keep_prob": 0.5,
+              "vrrn": false
+            },
+            "time_major": true,
+            "transform_input_mode": "ignored",
+            "transform_output_mode": "highway"
+          },
+          "share": {
+            "encoder_embedding": false,
+            "encoder_rnn_params": true,
+            "logit_weight_tying": false
+          }
+        },
+        "embedding": {
+          "char_dim": 55,
+          "char_init_filepath": null,
+          "char_one_hot": true,
+          "char_trainable": false,
+          "char_vocab_size": 55,
+          "decoder_dim": 300,
+          "decoder_init_filepath": "../../data/common_wordnet_defs/lemma_senses/dec_emb.npy",
+          "decoder_trainable": false,
+          "decoder_vocab_size": 27300,
+          "encoder_dim": 300,
+          "encoder_init_filepath": "../../data/common_wordnet_defs/lemma_senses/enc_emb.npy",
+          "encoder_trainable": false,
+          "encoder_vocab_size": 35135,
+          "word_feature_dim": 2,
+          "word_feature_init_filepath": null,
+          "word_feature_trainable": false,
+          "word_feature_vocab_size": 2
+        },
+        "encoder": {
+          "class_name": "seqmodel.model.encoder.DefWordEncoder",
+          "opt": {
+            "word_info_keep_prob": 0.75
+          },
+          "rnn_class_name": "seqmodel.model.rnn_module.BasicRNNModule",
+          "rnn_opt": {
+            "create_zero_initial_state": false,
+            "logit": null,
+            "rnn_cell": {
+              "cell_class": "tf.contrib.rnn.BasicLSTMCell",
+              "cell_opt": {
+                "num_units": 300
+              },
+              "input_keep_prob": 0.75,
+              "num_layers": 2,
+              "output_all_states": false,
+              "output_keep_prob": 0.5,
+              "vrrn": false
+            },
+            "time_major": true
+          },
+          "tdnn_opt": {
+            "activation_fn": "tf.nn.relu",
+            "filter_widths": [
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "num_filters": [
+              10,
+              30,
+              40,
+              40,
+              40
+            ]
+          }
+        },
+        "loss_type": "xent",
+        "output_mode": "distribution",
+        "word_context": {
+          "share_feature_dec_embedding": false,
+          "use_chars": true,
+          "use_features": false,
+          "use_word": true
+        }
+      }
+    },
+    "value_model": {
+      "model_class": "seqmodel.model.definition_model.DefinitionModel",
+      "model_opt": {
+        "decoder": {
+          "class_name": "seqmodel.model.decoder.RNNDecoder",
+          "opt": {
+            "init_with_encoder_state": true
+          },
+          "rnn_class_name": "seqmodel.model.rnn_module.FixedContextRNNModule",
+          "rnn_opt": {
+            "create_zero_initial_state": false,
+            "logit": {
+              "name_prefix": "regression",
+              "out_vocab_size": 1,
+              "trainable": true,
+              "use_bias": true
+            },
+            "rnn_cell": {
+              "cell_class": "tf.contrib.rnn.BasicLSTMCell",
+              "cell_opt": {
+                "num_units": 300
+              },
+              "input_keep_prob": 0.75,
+              "num_layers": 2,
+              "output_all_states": false,
+              "output_keep_prob": 0.5,
+              "vrrn": false
+            },
+            "time_major": true,
+            "transform_input_mode": "ignored",
+            "transform_output_mode": "highway"
+          },
+          "share": {
+            "encoder_embedding": false,
+            "encoder_rnn_params": true,
+            "logit_weight_tying": false
+          }
+        },
+        "embedding": {
+          "char_dim": 55,
+          "char_init_filepath": null,
+          "char_one_hot": true,
+          "char_trainable": false,
+          "char_vocab_size": 55,
+          "decoder_dim": 300,
+          "decoder_init_filepath": "../../data/common_wordnet_defs/lemma_senses/dec_emb.npy",
+          "decoder_trainable": false,
+          "decoder_vocab_size": 27300,
+          "encoder_dim": 300,
+          "encoder_init_filepath": "../../data/common_wordnet_defs/lemma_senses/enc_emb.npy",
+          "encoder_trainable": false,
+          "encoder_vocab_size": 35135,
+          "word_feature_dim": 2,
+          "word_feature_init_filepath": null,
+          "word_feature_trainable": false,
+          "word_feature_vocab_size": 2
+        },
+        "encoder": {
+          "class_name": "seqmodel.model.encoder.DefWordEncoder",
+          "opt": {
+            "word_info_keep_prob": 0.75
+          },
+          "rnn_class_name": "seqmodel.model.rnn_module.BasicRNNModule",
+          "rnn_opt": {
+            "create_zero_initial_state": false,
+            "logit": null,
+            "rnn_cell": {
+              "cell_class": "tf.contrib.rnn.BasicLSTMCell",
+              "cell_opt": {
+                "num_units": 300
+              },
+              "input_keep_prob": 0.75,
+              "num_layers": 2,
+              "output_all_states": false,
+              "output_keep_prob": 0.5,
+              "vrrn": false
+            },
+            "time_major": true
+          },
+          "tdnn_opt": {
+            "activation_fn": "tf.nn.relu",
+            "filter_widths": [
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "num_filters": [
+              10,
+              30,
+              40,
+              40,
+              40
+            ]
+          }
+        },
+        "loss_type": "mse",
+        "output_mode": "logit",
+        "word_context": {
+          "share_feature_dec_embedding": false,
+          "use_chars": true,
+          "use_features": false,
+          "use_word": true
+        }
+      }
+    }
+  },
+  "data_dir": "../../data/common_wordnet_defs/lemma_senses/",
+  "data_source": {
+    "test": "test.txt",
+    "train": "train.txt",
+    "valid": "valid.txt"
+  },
+  "feature_source": {
+    "test": "test_features.txt",
+    "train": "train_features.txt",
+    "valid": "valid_features.txt"
+  },
+  "iterator_class": "seqmodel.data.definition_iterator.Word2DefIterator",
+  "iterator_keys": [
+    "train",
+    "valid",
+    "test"
+  ],
+  "iterator_opt": {
+    "add_end_enc": true,
+    "add_end_seq": true,
+    "add_start_dec": true,
+    "add_start_seq": true,
+    "seq_delimiter": "\t",
+    "shuffle": true,
+    "truncate_batch": true,
+    "reweight_duplicate_words": true
+  },
+  "vocab_files": {
+    "char_vocab": "char_vocab.txt",
+    "in_vocab": "enc_vocab.txt",
+    "out_vocab": "dec_vocab.txt"
+  },
+  "writeout_opt": {
+    "checkpoint_dir": "model/",
+    "experiment_dir": "experiment/wn_lemma/a2c",
+    "log_file": "experiment.log",
+    "report_step_every": 1000,
+    "training_state": "training_state.json"
+  }
+}

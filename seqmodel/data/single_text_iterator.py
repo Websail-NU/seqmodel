@@ -208,6 +208,7 @@ class TokenIterator(TextIterator):
         if batch is None:
             if re_init:
                 self.init_batch(self._batch_size)
+                batch = self.next_batch()
             else:
                 return None, None
         batch = SeqTuple(batch.features, batch.labels, True, batch.num_tokens)

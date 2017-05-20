@@ -96,4 +96,6 @@ class RNNDecoder(Decoder):
                 outputs.logit, outputs.distribution)
             outputs.max_pred = max_tuple
             outputs.sample_pred = sample_tuple
+            outputs.max_id = max_tuple.index
+            outputs.sample_id = sample_tuple.index
         return outputs

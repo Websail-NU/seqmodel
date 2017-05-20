@@ -137,5 +137,8 @@ class Env(object):
     def create_transition_value(self, states, values):
         return self._generator.replace_labels(states, values)
 
+    def get_ref_state(self, **kwargs):
+        return self._ref_state
+
     def _reward(self, action, new_obs, done):
         return [0.0 for _ in range(len(action))]

@@ -42,12 +42,13 @@ class RunningInfo(object):
 
 class RLRunningInfo(RunningInfo):
     def __init__(self, start_time=None, end_time=None,
-                 eval_cost=0.0, training_cost=0.0,
-                 num_tokens=0, step=0, num_episodes=0, baseline_cost=0.0):
+                 eval_cost=0.0, training_cost=0.0, num_tokens=0, step=0,
+                 num_episodes=0, baseline_cost=0.0, entropy_cost=0.0):
         super(RLRunningInfo, self).__init__(
             start_time, end_time, eval_cost, training_cost, num_tokens, step)
         self.num_episodes = num_episodes
         self.baseline_cost = baseline_cost
+        self.entropy_cost = entropy_cost
 
     @property
     def eval_loss(self):
@@ -57,12 +58,17 @@ class RLRunningInfo(RunningInfo):
     def baseline_loss(self):
         return self.baseline_cost / self.step
 
+    @property
+    def entropy_loss(self):
+        return self.entropy_cost / self.step
+
     def summary_string(self, report_mode='training'):
         if report_mode == 'training':
             return ("@{} tr_loss: {:.5f}, base_loss: {:.5f}, "
+                    "entropy: {:.5f}, "
                     "avg_return: {:.5f}, wps: {:.1f}").format(
-                self.step, self.training_loss,
-                self.baseline_loss, -1 * self.eval_loss, self.wps)
+                self.step, self.training_loss, self.baseline_loss,
+                -1 * self.entropy_loss, -1 * self.eval_loss, self.wps)
         else:
             return ("@{} avg_return: {:.5f}, wps: {:.1f}").format(
                 self.step, -1 * self.eval_loss, self.wps)

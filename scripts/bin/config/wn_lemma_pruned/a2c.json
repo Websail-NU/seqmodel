@@ -3,17 +3,18 @@
   "agent_opt": {
     "discount_factor": 0.9,
     "optim": {
-      "clip_gradients": 5.0,
+      "clip_gradients": 10.0,
       "init_scale": 0.04,
-      "learning_rate": 0.05,
-      "lr_decay_every": 1,
-      "lr_decay_factor": 0.5,
-      "lr_decay_imp_ratio": 1,
-      "lr_decay_wait": 4,
-      "lr_min": 1e-06,
-      "lr_start_decay_at": 40,
-      "max_epochs": 40,
-      "name": "GradientDescentOptimizer"
+      "learning_rate": 0.0001,
+      "lr_decay_every": -1,
+      "lr_decay_factor": 0.75,
+      "lr_decay_imp_ratio": 0.995,
+      "lr_decay_wait": 2,
+      "lr_min": 1e-05,
+      "lr_start_decay_at": 30,
+      "max_epochs": 30,
+      "name": "AdamOptimizer",
+      "reg_entropy_weight": 0.01
     },
     "policy_model": {
       "model_class": "seqmodel.model.definition_model.DefinitionModel",
@@ -264,7 +265,7 @@
   },
   "writeout_opt": {
     "checkpoint_dir": "model/",
-    "experiment_dir": "experiment/dm/a2c",
+    "experiment_dir": "experiment/wn_lemma_pruned/a2c",
     "log_file": "experiment.log",
     "report_step_every": 1000,
     "training_state": "training_state.json"
