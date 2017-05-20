@@ -2,31 +2,50 @@
 
 A code base for creating and running sequence models of language. Including
 language modeling, definition modeling, and common encoder-decoder stuffs.
+**Required python 3.6**.
 
 ## Overview
-- data: iterates data in batch, output a tuple (see common_tuple.py)
-- experiment: defines training procedure and provide friendly interfaces for usage
-- model: creates graph nodes that interfaces with data, and provides feed and fetch for sess.run()
-- model.module: creates graph nodes
+- dstruct.py: basic data structures and tuples
+- generator.py: functions data reader and batch generator
+- graph.py: functions to create various types of graphs
+- model.py: runnable models from configuration
+- run.py: functions to train and evaluate model (data + model -> result)
+- util.py: utility functions (dictionary, array, and logging)
 
 ## TODO
 
+### Refactor:
+- [x] SeqModel
+- [x] Basic running function
+- [x] Learning rate update function
+- [x] Scripts to get data
+- [ ] Main file to run language model
+- [ ] Seq2SeqModel
+- [ ] Sampled-based running functions
+- [ ] Definition data reader
+- [ ] DefinitionModel
+- [ ] Scripts to get definition data
+
+
 ### Model
 - [ ] Make it possible to share variables between 2 different models
-- [ ] Pass `reuse` when building graph (not create an object)
-- [ ] Reuse placeholder variables when creating a model with `reuse=True`
-- [x] Replace highway-like update with GRU-like update in definition model (to replicate original paper)
-- [ ] Cache encoder state in ExeSeq2SeqModel such that we don't need to fetch the same thing all the time
+- [x] Reuse placeholder variables when creating a model
+- [ ] Use sess.partialrun() to cache encoder state
 
-### Agent
+### Run
 - [x] Add teacher forcing
 - [ ] TD(lambda)
 - [ ] Bootstrap last state if not terminal
 
-### Data
-- [ ] New reward functions
-- [ ] Handle different padding ids when concat data tuples
+### Generator
+
 
 ### Scripts
-- [ ] More flexible scripts to create configuration templates
-- [ ] Refactor policy gradient definition modeling script
+
+
+## Goal:
+Less classes, more pythonic, and more unit test.
+
+After refactoring codes several times, I think OOP works againt my progress. It makes
+the project hard to add/change functions. It is also hard to read the code because
+relevant sequences of code are fragmented every where to fit the object's semantics.

@@ -1,0 +1,1000 @@
+a i j j i i f i f 	 a i j j i i f i f
+h g f c j d i 	 h g f c j d i
+e h i d d i b 	 e h i d d i b
+f b h h 	 f b h h
+h j h i c h i i c 	 h j h i c h i i c
+a c g b b 	 a c g b b
+h b j g e d d i c 	 h b j g e d d i c
+h b h h f 	 h b h h f
+g j 	 g j
+b j 	 b j
+j e i c i d e i 	 j e i c i d e i
+j a j d a f g f 	 j a j d a f g f
+c d h i j b d g h 	 c d h i j b d g h
+e d i e j j 	 e d i e j j
+h b c 	 h b c
+g h e f e d 	 g h e f e d
+b b f i h d c f c 	 b b f i h d c f c
+j e f g 	 j e f g
+e g j i c 	 e g j i c
+e e g h i 	 e e g h i
+a e a j b 	 a e a j b
+d b i c 	 d b i c
+a f f f i d g c 	 a f f f i d g c
+h j a d h b g 	 h j a d h b g
+i i g c e d 	 i i g c e d
+d f a f h 	 d f a f h
+h b f a d j e b 	 h b f a d j e b
+c a d a h c j f i 	 c a d a h c j f i
+d b e e i e j j a 	 d b e e i e j j a
+f a 	 f a
+b a f a b 	 b a f a b
+e i 	 e i
+d i d f 	 d i d f
+f e 	 f e
+j f a 	 j f a
+b b j h f d b 	 b b j h f d b
+j d e a f 	 j d e a f
+h g h i f 	 h g h i f
+i d e h 	 i d e h
+h a b b e c 	 h a b b e c
+h i 	 h i
+g i 	 g i
+f g j b f 	 f g j b f
+g j 	 g j
+g g d b h 	 g g d b h
+d b d a b e h a 	 d b d a b e h a
+b f e g e 	 b f e g e
+g g j e 	 g g j e
+h i a a e 	 h i a a e
+h h b 	 h h b
+d j f i i 	 d j f i i
+b a g 	 b a g
+h i d e j d i 	 h i d e j d i
+e f 	 e f
+f g c a j h d j 	 f g c a j h d j
+e h h e d 	 e h h e d
+i h i i 	 i h i i
+i g g i c d a g h 	 i g g i c d a g h
+b d d d i j i 	 b d d d i j i
+c e c h j c e d f 	 c e c h j c e d f
+a a f b g c e 	 a a f b g c e
+g c 	 g c
+i i c d b c c j 	 i i c d b c c j
+j c i j i b g a h 	 j c i j i b g a h
+j c f a h j d 	 j c f a h j d
+g e c c d i e 	 g e c c d i e
+b e i c d c a e c 	 b e i c d c a e c
+c b g e h c 	 c b g e h c
+b b d i 	 b b d i
+g h d e d j 	 g h d e d j
+e i b a g i f 	 e i b a g i f
+i e a i e 	 i e a i e
+e b b e e e e b 	 e b b e e e e b
+d c c 	 d c c
+f e i d i 	 f e i d i
+e a a f e a c 	 e a a f e a c
+a d b b j e b 	 a d b b j e b
+i e c f e i 	 i e c f e i
+d e j g b c 	 d e j g b c
+g i c f g b f j f 	 g i c f g b f j f
+i e h a i d b b 	 i e h a i d b b
+h f 	 h f
+d b b e e a i 	 d b b e e a i
+g a f 	 g a f
+f f b g i c d a j 	 f f b g i c d a j
+g j a j d g h g f 	 g j a j d g h g f
+d f h j j g 	 d f h j j g
+f c j d 	 f c j d
+j b d i 	 j b d i
+e i g j i 	 e i g j i
+h j i e 	 h j i e
+g f 	 g f
+f h h 	 f h h
+h h a h b j 	 h h a h b j
+i e e b h 	 i e e b h
+a j h c 	 a j h c
+b a c 	 b a c
+f j i i 	 f j i i
+f f g 	 f f g
+h g a f 	 h g a f
+f h h c b j 	 f h h c b j
+c f 	 c f
+d a d j j c h f c 	 d a d j j c h f c
+a b j h 	 a b j h
+f b 	 f b
+c c c a f d e 	 c c c a f d e
+b c h d 	 b c h d
+j g e c i a d 	 j g e c i a d
+g d i 	 g d i
+g e h 	 g e h
+g e g 	 g e g
+a c e f f a h 	 a c e f f a h
+e d f a b j i d f 	 e d f a b j i d f
+e b g d 	 e b g d
+i g f g h b j f c 	 i g f g h b j f c
+e e d d a a 	 e e d d a a
+j c g a e 	 j c g a e
+f a j e i e b 	 f a j e i e b
+c e d h a a f e j 	 c e d h a a f e j
+c a d f b g i i 	 c a d f b g i i
+f g f c c j f e a 	 f g f c c j f e a
+g d b e g f a d f 	 g d b e g f a d f
+a g c c i h 	 a g c c i h
+e e a g f e 	 e e a g f e
+j i 	 j i
+b c 	 b c
+j f 	 j f
+f c e f c i a i f 	 f c e f c i a i f
+d d b 	 d d b
+f j 	 f j
+c a j 	 c a j
+c f g e h g e e 	 c f g e h g e e
+i d c h 	 i d c h
+h b d a i b 	 h b d a i b
+b a d b a 	 b a d b a
+b f h g d h 	 b f h g d h
+d a h f h d 	 d a h f h d
+e b e e 	 e b e e
+d f d 	 d f d
+c b 	 c b
+i c c j 	 i c c j
+e e c a 	 e e c a
+f e g j a i c d e 	 f e g j a i c d e
+g a i g a 	 g a i g a
+d d f c a b g g 	 d d f c a b g g
+g b f f 	 g b f f
+g a g e e 	 g a g e e
+a i i 	 a i i
+e e j 	 e e j
+j a j b j b d g 	 j a j b j b d g
+c j g c a j a h 	 c j g c a j a h
+h e j 	 h e j
+c f a g d h d a g 	 c f a g d h d a g
+a h g 	 a h g
+g d e j 	 g d e j
+h i c 	 h i c
+g c a j h d g 	 g c a j h d g
+g i d 	 g i d
+a j 	 a j
+g g c j g e 	 g g c j g e
+e f i c f a c g 	 e f i c f a c g
+a a b d g b g b 	 a a b d g b g b
+i b d e f i g i 	 i b d e f i g i
+i i c b c 	 i i c b c
+g a d f i 	 g a d f i
+c h e a c d h i 	 c h e a c d h i
+d i a b c d c f 	 d i a b c d c f
+f b i j d i d 	 f b i j d i d
+i h i 	 i h i
+b h f f 	 b h f f
+d i j j d 	 d i j j d
+e a d g 	 e a d g
+a f a e 	 a f a e
+f g 	 f g
+d f c j b 	 d f c j b
+g i e d f e i 	 g i e d f e i
+i b f j e 	 i b f j e
+c i h b c a 	 c i h b c a
+g g h b f d a j 	 g g h b f d a j
+g a g f b c b j b 	 g a g f b c b j b
+h f d j j 	 h f d j j
+c b h f c a d e 	 c b h f c a d e
+h g c f 	 h g c f
+i a d g a 	 i a d g a
+j i i b j a f g f 	 j i i b j a f g f
+g b d f a e f c 	 g b d f a e f c
+j j 	 j j
+i h b c e g 	 i h b c e g
+f b h j 	 f b h j
+a b c 	 a b c
+j e h h i f h h 	 j e h h i f h h
+i i e c e 	 i i e c e
+i h b 	 i h b
+a i 	 a i
+d g 	 d g
+d f 	 d f
+h j g h 	 h j g h
+e b 	 e b
+c h i j e i e 	 c h i j e i e
+j e f g d 	 j e f g d
+i d a f i g g 	 i d a f i g g
+i i a 	 i i a
+d a 	 d a
+g c j i g h j i h 	 g c j i g h j i h
+c d 	 c d
+a j b g c h h 	 a j b g c h h
+b e j b g i d h f 	 b e j b g i d h f
+j h i 	 j h i
+e i d i i b 	 e i d i i b
+a g a j f c h i 	 a g a j f c h i
+c j 	 c j
+i c 	 i c
+a e h a b 	 a e h a b
+d f d g e f j 	 d f d g e f j
+d j j a h 	 d j j a h
+e f b f 	 e f b f
+h c i g g i h a 	 h c i g g i h a
+g c c f d a 	 g c c f d a
+f c g 	 f c g
+f e a f h b 	 f e a f h b
+a e f i h 	 a e f i h
+f c j d c i j f 	 f c j d c i j f
+f g 	 f g
+c f b f b j 	 c f b f b j
+j h 	 j h
+e b c a c g h 	 e b c a c g h
+j i c 	 j i c
+i c c c 	 i c c c
+j e c j b d i 	 j e c j b d i
+i b j d g 	 i b j d g
+c g e i b f b f a 	 c g e i b f b f a
+a b e g h j 	 a b e g h j
+a d e j e g d e 	 a d e j e g d e
+c j 	 c j
+a h g a d g f 	 a h g a d g f
+j e j j c f 	 j e j j c f
+a a e a g h e j g 	 a a e a g h e j g
+i g a c b b f j 	 i g a c b b f j
+a b f e b f e b h 	 a b f e b f e b h
+c d h i d e a 	 c d h i d e a
+g f a g 	 g f a g
+b g a 	 b g a
+g j 	 g j
+d a h 	 d a h
+b e e h 	 b e e h
+d b h g h a b g d 	 d b h g h a b g d
+b e f g f c e h g 	 b e f g f c e h g
+f f c f c g 	 f f c f c g
+j f a 	 j f a
+d a a b d 	 d a a b d
+d i 	 d i
+d h 	 d h
+d j a a i c h e 	 d j a a i c h e
+c a f j g i 	 c a f j g i
+d f 	 d f
+e b 	 e b
+e b a f e j j d 	 e b a f e j j d
+i g h 	 i g h
+c h e g c d a j 	 c h e g c d a j
+j j b g 	 j j b g
+h f d j h b e i c 	 h f d j h b e i c
+c h 	 c h
+e g c a f e f 	 e g c a f e f
+j a 	 j a
+a a j g a j f 	 a a j g a j f
+a e d g 	 a e d g
+i e c j h d g 	 i e c j h d g
+f c b d d h b g 	 f c b d d h b g
+a j j 	 a j j
+b d d j 	 b d d j
+a a e 	 a a e
+b a d g j f a 	 b a d g j f a
+h d i j h g b j 	 h d i j h g b j
+b c a 	 b c a
+i d 	 i d
+g g j b f d f d 	 g g j b f d f d
+i d i d f j f e 	 i d i d f j f e
+c f g f h f a i a 	 c f g f h f a i a
+c d j d g c c c 	 c d j d g c c c
+j g a 	 j g a
+i a i 	 i a i
+g i 	 g i
+c a b a b a 	 c a b a b a
+d g f c 	 d g f c
+i i i 	 i i i
+f e 	 f e
+d i e j d c j d 	 d i e j d c j d
+b c a b d j a e i 	 b c a b d j a e i
+b e 	 b e
+a a a j a c f 	 a a a j a c f
+i a 	 i a
+a g a f i 	 a g a f i
+j c j h c a j c 	 j c j h c a j c
+e e d d j a 	 e e d d j a
+g j j h c i e 	 g j j h c i e
+f c i f f d j c d 	 f c i f f d j c d
+j e i f c i g f 	 j e i f c i g f
+a c 	 a c
+j f e g 	 j f e g
+b f b b 	 b f b b
+i j a b d e i j g 	 i j a b d e i j g
+c a f g e c h 	 c a f g e c h
+g h i a a d c 	 g h i a a d c
+a e j a c i i 	 a e j a c i i
+i i e g h h e c 	 i i e g h h e c
+a g a b 	 a g a b
+i d a b i f d j 	 i d a b i f d j
+d g 	 d g
+e c e c j 	 e c e c j
+f d f f h d d j b 	 f d f f h d d j b
+b a 	 b a
+b a b j 	 b a b j
+j g d h f e e c 	 j g d h f e e c
+h e f a g 	 h e f a g
+f f b b e f a 	 f f b b e f a
+a j 	 a j
+j b f j c f j h f 	 j b f j c f j h f
+h d 	 h d
+a i f 	 a i f
+b a 	 b a
+c j h 	 c j h
+g g f i h h a f 	 g g f i h h a f
+e h a g 	 e h a g
+g e j c f a g 	 g e j c f a g
+b c 	 b c
+i d g c g 	 i d g c g
+f e f b 	 f e f b
+f h 	 f h
+g b c 	 g b c
+j f i e c 	 j f i e c
+a a i f b e g d 	 a a i f b e g d
+g i g e b h 	 g i g e b h
+i f 	 i f
+f j f 	 f j f
+i i a b j i j c d 	 i i a b j i j c d
+a g j i j f e 	 a g j i j f e
+f e 	 f e
+f e 	 f e
+c j j a j f b 	 c j j a j f b
+c f d i d f 	 c f d i d f
+i h b 	 i h b
+b e g 	 b e g
+d g a j e 	 d g a j e
+d c 	 d c
+j h c a d j b a d 	 j h c a d j b a d
+f f d h b e e 	 f f d h b e e
+c g j i e 	 c g j i e
+e c h a 	 e c h a
+h h i h i h j h e 	 h h i h i h j h e
+e a i j g f 	 e a i j g f
+b g b a 	 b g b a
+f f i h 	 f f i h
+i c a a c c g a 	 i c a a c c g a
+e g g f b 	 e g g f b
+c h a h d d g f h 	 c h a h d d g f h
+i b e c c b g j 	 i b e c c b g j
+e f h j b a 	 e f h j b a
+e c f f d b 	 e c f f d b
+g b e f j a e h e 	 g b e f j a e h e
+c h a g a c i 	 c h a g a c i
+e g f f c b b d 	 e g f f c b b d
+e f h e h f j 	 e f h e h f j
+b g j a h i 	 b g j a h i
+c b e f j d f i i 	 c b e f j d f i i
+b g c e g b 	 b g c e g b
+c i 	 c i
+b b a b a d c 	 b b a b a d c
+e d 	 e d
+h f a i i c j i a 	 h f a i i c j i a
+g h c 	 g h c
+a i a a j g e a g 	 a i a a j g e a g
+c b e d b j 	 c b e d b j
+b i f i j d e i j 	 b i f i j d e i j
+h e 	 h e
+c i b 	 c i b
+d a i b b b e 	 d a i b b b e
+e h c f h 	 e h c f h
+i g 	 i g
+e h d 	 e h d
+h a g a h a a f f 	 h a g a h a a f f
+b h b h h g c h 	 b h b h h g c h
+g i i c i b 	 g i i c i b
+d h h e f d 	 d h h e f d
+i j a 	 i j a
+a h j i g e d f 	 a h j i g e d f
+f a 	 f a
+h h e j d 	 h h e j d
+d d h c a h c 	 d d h c a h c
+i f h b h g a j b 	 i f h b h g a j b
+j g 	 j g
+g e a j b i g b f 	 g e a j b i g b f
+j i g i g c d j 	 j i g i g c d j
+c d a h a d c c e 	 c d a h a d c c e
+c d 	 c d
+e a b c i h i 	 e a b c i h i
+h g d c d i 	 h g d c d i
+c e j d 	 c e j d
+d j 	 d j
+e i b 	 e i b
+b c g g a f d 	 b c g g a f d
+b g d f b j j h 	 b g d f b j j h
+a c j j 	 a c j j
+i a g g c g 	 i a g g c g
+j a i h h f 	 j a i h h f
+d h i d e h 	 d h i d e h
+g c c g d j 	 g c c g d j
+d d 	 d d
+f c 	 f c
+a g f d j f 	 a g f d j f
+g d e g d a b d 	 g d e g d a b d
+a h e f c 	 a h e f c
+j h d j b j a i 	 j h d j b j a i
+a i h g i b b h g 	 a i h g i b b h g
+e i g h h e g 	 e i g h h e g
+d e d a b a a e j 	 d e d a b a a e j
+j a a f 	 j a a f
+b b j b a 	 b b j b a
+j h h c 	 j h h c
+h e e i 	 h e e i
+g g f 	 g g f
+d h i d h e 	 d h i d h e
+i i c h 	 i i c h
+a g f h g a h b f 	 a g f h g a h b f
+e b c e 	 e b c e
+a e j 	 a e j
+g b h b h b d h d 	 g b h b h b d h d
+d g h d f d j 	 d g h d f d j
+g b b c i 	 g b b c i
+c j i 	 c j i
+c h b g 	 c h b g
+a f j b 	 a f j b
+e f b d 	 e f b d
+i b i 	 i b i
+e b 	 e b
+b e 	 b e
+c h i i j e c 	 c h i i j e c
+f e 	 f e
+c g j b g a 	 c g j b g a
+f d f a 	 f d f a
+f j f i g b i e 	 f j f i g b i e
+a e a e 	 a e a e
+b b 	 b b
+g h d f j j 	 g h d f j j
+h g b g f i f g 	 h g b g f i f g
+b g f 	 b g f
+h g e f a h g 	 h g e f a h g
+h b g f f g i g 	 h b g f f g i g
+g i 	 g i
+h h 	 h h
+f j 	 f j
+d d e h b f i 	 d d e h b f i
+g a j d a c 	 g a j d a c
+f i e 	 f i e
+f g i c b f c 	 f g i c b f c
+g i j b d d 	 g i j b d d
+g h a b i b c d c 	 g h a b i b c d c
+e d f h g j c 	 e d f h g j c
+c f c h f a h h i 	 c f c h f a h h i
+b j g d c f j i h 	 b j g d c f j i h
+h c a 	 h c a
+e d 	 e d
+i f i e c i 	 i f i e c i
+a g h e e j 	 a g h e e j
+g e g 	 g e g
+e h a h h 	 e h a h h
+e g 	 e g
+h d 	 h d
+f e d c f h 	 f e d c f h
+b e a g 	 b e a g
+f d d i a 	 f d d i a
+d d i 	 d d i
+c d e f c h g i 	 c d e f c h g i
+i h c a g e e 	 i h c a g e e
+d i j b c 	 d i j b c
+f a a 	 f a a
+d j g h f b g 	 d j g h f b g
+i e a f 	 i e a f
+i g 	 i g
+g d j i f h 	 g d j i f h
+e g a j e h 	 e g a j e h
+i a j h 	 i a j h
+f j f d f e f g 	 f j f d f e f g
+d i f e a 	 d i f e a
+i d c c 	 i d c c
+j h e a b b g a b 	 j h e a b b g a b
+a d h 	 a d h
+c b i h e j 	 c b i h e j
+h i b g h e g a h 	 h i b g h e g a h
+h b g c a h d d b 	 h b g c a h d d b
+g f b j 	 g f b j
+a a 	 a a
+f g 	 f g
+a d g f h b 	 a d g f h b
+c h h e b i g f 	 c h h e b i g f
+i g h c i h f a 	 i g h c i h f a
+c j 	 c j
+c a g e 	 c a g e
+a a d d j g e e 	 a a d d j g e e
+h i e g a f 	 h i e g a f
+j h h e g a e e c 	 j h h e g a e e c
+c a f a e b a j i 	 c a f a e b a j i
+i c f d a d f h 	 i c f d a d f h
+a i b a a 	 a i b a a
+a c i 	 a c i
+f i c a d h e 	 f i c a d h e
+c c d e e f 	 c c d e e f
+b f i c f 	 b f i c f
+i b j a c b d j c 	 i b j a c b d j c
+h i j c g g d a a 	 h i j c g g d a a
+h c 	 h c
+c e c i b e j i 	 c e c i b e j i
+c f i j d 	 c f i j d
+h b 	 h b
+f j f e f j a 	 f j f e f j a
+g c c d f b h h 	 g c c d f b h h
+j a j b 	 j a j b
+c f 	 c f
+g a e 	 g a e
+j f f b b g a j 	 j f f b b g a j
+c b 	 c b
+j g f b d a 	 j g f b d a
+b e 	 b e
+g i b b i e h e j 	 g i b b i e h e j
+g j a j 	 g j a j
+d f 	 d f
+b h 	 b h
+a h i c c e a b i 	 a h i c c e a b i
+c c i d c 	 c c i d c
+a b h c j 	 a b h c j
+b c a a c h i 	 b c a a c h i
+h c a i h f j g b 	 h c a i h f j g b
+i b c a 	 i b c a
+d j i a b d j 	 d j i a b d j
+b d f b f j g 	 b d f b f j g
+a d d a d i g 	 a d d a d i g
+i i c f g 	 i i c f g
+i i c d 	 i i c d
+a e e h b d 	 a e e h b d
+c i b e d i g h c 	 c i b e d i g h c
+d j d b a h g 	 d j d b a h g
+i h f h c e 	 i h f h c e
+c a g 	 c a g
+h a d b a i c 	 h a d b a i c
+e f j h i c 	 e f j h i c
+h j j a h d 	 h j j a h d
+j h b i f d j i 	 j h b i f d j i
+e c h e d b b h 	 e c h e d b b h
+h g c f e b a c 	 h g c f e b a c
+e i h d 	 e i h d
+i i j e d d j 	 i i j e d d j
+a i a b f j a 	 a i a b f j a
+c b c j e b f d 	 c b c j e b f d
+g g e f a 	 g g e f a
+b f a 	 b f a
+i d d h j d g d 	 i d d h j d g d
+f j e e 	 f j e e
+d d e j 	 d d e j
+i a f d j i 	 i a f d j i
+e g j j 	 e g j j
+a a b e h i f j 	 a a b e h i f j
+h b f f g e g j 	 h b f f g e g j
+i h f c g a 	 i h f c g a
+a c e c 	 a c e c
+g e h e h 	 g e h e h
+a h h a j i j h 	 a h h a j i j h
+d i c a b b c a b 	 d i c a b b c a b
+e e e f 	 e e e f
+i h h f e g h b g 	 i h h f e g h b g
+f j j f i i g d e 	 f j j f i i g d e
+g j a j c j 	 g j a j c j
+f g f h i d 	 f g f h i d
+h e e c e e c e 	 h e e c e e c e
+g g e c i a i 	 g g e c i a i
+c d 	 c d
+c g e c 	 c g e c
+j f j 	 j f j
+g e a a g f h g 	 g e a a g f h g
+g a i 	 g a i
+b c b c a d h h 	 b c b c a d h h
+b e c 	 b e c
+i i 	 i i
+h h b 	 h h b
+g f j i b e b 	 g f j i b e b
+h b h 	 h b h
+e g b b f b h f 	 e g b b f b h f
+d e 	 d e
+h c 	 h c
+a b a j j 	 a b a j j
+a d i d e b d h e 	 a d i d e b d h e
+a c g d j e a d 	 a c g d j e a d
+f h 	 f h
+c e 	 c e
+d a j 	 d a j
+f d g j d a 	 f d g j d a
+h c d h i 	 h c d h i
+f f h j d j f i 	 f f h j d j f i
+d e a f i c e f 	 d e a f i c e f
+a i j a e c a j d 	 a i j a e c a j d
+i j c b 	 i j c b
+g f 	 g f
+b c c 	 b c c
+e g 	 e g
+c f f j a c a c b 	 c f f j a c a c b
+d c d f a h i d 	 d c d f a h i d
+g d b h b i j c 	 g d b h b i j c
+e b b 	 e b b
+d g 	 d g
+f h 	 f h
+i j j g g f j 	 i j j g g f j
+i d d e h i j 	 i d d e h i j
+j a a j h h g e d 	 j a a j h h g e d
+h e c i d a f 	 h e c i d a f
+c e g d 	 c e g d
+h i g h j 	 h i g h j
+a b f a j 	 a b f a j
+h c j c f i 	 h c j c f i
+g d b b d d 	 g d b b d d
+h d c a i 	 h d c a i
+f j c i j e a d 	 f j c i j e a d
+c d h d 	 c d h d
+e j h h e d d f 	 e j h h e d d f
+c h c h 	 c h c h
+a b d i i 	 a b d i i
+h g i g h i e d e 	 h g i g h i e d e
+b e 	 b e
+j e c a i j c f 	 j e c a i j c f
+b c a i d f a 	 b c a i d f a
+f j e h f c g f 	 f j e h f c g f
+a d j j 	 a d j j
+f f g a 	 f f g a
+h b j d d a a b a 	 h b j d d a a b a
+f c g a g 	 f c g a g
+g e j 	 g e j
+f c f g i f a 	 f c f g i f a
+d j i f d c j h 	 d j i f d c j h
+e b 	 e b
+d a c f b i b g c 	 d a c f b i b g c
+g a c h 	 g a c h
+e d b g d j c f a 	 e d b g d j c f a
+b j h c c 	 b j h c c
+f a g f e g 	 f a g f e g
+g c 	 g c
+d h a 	 d h a
+b d e g b g i i 	 b d e g b g i i
+h i a h a 	 h i a h a
+g h d a j c c d 	 g h d a j c c d
+i b g g h h f j 	 i b g g h h f j
+c d h 	 c d h
+g c h b h 	 g c h b h
+i e e d i e d i 	 i e e d i e d i
+j g 	 j g
+g j c d g d b j g 	 g j c d g d b j g
+b f g h d c c g 	 b f g h d c c g
+j d e i g 	 j d e i g
+i h a 	 i h a
+d i g a d g 	 d i g a d g
+d i h f 	 d i h f
+b d f c a j c f 	 b d f c a j c f
+e a b a i 	 e a b a i
+a j b a f f 	 a j b a f f
+f d 	 f d
+i e a i e f g c f 	 i e a i e f g c f
+f i j e h a 	 f i j e h a
+i f f i e h 	 i f f i e h
+d b e g j b 	 d b e g j b
+g h g h h 	 g h g h h
+c f f a 	 c f f a
+c g e i 	 c g e i
+j i i 	 j i i
+c d j 	 c d j
+i h e h 	 i h e h
+a i d c h f f h i 	 a i d c h f f h i
+b i j a i h e i a 	 b i j a i h e i a
+d e e h a a 	 d e e h a a
+f d h 	 f d h
+a j e e c j 	 a j e e c j
+j c b 	 j c b
+b e d e 	 b e d e
+e g e d b 	 e g e d b
+e i a d h 	 e i a d h
+i f h g 	 i f h g
+d e g d i d f 	 d e g d i d f
+a g f i d 	 a g f i d
+j j 	 j j
+c f b c f 	 c f b c f
+h d i a c a a b b 	 h d i a c a a b b
+e b h e 	 e b h e
+a g c e f b 	 a g c e f b
+d i j a 	 d i j a
+c c 	 c c
+j i i f a g f c h 	 j i i f a g f c h
+c d 	 c d
+f e e j c 	 f e e j c
+f c f 	 f c f
+i i c c 	 i i c c
+g c h a c b 	 g c h a c b
+j h h a f e i 	 j h h a f e i
+b g i b a b d 	 b g i b a b d
+f c f c d j a 	 f c f c d j a
+h g g e a e c e 	 h g g e a e c e
+i a 	 i a
+g d a b h 	 g d a b h
+e b j j i h 	 e b j j i h
+c a h a f j f 	 c a h a f j f
+i d h f 	 i d h f
+a a f a f b f 	 a a f a f b f
+c c i d j g g 	 c c i d j g g
+h e g 	 h e g
+c h h i 	 c h h i
+d c c f c e b i 	 d c c f c e b i
+j d 	 j d
+c j f c f 	 c j f c f
+e i a f d i j 	 e i a f d i j
+i e i j j g j j 	 i e i j j g j j
+f h b e 	 f h b e
+c b a j j g e 	 c b a j j g e
+h a d b e b c b 	 h a d b e b c b
+c h j f i 	 c h j f i
+b h c f j c i 	 b h c f j c i
+a b i a a j b 	 a b i a a j b
+h a d a 	 h a d a
+g j e b e g g e d 	 g j e b e g g e d
+j d e j 	 j d e j
+f h e e h j i c b 	 f h e e h j i c b
+f a b a e 	 f a b a e
+j f j g f c a 	 j f j g f c a
+g e h g e d 	 g e h g e d
+h f 	 h f
+h j j d 	 h j j d
+g c g a i h 	 g c g a i h
+e c g e g 	 e c g e g
+a d d a b d a e 	 a d d a b d a e
+c h j f h f g f 	 c h j f h f g f
+i d e 	 i d e
+b j a 	 b j a
+c a f b d a f 	 c a f b d a f
+h b e i h i f 	 h b e i h i f
+b g a f 	 b g a f
+j c f j b b h j f 	 j c f j b b h j f
+a a f d c 	 a a f d c
+g d h f h i 	 g d h f h i
+g g a c i 	 g g a c i
+h d i 	 h d i
+a b b f f b 	 a b b f f b
+g j a 	 g j a
+c h e j i b a 	 c h e j i b a
+f d b d b d e b g 	 f d b d b d e b g
+d b h b e c 	 d b h b e c
+i d b i g g i 	 i d b i g g i
+d h g 	 d h g
+d i h h j e a 	 d i h h j e a
+d g g g h e a d 	 d g g g h e a d
+c f i i f h c h b 	 c f i i f h c h b
+c e h i b i b a 	 c e h i b i b a
+f i e g g 	 f i e g g
+f i d f 	 f i d f
+e c 	 e c
+a g d a a f 	 a g d a a f
+e i e 	 e i e
+e d h c i h 	 e d h c i h
+h g g 	 h g g
+c f f 	 c f f
+f d i h 	 f d i h
+b c 	 b c
+g c j h a f i h b 	 g c j h a f i h b
+f b 	 f b
+b j e e j e b j 	 b j e e j e b j
+d g h b b i c d 	 d g h b b i c d
+j e h i h i g d 	 j e h i h i g d
+c b h j f c 	 c b h j f c
+i d f g g j c c i 	 i d f g g j c c i
+i j a 	 i j a
+f f d h g d e a b 	 f f d h g d e a b
+d d f c e i b b 	 d d f c e i b b
+f a g f a e j d 	 f a g f a e j d
+h b h b e 	 h b h b e
+j e h d g a f a g 	 j e h d g a f a g
+f f g h i j 	 f f g h i j
+f c f f j b 	 f c f f j b
+f c f i 	 f c f i
+f i j h a h 	 f i j h a h
+i b d i 	 i b d i
+f g a d f h i a 	 f g a d f h i a
+d f e i f e d e e 	 d f e i f e d e e
+j g h 	 j g h
+c c f e j 	 c c f e j
+i g i d d g c f 	 i g i d d g c f
+e d b h i d g a 	 e d b h i d g a
+g f 	 g f
+i c i d j 	 i c i d j
+c f g d d f i 	 c f g d d f i
+f i f 	 f i f
+h d f j e 	 h d f j e
+f j 	 f j
+e b f i j e 	 e b f i j e
+b h e j 	 b h e j
+c g e a c 	 c g e a c
+g e a h j d j f 	 g e a h j d j f
+c g f 	 c g f
+e d 	 e d
+f j b g 	 f j b g
+c j h f h 	 c j h f h
+a i f i j d i h e 	 a i f i j d i h e
+g f f d b f 	 g f f d b f
+c e g h b c i h e 	 c e g h b c i h e
+f h h b f h e i 	 f h h b f h e i
+e f j e 	 e f j e
+a a j b a i h a a 	 a a j b a i h a a
+h i a 	 h i a
+g a i i h e a i 	 g a i i h e a i
+e h e f i f f i b 	 e h e f i f f i b
+e j h a b g e g 	 e j h a b g e g
+d f 	 d f
+h i h g a d i 	 h i h g a d i
+f e i a d d d b 	 f e i a d d d b
+i e g i 	 i e g i
+g d e g b e 	 g d e g b e
+g d j g f e f 	 g d j g f e f
+b j 	 b j
+i h j j e a c j e 	 i h j j e a c j e
+e h h h a i c f i 	 e h h h a i c f i
+c j i h d 	 c j i h d
+b i c a j 	 b i c a j
+i c j 	 i c j
+j c b a c c c d 	 j c b a c c c d
+c a d a a 	 c a d a a
+i a 	 i a
+b e a a e b i g h 	 b e a a e b i g h
+b d 	 b d
+b e j j g h i e 	 b e j j g h i e
+f i h j f 	 f i h j f
+i e a g i g h b f 	 i e a g i g h b f
+e g a 	 e g a
+e d c a i 	 e d c a i
+j i c d e c b b 	 j i c d e c b b
+d a b c 	 d a b c
+b a h 	 b a h
+g f c c b d j j 	 g f c c b d j j
+b g 	 b g
+b i e j c c i h i 	 b i e j c c i h i
+g e b h e f h 	 g e b h e f h
+f i 	 f i
+g b c b i 	 g b c b i
+h f j h j e a e 	 h f j h j e a e
+d d g 	 d d g
+h h d g b 	 h h d g b
+e h d c f a f c 	 e h d c f a f c
+a h h h h e c i 	 a h h h h e c i
+b e 	 b e
+f g i b 	 f g i b
+i c j j 	 i c j j
+a g b d g e c 	 a g b d g e c
+g e d g i i a g f 	 g e d g i i a g f
+i j a f a d j j f 	 i j a f a d j j f
+h d g f e h h g j 	 h d g f e h h g j
+i j 	 i j
+j i i c f i f i a 	 j i i c f i f i a
+h h a e f f a a 	 h h a e f f a a
+j b d i j f 	 j b d i j f
+d g 	 d g
+a b a h c d a 	 a b a h c d a
+c i g f i d 	 c i g f i d
+h b d i 	 h b d i
+i a i i i f 	 i a i i i f
+j b 	 j b
+d g f d h a j 	 d g f d h a j
+e j h g d f 	 e j h g d f
+f i e e b 	 f i e e b
+c c b h c g g h 	 c c b h c g g h
+i a d j g f i c 	 i a d j g f i c
+i i f e g g h 	 i i f e g g h
+f f h h 	 f f h h
+e h g i i c b i 	 e h g i i c b i
+h b b 	 h b b
+d a c 	 d a c
+f e i i 	 f e i i
+e c c 	 e c c
+g a j b j 	 g a j b j
+g j d i 	 g j d i
+c g 	 c g
+j c 	 j c
+h c 	 h c
+j f a i i j 	 j f a i i j
+d b 	 d b
+h j j e 	 h j j e
+d h h g e i j 	 d h h g e i j
+i c e c b 	 i c e c b
+f a c j a j a 	 f a c j a j a
+i c d d h i f i g 	 i c d d h i f i g
+c a f j c 	 c a f j c
+f j 	 f j
+i c e i 	 i c e i
+j e c e 	 j e c e
+c h c b g f d 	 c h c b g f d
+g e d e d e g 	 g e d e d e g
+b f e i 	 b f e i
+c e j f d f g 	 c e j f d f g
+g f h c 	 g f h c
+h j g 	 h j g
+i h a a h i h i 	 i h a a h i h i
+e d d j 	 e d d j
+d d g b i b j i g 	 d d g b i b j i g
+b a i 	 b a i
+d g f g e c e j 	 d g f g e c e j
+c e g 	 c e g
+a g f b g 	 a g f b g
+h c b c h b d 	 h c b c h b d
+i i g 	 i i g
+b b h g b f g e e 	 b b h g b f g e e
+c h d i i c g f 	 c h d i i c g f
+e h a c g j f g 	 e h a c g j f g
+d b e j 	 d b e j
+a i j g i b b 	 a i j g i b b
+b a i b e h 	 b a i b e h
+a i i e 	 a i i e
+b c h e c f c h 	 b c h e c f c h
+g a a i 	 g a a i
+b c e 	 b c e
+j j g g 	 j j g g
+a b g e b f i 	 a b g e b f i
+f d j h d f e i 	 f d j h d f e i
+a d 	 a d
+f j a 	 f j a
+f b g j b a 	 f b g j b a
+b a h i g i 	 b a h i g i
+g h i 	 g h i
+c a c b c f 	 c a c b c f
+i d f c b a d j f 	 i d f c b a d j f
+a d f d j 	 a d f d j
+j b g d e e g 	 j b g d e e g
+j h f c 	 j h f c
+h j 	 h j
+j g i c f 	 j g i c f
+e b h 	 e b h
+c c j e h e 	 c c j e h e
+b i e f i i b g 	 b i e f i i b g
+g g g d e h c 	 g g g d e h c
+e c h e j g a c 	 e c h e j g a c
+d g j d d 	 d g j d d
+a c g i f f 	 a c g i f f
+d h j 	 d h j
+h g g 	 h g g
+c e e d c h 	 c e e d c h
+b g 	 b g
+g d d f g g i 	 g d d f g g i
+i d f h h i d 	 i d f h h i d
+g c a i d i e 	 g c a i d i e
+c d f i e e a i 	 c d f i e e a i
+a c i g e a i j h 	 a c i g e a i j h
+h b d h c j g f 	 h b d h c j g f
+e e g c b c a b 	 e e g c b c a b
+c d i e e e 	 c d i e e e
+f f i b e d b 	 f f i b e d b
+h c e 	 h c e
+j g g g c d f a 	 j g g g c d f a
+i e 	 i e
+f h h c c g e 	 f h h c c g e
+g j f f 	 g j f f
+h b c g 	 h b c g
+i d i e 	 i d i e
+f e 	 f e
+g f e a c g 	 g f e a c g
+i a c j j g d 	 i a c j j g d
+b a f e j g f d 	 b a f e j g f d
+d d i f d f 	 d d i f d f
+a i j j c d 	 a i j j c d
+e d c 	 e d c
+g d g h g i b c f 	 g d g h g i b c f
+b g d j h 	 b g d j h
+d f 	 d f
+i f e f i 	 i f e f i
+j i j f i e 	 j i j f i e
+c c j 	 c c j
+h f d c 	 h f d c
+f h e c 	 f h e c
+c e j c d i i a b 	 c e j c d i i a b
+a b j h d e g h 	 a b j h d e g h
+g i g b d d c g 	 g i g b d d c g
+a d g a i j j h j 	 a d g a i j j h j
+b b f 	 b b f
+g b i j 	 g b i j
+c i 	 c i
+c g d f e i e i 	 c g d f e i e i
+d g i e 	 d g i e
+h d d f h d i e 	 h d d f h d i e
+d e f h a 	 d e f h a
+i h d d c h 	 i h d d c h
+i d i c d j h a 	 i d i c d j h a
+a i a c e j b 	 a i a c e j b
+i a h f a j 	 i a h f a j
+i i i j i a j 	 i i i j i a j
+e d h j b c e g h 	 e d h j b c e g h
+j h h h 	 j h h h
+h d h e a f 	 h d h e a f
+a j a 	 a j a
+c g b e b d i 	 c g b e b d i
+d e i e 	 d e i e
+e f b e 	 e f b e
+f f b g c d c h 	 f f b g c d c h
+h a f h e i h d 	 h a f h e i h d

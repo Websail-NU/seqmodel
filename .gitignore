@@ -1,8 +1,10 @@
 .ipynb_checkpoints/
 *.pyc
+__pycache__
 .remote-sync.json
 /experiments/
 /data/
-/scripts/data/_cached
-/scripts/bin/experiment
-/notebook/experiment
+/script/data/_cached
+/script/bin/experiment
+*.sublime-project
+*.sublime-workspace
