@@ -25,9 +25,16 @@ def dict_with_key_endswith(d, suffix):
 
 
 def get_with_dot_key(d, key):
-    keys = key.split('.')
+    if '.' in key:
+        keys = key.split('.')
+        return get_nested_dict(d, keys)
+    else:
+        return d[key]
+
+
+def get_nested_dict(d, key_tuple):
     cur_d = d
-    for k in keys:
+    for k in key_tuple:
         cur_d = cur_d[k]
     return cur_d
 
