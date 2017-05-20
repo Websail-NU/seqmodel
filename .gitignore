@@ -8,3 +8,4 @@ __pycache__
 /script/bin/experiment
 *.sublime-project
 *.sublime-workspace
+.DS_Store
