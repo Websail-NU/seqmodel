@@ -1,6 +1,7 @@
 import six
 import warnings
 from collections import ChainMap
+from functools import partial
 
 import tensorflow as tf
 
@@ -126,9 +127,11 @@ class Model(object):
         if mode in self._fetches:
             fetch = self._fetches[mode]
         elif mode[0] == Model._PREDICT_ and len(mode) > 1:
-            fetch = self._fetches.setdefault(
-                mode, [util.get_with_dot_key(self._predict_fetch, mode[1]),
-                       self._no_op])  # ignore 'p.'
+            if mode not in self._fetches:
+                fetch = [util.get_with_dot_key(self._predict_fetch, mode[1]), self._no_op]
+                self._fetches[mode] = fetch
+            else:
+                fetch = self._fetches[mode]
         else:
             raise ValueError(f'{mode} is a not valid mode')
         extra_fetch = self._get_extra_fetch(extra_fetch, **kwargs)
@@ -197,6 +200,7 @@ class SeqModel(Model):
                'cell:cell_class': 'tensorflow.contrib.rnn.BasicLSTMCell',
                'cell:in_keep_prob': 1.0, 'cell:out_keep_prob': 1.0,
                'cell:state_keep_prob': 1.0, 'cell:variational': False,
+               'rnn:fn': 'tensorflow.nn.dynamic_rnn',
                'out:logit': True, 'out:loss': True, 'logit:output_size': 14,
                'logit:use_bias': True, 'logit:trainable': True, 'logit:init': None,
                'loss:type': 'xent', 'share:input_emb_logit': False}
@@ -221,6 +225,10 @@ class SeqModel(Model):
         self._state_fetch = state_fetch
         if train_fetch is not None:
             self._training_loss = train_fetch['train_loss']
+        if 'train_loss_denom' in node_dict:
+            self.set_default_feed('train_loss_denom', 1.0)
+        if 'temperature' in node_dict:
+            self.set_default_feed('temperature', 1.0)
 
     def _build(self, opt, initial_state=None, reuse=False, **kwargs):
         collect_kwargs = {'add_to_collection': True, 'collect_key': self._collect_key}
@@ -232,7 +240,7 @@ class SeqModel(Model):
         cell_opt = util.dict_with_key_startswith(opt, 'cell:')
         cell_ = tfg.create_cells(reuse=reuse, input_size=opt['emb:dim'], **cell_opt)
         cell_output_, initial_state_, final_state_ = tfg.create_rnn(
-            cell_, lookup_, seq_len_, initial_state)
+            cell_, lookup_, seq_len_, initial_state, rnn_fn=opt['rnn:fn'])
         predict_fetch = {'cell_output': cell_output_}
         nodes = util.dict_with_key_endswith(locals(), '_')
         graph_args = {'feature_feed': dstruct.SeqFeatureTuple(input_, seq_len_),
@@ -280,7 +288,7 @@ class SeqModel(Model):
             with tfg.tf_collection(**collect_kwargs) as get:
                 name = f'{self._name}_train_loss_denom'
                 train_loss_denom_ = get(
-                    name, tf.placeholder_with_default(1.0, shape=None, name=name))
+                    name, tf.placeholder(tf.float32, shape=None, name=name))
             mean_loss_, train_loss_, loss_ = tfg.create_xent_loss(
                 logit, label, weight, seq_weight, train_loss_denom_)
             train_fetch = {'train_loss': train_loss_, 'eval_loss': mean_loss_}
@@ -293,9 +301,9 @@ class SeqModel(Model):
     def _get_fetch(self, mode, extra_fetch=None, fetch_state=False, **kwargs):
         fetch = super()._get_fetch(mode, extra_fetch, **kwargs)
         if fetch_state:
-            fetch[0] = self._fetches.setdefault(
-                f'{SeqModel._STATE_}:{fetch_state}, o:{mode}',
-                dstruct.OutputStateTuple(fetch[0], self._state_fetch))
+            key = f'{SeqModel._STATE_}:{fetch_state}, o:{mode}'
+            fetch = self._fetches.setdefault(
+                key, [dstruct.OutputStateTuple(fetch[0], self._state_fetch), *fetch[1:]])
         return fetch
 
     def _get_feed_lite(self, mode, features, labels=None, state=None, **kwargs):

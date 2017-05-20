@@ -5,6 +5,7 @@ import tensorflow as tf
 
 from seqmodel import dstruct
 from seqmodel import model
+from seqmodel import graph
 
 
 class TestModel(tf.test.TestCase):
@@ -137,10 +138,10 @@ class TestSeqModel(tf.test.TestCase):
             num_vars_ = len(tf.global_variables())
             self.assertEqual(num_vars, num_vars, 'no new variables when reuse is True')
 
-    def test_run(self):
+    def _run(self, rnn_fn):
         with self.test_session(config=self.sess_config) as sess:
             m = model.SeqModel(check_feed_dict=False)
-            n = m.build_graph({'logit:output_size': 2})
+            n = m.build_graph({'rnn:fn': rnn_fn, 'logit:output_size': 2})
             optimizer = tf.train.AdamOptimizer()
             train_op = optimizer.minimize(m.training_loss)
             sess.run(tf.global_variables_initializer())
@@ -149,9 +150,10 @@ class TestSeqModel(tf.test.TestCase):
             # prediction
             output, __ = m.predict(sess, (seq, seq_len), fetch_state=False)
             co = output['cell_output']
-            for iseq in range(co.shape[1]):
-                np.testing.assert_array_equal(co[seq_len[iseq]:, iseq, :], 0,
-                                              'cell output is zero after seq_len')
+            if rnn_fn == tf.nn.dynamic_rnn:
+                for iseq in range(co.shape[1]):
+                    np.testing.assert_array_equal(co[seq_len[iseq]:, iseq, :], 0,
+                                                  'cell output is zero after seq_len')
             for i in range(2):
                 self.assertEqual(output['dec_sample'][i].shape, (4, 3),
                                  'sample shape is the same as input\'s')
@@ -201,3 +203,9 @@ class TestSeqModel(tf.test.TestCase):
                                   m._no_op)
             self.assertAlmostEqual(output3['train_loss'], output2['train_loss'] / 10,
                                    places=1, msg='training loss denom is used')
+
+    def test_dynamic_rnn_run(self):
+        self._run(tf.nn.dynamic_rnn)
+
+    def test_scan_rnn_run(self):
+        self._run(graph.scan_rnn)

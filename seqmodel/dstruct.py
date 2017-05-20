@@ -167,6 +167,9 @@ class TrainingState(object):
         self.cur_epoch += 1
         self.cur_eval = cur_eval
 
+    def __str__(self):
+        return f'{self.__class__.__name__}: {vars(self)}'
+
 
 class RunningInfo(object):
     def __init__(self, start_time=None, end_time=None,

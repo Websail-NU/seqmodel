@@ -29,7 +29,7 @@ class TestGraph(tf.test.TestCase):
             o, i, f = graph.create_rnn(cell, tf.constant(
                 np.random.randn(self.max_seq_len, self.batch_size, self.dim),
                 dtype=tf.float32), seq_len)
-            x = graph.select_rnn_output(o, tf.nn.relu(seq_len - 1))
+            x = graph.select_rnn(o, tf.nn.relu(seq_len - 1))
             sess.run(tf.global_variables_initializer())
             o_, x_ = sess.run([o, x])
             np.testing.assert_array_equal(o_[:, -1, :], 0,

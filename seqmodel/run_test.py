@@ -56,7 +56,8 @@ class TestRun(tf.test.TestCase):
                              batch_size=13, shuffle=True, keep_sentence=False)
         with self.test_session(config=self.sess_config) as sess:
             m = tfm.SeqModel()
-            n = m.build_graph()
+            n = m.build_graph({'rnn:fn': 'seqmodel.graph.scan_rnn',
+                               'cell:num_layers': 2})
             m.set_default_feed('train_loss_denom', 13)
             optimizer = tf.train.AdamOptimizer()
             train_op = optimizer.minimize(m.training_loss)

@@ -10,8 +10,8 @@ from seqmodel import dstruct
 
 
 __all__ = ['_safe_div', 'tf_collection', 'create_2d_tensor', 'matmul', 'create_cells',
-           'create_rnn', 'select_rnn_output', 'create_tdnn', 'create_highway_layer',
-           'create_gru_layer', 'get_seq_input_placeholders',
+           'create_rnn', 'select_rnn', 'select_nested_rnn', 'create_tdnn',
+           'create_highway_layer', 'create_gru_layer', 'get_seq_input_placeholders',
            'get_seq_label_placeholders', 'create_lookup', 'get_logit_layer',
            'select_from_logit', 'create_xent_loss', 'create_ent_loss',
            'create_slow_feature_loss', 'create_l2_loss', 'create_train_op']
@@ -113,9 +113,26 @@ def create_cells(num_units, num_layers, cell_class=tf.contrib.rnn.BasicLSTMCell,
     return final_cell
 
 
+def scan_rnn(cell, inputs, sequence_length, initial_state=None, dtype=tf.float32,
+             **_kwargs):
+    """dynamically unroll cell to max(sequence_length), and select last relevant state.
+    IMPORTANT sequence_length shoule be at least 1, otherwise this function will return
+    the first state even thought it is not relevant."""
+    batch_size = tf.shape(inputs)[1]  # time major
+    output, states = tf.scan(
+        lambda acc, x_t: cell(x_t, acc[1]), inputs, name='scan_rnn',
+        initializer=(tf.zeros((batch_size, cell.output_size),
+                              dtype=dtype, name='scan_rnn_init'),
+                     initial_state))
+    final_state = select_nested_rnn(states, tf.nn.relu(sequence_length - 1))
+    return output, final_state
+
+
 def create_rnn(cell, inputs, sequence_length=None, initial_state=None,
                rnn_fn=tf.nn.dynamic_rnn):
     """return output (all time steps), initial state, and final state in time major."""
+    if isinstance(rnn_fn, six.string_types):
+        rnn_fn = locate(rnn_fn)
     if initial_state is None:
         batch_size = tf.shape(inputs)[1]  # time major
         initial_state = cell.zero_state(batch_size, tf.float32)
@@ -125,13 +142,24 @@ def create_rnn(cell, inputs, sequence_length=None, initial_state=None,
     return cell_output, initial_state, final_state
 
 
-def select_rnn_output(cell_output, time_step):
-    """return cell_output at the time_step (time major).
-    This is similar to numpy cell_output[time_step, :, :]."""
+def select_nested_rnn(maybe_tuple, time_step):
+    """return possibly nested tensor at the time_step (time major)."""
+    if isinstance(maybe_tuple, tuple):
+        select = [select_nested_rnn(item, time_step) for item in maybe_tuple]
+        if hasattr(maybe_tuple, '_make'):
+            select = maybe_tuple._make(select)
+    else:
+        select = select_rnn(maybe_tuple, time_step)
+    return select
+
+
+def select_rnn(tensor, time_step):
+    """return tensor at the time_step (time major). This is similar to numpy
+    tensor[time_step, :, :] where time_step can be 1D array."""
     time_step = tf.expand_dims(time_step, axis=-1)
-    range_ = tf.expand_dims(tf.range(start=0, limit=tf.shape(cell_output)[1]), axis=-1)
+    range_ = tf.expand_dims(tf.range(start=0, limit=tf.shape(tensor)[1]), axis=-1)
     idx = tf.concat([time_step, range_], axis=-1)
-    return tf.gather_nd(cell_output, idx)
+    return tf.gather_nd(tensor, idx)
 
 
 def create_tdnn(inputs, sequence_length=None, filter_widths=[2, 3, 4, 5, 6],
@@ -275,8 +303,8 @@ def get_logit_layer(inputs, logit_w=None, logit_b=None, output_size=None,
     if temperature is None:
         with tf_collection(collect_key, add_to_collection) as get:
             temp_key = f'{prefix}_temperature'
-            temperature = get(temp_key, tf.placeholder_with_default(
-                1.0, shape=None, name=temp_key))
+            temperature = get(temp_key, tf.placeholder(
+                tf.float32, shape=None, name=temp_key))
     logit = logit / temperature
     return logit, temperature, logit_w, logit_b
 

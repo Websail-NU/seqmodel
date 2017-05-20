@@ -74,9 +74,11 @@ def run_epoch(sess, model, batch_iter, train_op=None):
     return info
 
 
-def train(train_run_epoch_fn, logger, max_epoch=1, train_state=None,
+def train(train_run_epoch_fn, logger, max_epoch=1, train_state=None, init_lr=None,
           valid_run_epoch_fn=None, begin_epoch_fn=_no_run, end_epoch_fn=_no_run):
     train_state = ds.TrainingState() if train_state is None else train_state
+    if init_lr:
+        train_state.learning_rate = init_lr
     for epoch in range(max_epoch):
         begin_epoch_fn(train_state)
         logger.info(train_state.summary(mode='train'))

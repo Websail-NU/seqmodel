@@ -8,6 +8,14 @@ __all__ = ['dict_with_key_startswith', 'dict_with_key_endswith', 'get_with_dot_k
            'hstack_list', 'masked_full_like', 'get_logger']
 
 
+def setdefault_callable(d, key_tuple, fn, *args, **kwargs):
+    if any(key in d for key in key_tuple):
+        raise KeyError('Some key does not exist.')
+    if all(key in d for key in key_tuple):
+        return (d[key] for key in key_tuple)
+    return (d.setdefault(k, v) for k, v in zip(key_tuple, fn(*args, **kwargs)))
+
+
 def dict_with_key_startswith(d, prefix):
     return {k[len(prefix):]: v for k, v in d.items() if k.startswith(prefix)}
 
