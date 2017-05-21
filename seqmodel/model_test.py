@@ -20,6 +20,10 @@ class TestModel(tf.test.TestCase):
         self.t_fetch = self.f_feed * self.l_feed * 3
         self.e_fetch = self.f_feed * self.l_feed * 4
 
+    def tearDown(self):
+        super().tearDown()
+        graph.empty_tf_collection('*')
+
     def test_check_feed_dict(self):
         with self.test_session(config=self.sess_config) as sess:
             test_input, ignore_input = 1, 2
@@ -81,6 +85,10 @@ class TestModel(tf.test.TestCase):
 class TestSeqModel(tf.test.TestCase):
 
     sess_config = tf.ConfigProto(device_count={'GPU': 0})
+
+    def tearDown(self):
+        super().tearDown()
+        graph.empty_tf_collection('*')
 
     def test_build(self):
         with self.test_session(config=self.sess_config) as sess:

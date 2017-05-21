@@ -14,7 +14,8 @@ __all__ = ['_safe_div', 'tf_collection', 'create_2d_tensor', 'matmul', 'create_c
            'create_highway_layer', 'create_gru_layer', 'get_seq_input_placeholders',
            'get_seq_label_placeholders', 'create_lookup', 'get_logit_layer',
            'select_from_logit', 'create_xent_loss', 'create_ent_loss',
-           'create_slow_feature_loss', 'create_l2_loss', 'create_train_op']
+           'create_slow_feature_loss', 'create_l2_loss', 'create_train_op',
+           'empty_tf_collection']
 
 
 def _safe_div(numerator, denominator, name='safe_div'):
@@ -25,17 +26,16 @@ def _safe_div(numerator, denominator, name='safe_div'):
                     name=name)
 
 
+_global_collections = {}
+
+
 @contextmanager
 def tf_collection(collect_key, add_to_collection):
     """return a function to get value from tf's collection, and update if needed."""
+    global _global_collections
     collection = {}
     if collect_key is not None:
-        collection = tf.get_collection(collect_key)
-        if collection:
-            collection = collection[0]
-        else:
-            collection = {}
-            tf.add_to_collection(collect_key, collection)
+        collection = _global_collections.setdefault(collect_key, {})
     temp = {}
 
     def _get_and_set(key, value):
@@ -49,6 +49,15 @@ def tf_collection(collect_key, add_to_collection):
 
     if add_to_collection and collect_key is not None:
         collection.update(temp)
+
+
+def empty_tf_collection(collect_key):
+    """clean tensorflow collection that we use temporarily"""
+    global _global_collections
+    if collect_key == '*':
+        _global_collections = {}
+    else:
+        _global_collections[collect_key] = {}
 
 
 def create_2d_tensor(dim1, dim2, trainable=True, init=None, name='tensor'):
@@ -114,17 +123,18 @@ def create_cells(num_units, num_layers, cell_class=tf.contrib.rnn.BasicLSTMCell,
 
 
 def scan_rnn(cell, inputs, sequence_length, initial_state=None, dtype=tf.float32,
-             **_kwargs):
-    """dynamically unroll cell to max(sequence_length), and select last relevant state.
+             scope='rnn', **_kwargs):
+    """dynamically unroll cell to max(len(inputs)), and select last relevant state.
     IMPORTANT sequence_length shoule be at least 1, otherwise this function will return
     the first state even thought it is not relevant."""
-    batch_size = tf.shape(inputs)[1]  # time major
-    output, states = tf.scan(
-        lambda acc, x_t: cell(x_t, acc[1]), inputs, name='scan_rnn',
-        initializer=(tf.zeros((batch_size, cell.output_size),
-                              dtype=dtype, name='scan_rnn_init'),
-                     initial_state))
-    final_state = select_nested_rnn(states, tf.nn.relu(sequence_length - 1))
+    with tf.variable_scope(scope):
+        batch_size = tf.shape(inputs)[1]  # time major
+        output, states = tf.scan(
+            lambda acc, x_t: cell(x_t, acc[1]), inputs, name='scan_rnn',
+            initializer=(tf.zeros((batch_size, cell.output_size),
+                                  dtype=dtype, name='scan_rnn_init'),
+                         initial_state))
+        final_state = select_nested_rnn(states, tf.nn.relu(sequence_length - 1))
     return output, final_state
 
 
@@ -236,7 +246,7 @@ def create_gru_layer(transform, extra, carried):
 #######################################
 # get_X() have side-effect on tensorflow collection
 # if add_to_collection is True (default), the functions will add placeholders to
-# 'model_inputs' collection
+# global collection
 
 
 def get_seq_input_placeholders(prefix='decoder', add_to_collection=True,

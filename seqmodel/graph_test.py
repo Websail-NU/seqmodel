@@ -18,6 +18,10 @@ class TestGraph(tf.test.TestCase):
         self.seq_len = [4, 2, 0]
         self.num_layers = 2
 
+    def tearDown(self):
+        super().tearDown()
+        graph.empty_tf_collection('*')
+
     def test_rnn(self):
         with self.test_session(config=self.sess_config) as sess:
             seq_len = tf.constant(self.seq_len, dtype=tf.int32)

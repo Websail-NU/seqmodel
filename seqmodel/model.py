@@ -199,7 +199,8 @@ class SeqModel(Model):
                'cell:cell_class': 'tensorflow.contrib.rnn.BasicLSTMCell',
                'cell:in_keep_prob': 1.0, 'cell:out_keep_prob': 1.0,
                'cell:state_keep_prob': 1.0, 'cell:variational': False,
-               'rnn:fn': 'tensorflow.nn.dynamic_rnn',
+               # 'rnn:fn': 'tensorflow.nn.dynamic_rnn',
+               'rnn:fn': 'seqmodel.graph.scan_rnn',
                'out:logit': True, 'out:loss': True, 'logit:output_size': 14,
                'logit:use_bias': True, 'logit:trainable': True, 'logit:init': None,
                'loss:type': 'xent', 'share:input_emb_logit': False}
@@ -285,7 +286,7 @@ class SeqModel(Model):
     def _build_loss(self, opt, logit, label, weight, seq_weight, collect_kwargs):
         if opt['loss:type'] == 'xent':
             with tfg.tf_collection(**collect_kwargs) as get:
-                name = f'{self._name}_train_loss_denom'
+                name = 'train_loss_denom'
                 train_loss_denom_ = get(
                     name, tf.placeholder(tf.float32, shape=None, name=name))
             mean_loss_, train_loss_, loss_ = tfg.create_xent_loss(

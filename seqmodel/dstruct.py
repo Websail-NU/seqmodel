@@ -146,7 +146,7 @@ class TrainingState(object):
     def __init__(self, learning_rate=1e-4, cur_epoch=0,
                  cur_eval=float('inf'), last_imp_eval=float('inf'),
                  best_eval=float('inf'), best_epoch=-1, last_imp_epoch=-1,
-                 imp_wait=0):
+                 imp_wait=0, best_checkpoint_epoch=-1):
         self.learning_rate = learning_rate
         self.cur_epoch = cur_epoch
         self.cur_eval = cur_eval
@@ -155,6 +155,7 @@ class TrainingState(object):
         self.best_epoch = best_epoch
         self.last_imp_epoch = last_imp_epoch
         self.imp_wait = imp_wait
+        self.best_checkpoint_epoch = best_checkpoint_epoch
 
     def summary(self, mode='train'):
         return f'ep: {self.cur_epoch}, lr: {self.learning_rate:.6f}'
