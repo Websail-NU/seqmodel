@@ -7,7 +7,7 @@ import numpy as np
 
 
 __all__ = ['dict_with_key_startswith', 'dict_with_key_endswith', 'get_with_dot_key',
-           'hstack_list', 'masked_full_like', 'get_logger', 'get_common_argparse',
+           'hstack_list', 'masked_full_like', 'get_logger', 'get_common_argparser',
            'parse_set_args']
 
 
@@ -96,15 +96,16 @@ def get_logger(log_file_path=None, name='default_log', level=None):
     return root_logger
 
 
-def get_common_argparser(group_default=None):
+def get_common_argparser(prog, usage=None, description=None, group_default=None):
 
     def add_dict_to_argparser(d, parser):
         for k, v in d.items():
             parser.add_argument(f'--{k}', type=type(v), default=v, help=' ')
 
+    if usage is None:
+        usage = f'{prog} [-h] [--option ARG] (eval|train|init) data_dir exp_dir'
     parser = argparse.ArgumentParser(
-        prog='main_lm.py',
-        description='run language model',
+        prog=prog, usage=usage, description=description,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         'command', choices=('eval', 'train', 'init'),
@@ -134,7 +135,10 @@ def parse_set_args(parser, group_default=None):
     args = vars(parser.parse_args())
     opt = {k: v for k, v in args.items() if f'--{k}' in set(sys.argv)}
     groups = {}
+    key_set = set()
     if group_default:
         for name, default in group_default.items():
             groups[name] = {k: v for k, v in opt.items() if k in default}
-    return opt, groups
+            key_set.update(default.keys())
+    other_opt = {k: v for k, v in args.items() if k not in key_set}
+    return other_opt, groups

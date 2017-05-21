@@ -5,12 +5,12 @@ from contextlib import contextmanager
 
 import numpy as np
 
-from seqmodel import dstruct
+from seqmodel import dstruct as ds
 from seqmodel import util
 
 
 __all__ = ['open_files', 'read_lines', 'read_seq_data', 'read_seq2seq_data',
-           'batch_iter', 'seq_batch_iter', 'seq2seq_batch_iter']
+           'batch_iter', 'seq_batch_iter', 'seq2seq_batch_iter', 'position_batch_iter']
 
 ##################################################
 #    ######## #### ##       ########  ######     #
@@ -57,8 +57,8 @@ def read_seq_data(tokenized_lines, in_vocab, out_vocab, keep_sentence=True, seq_
     """read data in format of [[['tk1_seq1', 'tk2_seq1']], [['tk1_seq2', 'tk2_seq2']]].
     Add start sequence and end sequence symbol.
     If keep_sentence is False, chunk sequence in length of seq_len (except last one)"""
-    sos_sym = dstruct.Vocabulary.special_symbols['start_seq']
-    eos_sym = dstruct.Vocabulary.special_symbols['end_seq']
+    sos_sym = ds.Vocabulary.special_symbols['start_seq']
+    eos_sym = ds.Vocabulary.special_symbols['end_seq']
     in_data, out_data = [], []
     for line in tokenized_lines:
         line = line[0] + [eos_sym]  # assume many parts, but only take first
@@ -84,9 +84,9 @@ def read_seq2seq_data(tokenized_lines, in_vocab, out_vocab):
     """read data in format of [[['tk1_enc1', 'tk2_enc1'], ['tk1_dec1', 'tk2_dec1']], ].
     Add end end_encode to enc data, and add start seq and end seq to decode data.
     """
-    eoe_sym = dstruct.Vocabulary.special_symbols['end_encode']
-    sod_sym = dstruct.Vocabulary.special_symbols['start_seq']
-    eod_sym = dstruct.Vocabulary.special_symbols['end_seq']
+    eoe_sym = ds.Vocabulary.special_symbols['end_encode']
+    sod_sym = ds.Vocabulary.special_symbols['start_seq']
+    eod_sym = ds.Vocabulary.special_symbols['end_seq']
     enc_data, dec_data = [], []
     for part in tokenized_lines:
         enc_, dec_ = part[:2]
@@ -134,6 +134,21 @@ def batch_iter(batch_size, shuffle, data, *more_data, pad=[]):
                    for d_ in all_data)
 
 
+def position_batch_iter(data_len, labels=(), batch_size=1, shuffle=True,
+                        num_tokens=None, keep_state=False):
+    """wrapper of batch_iter to generate batch of position"""
+    num_tokens = batch_size if num_tokens is None else num_tokens
+    if isinstance(num_tokens, np.ndarray):
+        def fill_data(pos):
+            return ds.BatchTuple(pos, labels, np.sum(num_tokens[list(pos)]),
+                                 keep_state)
+    else:
+        def fill_data(pos):
+            return ds.BatchTuple(pos, labels, batch_size, keep_state)
+    for pos in batch_iter(batch_size, shuffle, range(data_len), pad=None):
+        yield fill_data(pos)
+
+
 def seq_batch_iter(in_data, out_data, batch_size=1, shuffle=True, keep_sentence=True):
     """wrapper of batch_iter to format seq data"""
     keep_state = not keep_sentence
@@ -143,9 +158,9 @@ def seq_batch_iter(in_data, out_data, batch_size=1, shuffle=True, keep_sentence=
         seq_weight = np.where(y_len > 0, 1, 0).astype(np.float32)
         token_weight, num_tokens = util.masked_full_like(
             y_arr, 1, num_non_padding=y_len)
-        features = dstruct.SeqFeatureTuple(x_arr, x_len)
-        labels = dstruct.SeqLabelTuple(y_arr, token_weight, seq_weight)
-        yield dstruct.BatchTuple(features, labels, num_tokens, keep_state)
+        features = ds.SeqFeatureTuple(x_arr, x_len)
+        labels = ds.SeqLabelTuple(y_arr, token_weight, seq_weight)
+        yield ds.BatchTuple(features, labels, num_tokens, keep_state)
 
 
 def seq2seq_batch_iter(enc_data, dec_data, batch_size=1, shuffle=True):
@@ -160,7 +175,7 @@ def seq2seq_batch_iter(enc_data, dec_data, batch_size=1, shuffle=True):
         token_weight, num_tokens = util.masked_full_like(
             out_dec, 1, num_non_padding=dec_len)
         seq_weight = seq_weight.astype(np.float32)
-        features = dstruct.Seq2SeqFeatureTuple(dstruct.SeqFeatureTuple(enc, enc_len),
-                                               dstruct.SeqFeatureTuple(in_dec, dec_len))
-        labels = dstruct.SeqLabelTuple(out_dec, token_weight, seq_weight)
-        yield dstruct.BatchTuple(features, labels, num_tokens, False)
+        features = ds.Seq2SeqFeatureTuple(ds.SeqFeatureTuple(enc, enc_len),
+                                          ds.SeqFeatureTuple(in_dec, dec_len))
+        labels = ds.SeqLabelTuple(out_dec, token_weight, seq_weight)
+        yield ds.BatchTuple(features, labels, num_tokens, False)

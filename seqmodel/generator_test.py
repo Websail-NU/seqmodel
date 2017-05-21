@@ -1,8 +1,27 @@
 from functools import partial
 import unittest
 
+import numpy as np
+
 from seqmodel.dstruct import Vocabulary
 from seqmodel import generator
+
+
+class TestBatch(unittest.TestCase):
+
+    def test_position_batch_iter(self):
+        pos = np.arange(10).reshape(2, 5)
+        for i, b in enumerate(generator.position_batch_iter(
+                10, batch_size=2, shuffle=False, keep_state=False)):
+            np.testing.assert_array_equal(list(b.features)[0], pos[:, i],
+                                          'generate position')
+            self.assertFalse(b.keep_state, 'keep state is False')
+            self.assertEqual(b.num_tokens, 2, 'num tokens is batch size')
+        num_tokens = np.arange(10)
+        for i, b in enumerate(generator.position_batch_iter(
+                10, shuffle=False, num_tokens=num_tokens, keep_state=True)):
+            self.assertTrue(b.keep_state, 'keep state is True')
+            self.assertEqual(b.num_tokens, num_tokens[i], 'num tokens is correct')
 
 
 class TestSeq(unittest.TestCase):
