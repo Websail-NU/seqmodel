@@ -6,6 +6,7 @@ import tensorflow as tf
 
 from seqmodel import generator
 from seqmodel.dstruct import Vocabulary
+from seqmodel import graph
 from seqmodel import model as tfm
 from seqmodel import run
 from seqmodel import util
@@ -25,6 +26,10 @@ class TestRun(tf.test.TestCase):
                           token_split=' ')
         cls.num_lines = 1000
         cls.num_tokens = 5606
+
+    def tearDown(self):
+        super().tearDown()
+        graph.empty_tf_collection('*')
 
     def test_run_epoch(self):
         data = generator.read_seq_data(

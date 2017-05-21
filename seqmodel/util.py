@@ -8,7 +8,16 @@ import numpy as np
 
 __all__ = ['dict_with_key_startswith', 'dict_with_key_endswith', 'get_with_dot_key',
            'hstack_list', 'masked_full_like', 'get_logger', 'get_common_argparser',
-           'parse_set_args']
+           'parse_set_args', 'add_arg_group_defaults', 'ensure_dir', 'time_span_str']
+
+
+def time_span_str(seconds):
+    m, s = divmod(seconds, 60)
+    h, m = divmod(m, 60)
+    return f'{int(h)}h {int(m)}m {s:2.4}s'
+
+
+# Dictionary functions
 
 
 def setdefault_callable(d, key_tuple, fn, *args, **kwargs):
@@ -42,6 +51,9 @@ def get_nested_dict(d, key_tuple):
     return cur_d
 
 
+# Numpy functions
+
+
 def hstack_list(data, padding=0, dtype=np.int32):
     lengths = list(map(len, data))
     max_len = max(lengths)
@@ -59,6 +71,23 @@ def masked_full_like(np_data, value, num_non_padding=None, padding=0, dtype=np.f
         for i, last in enumerate(num_non_padding):
             arr[last:, i] = 0
     return arr, total_non_pad
+
+
+# Logger and argument parsing
+
+
+def ensure_dir(directory, delete=False):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    elif delete:
+        backup_dir = f'{directory.rstrip("/")}_backup'
+        current = backup_dir
+        i = 1
+        while os.path.exists(current):
+            current = f'{backup_dir}_{i}'
+            i += 1
+        os.rename(directory, current)
+        os.makedirs(directory)
 
 
 _log_level = {None: py_logging.NOTSET, 'debug': py_logging.DEBUG,
@@ -96,12 +125,7 @@ def get_logger(log_file_path=None, name='default_log', level=None):
     return root_logger
 
 
-def get_common_argparser(prog, usage=None, description=None, group_default=None):
-
-    def add_dict_to_argparser(d, parser):
-        for k, v in d.items():
-            parser.add_argument(f'--{k}', type=type(v), default=v, help=' ')
-
+def get_common_argparser(prog, usage=None, description=None):
     if usage is None:
         usage = f'{prog} [-h] [--option ARG] (eval|train|init) data_dir exp_dir'
     parser = argparse.ArgumentParser(
@@ -109,7 +133,8 @@ def get_common_argparser(prog, usage=None, description=None, group_default=None)
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         'command', choices=('eval', 'train', 'init'),
-        help='eval only, train and then eval, or create experiment directory.')
+        help=('eval only, train and then eval, or '
+              'REMOVE existing exp_dir, attemp to load data and model, then quit.'))
     parser.add_argument('data_dir', type=str, help='Data directory')
     parser.add_argument(
         'exp_dir', type=str,
@@ -117,18 +142,32 @@ def get_common_argparser(prog, usage=None, description=None, group_default=None)
               'model_opt.json, --load_model_opt, and options provided here respectively '
               '. Similar behavior for train_opt.json. Model is resumed from checkpoint '
               'directory by default if --load_checkpoint is not provided.'))
+    parser.add_argument('--gpu', action='store_true')
+    parser.add_argument('--train_file', type=str, default='train.txt')
+    parser.add_argument('--valid_file', type=str, default='valid.txt')
+    parser.add_argument('--eval_file', type=str, default='test.txt')
+    parser.add_argument('--log_file', type=str, default='experiment.log')
+    parser.add_argument('--log_level', type=str, default='info')
     parser.add_argument(
         '--load_checkpoint', type=str,
         help=('Directory of TF checkpoint files to load from. This is separate from '
               'checkpoint directory under experiment_dir.'))
-    parser.add_argument(
-        '--load_model_opt', type=str,
-        help='A json file specifying model options.')
-    if group_default:
-        for k, v in group_default.items():
-            group_parser = parser.add_argument_group(f'{k} options')
-            add_dict_to_argparser(v, group_parser)
+    parser.add_argument('--load_model_opt', type=str,
+                        help='A json file specifying model options.')
+    parser.add_argument('--load_train_opt', type=str,
+                        help='A json file specifying training options.')
+    parser.add_argument('--batch_size', type=int, default=20,
+                        help='batch size to run the model.')
     return parser
+
+
+def add_arg_group_defaults(parser, group_default):
+    def add_dict_to_argparser(d, parser):
+        for k, v in d.items():
+            parser.add_argument(f'--{k}', type=type(v), default=v, help=' ')
+    for k, v in group_default.items():
+        group_parser = parser.add_argument_group(f'{k} options')
+        add_dict_to_argparser(v, group_parser)
 
 
 def parse_set_args(parser, group_default=None):
