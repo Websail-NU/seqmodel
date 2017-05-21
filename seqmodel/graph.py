@@ -115,7 +115,7 @@ def create_cells(num_units, num_layers, cell_class=tf.contrib.rnn.BasicLSTMCell,
 
 def scan_rnn(cell, inputs, sequence_length, initial_state=None, dtype=tf.float32,
              **_kwargs):
-    """dynamically unroll cell to max(sequence_length), and select last relevant state.
+    """dynamically unroll cell to max(len(inputs)), and select last relevant state.
     IMPORTANT sequence_length shoule be at least 1, otherwise this function will return
     the first state even thought it is not relevant."""
     batch_size = tf.shape(inputs)[1]  # time major

@@ -1,11 +1,14 @@
+import sys
 import os
+import argparse
 import logging as py_logging
 
 import numpy as np
 
 
 __all__ = ['dict_with_key_startswith', 'dict_with_key_endswith', 'get_with_dot_key',
-           'hstack_list', 'masked_full_like', 'get_logger']
+           'hstack_list', 'masked_full_like', 'get_logger', 'get_common_argparse',
+           'parse_set_args']
 
 
 def setdefault_callable(d, key_tuple, fn, *args, **kwargs):
@@ -91,3 +94,47 @@ def get_logger(log_file_path=None, name='default_log', level=None):
     root_logger.addHandler(console_handler)
     root_logger.setLevel(_log_level[level])
     return root_logger
+
+
+def get_common_argparser(group_default=None):
+
+    def add_dict_to_argparser(d, parser):
+        for k, v in d.items():
+            parser.add_argument(f'--{k}', type=type(v), default=v, help=' ')
+
+    parser = argparse.ArgumentParser(
+        prog='main_lm.py',
+        description='run language model',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument(
+        'command', choices=('eval', 'train', 'init'),
+        help='eval only, train and then eval, or create experiment directory.')
+    parser.add_argument('data_dir', type=str, help='Data directory')
+    parser.add_argument(
+        'exp_dir', type=str,
+        help=('Experiment directory. Default options will be overwritten by '
+              'model_opt.json, --load_model_opt, and options provided here respectively '
+              '. Similar behavior for train_opt.json. Model is resumed from checkpoint '
+              'directory by default if --load_checkpoint is not provided.'))
+    parser.add_argument(
+        '--load_checkpoint', type=str,
+        help=('Directory of TF checkpoint files to load from. This is separate from '
+              'checkpoint directory under experiment_dir.'))
+    parser.add_argument(
+        '--load_model_opt', type=str,
+        help='A json file specifying model options.')
+    if group_default:
+        for k, v in group_default.items():
+            group_parser = parser.add_argument_group(f'{k} options')
+            add_dict_to_argparser(v, group_parser)
+    return parser
+
+
+def parse_set_args(parser, group_default=None):
+    args = vars(parser.parse_args())
+    opt = {k: v for k, v in args.items() if f'--{k}' in set(sys.argv)}
+    groups = {}
+    if group_default:
+        for name, default in group_default.items():
+            groups[name] = {k: v for k, v in opt.items() if k in default}
+    return opt, groups
