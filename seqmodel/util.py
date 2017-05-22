@@ -1,6 +1,9 @@
 import sys
 import os
 import argparse
+import json
+from collections import ChainMap
+from functools import partial
 import logging as py_logging
 
 import numpy as np
@@ -8,72 +11,14 @@ import numpy as np
 
 __all__ = ['dict_with_key_startswith', 'dict_with_key_endswith', 'get_with_dot_key',
            'hstack_list', 'masked_full_like', 'get_logger', 'get_common_argparser',
-           'parse_set_args', 'add_arg_group_defaults', 'ensure_dir', 'time_span_str']
+           'parse_set_args', 'add_arg_group_defaults', 'ensure_dir', 'time_span_str',
+           'init_exp_opts']
 
 
 def time_span_str(seconds):
     m, s = divmod(seconds, 60)
     h, m = divmod(m, 60)
     return f'{int(h)}h {int(m)}m {s:2.4}s'
-
-
-# Dictionary functions
-
-
-def setdefault_callable(d, key_tuple, fn, *args, **kwargs):
-    if any(key in d for key in key_tuple):
-        raise KeyError('Some key does not exist.')
-    if all(key in d for key in key_tuple):
-        return (d[key] for key in key_tuple)
-    return (d.setdefault(k, v) for k, v in zip(key_tuple, fn(*args, **kwargs)))
-
-
-def dict_with_key_startswith(d, prefix):
-    return {k[len(prefix):]: v for k, v in d.items() if k.startswith(prefix)}
-
-
-def dict_with_key_endswith(d, suffix):
-    return {k[:-len(suffix)]: v for k, v in d.items() if k.endswith(suffix)}
-
-
-def get_with_dot_key(d, key):
-    if '.' in key:
-        keys = key.split('.')
-        return get_nested_dict(d, keys)
-    else:
-        return d[key]
-
-
-def get_nested_dict(d, key_tuple):
-    cur_d = d
-    for k in key_tuple:
-        cur_d = cur_d[k]
-    return cur_d
-
-
-# Numpy functions
-
-
-def hstack_list(data, padding=0, dtype=np.int32):
-    lengths = list(map(len, data))
-    max_len = max(lengths)
-    arr = np.zeros((max_len, len(data)), dtype=dtype)
-    arr[:] = padding
-    for i, row in enumerate(data):
-        arr[0:len(row), i] = row
-    return arr, np.array(lengths, dtype=np.int32)
-
-
-def masked_full_like(np_data, value, num_non_padding=None, padding=0, dtype=np.float32):
-    arr = np.full_like(np_data, value, dtype=dtype)
-    total_non_pad = sum(num_non_padding)
-    if num_non_padding is not None and total_non_pad < np_data.size:
-        for i, last in enumerate(num_non_padding):
-            arr[last:, i] = 0
-    return arr, total_non_pad
-
-
-# Logger and argument parsing
 
 
 def ensure_dir(directory, delete=False):
@@ -123,6 +68,89 @@ def get_logger(log_file_path=None, name='default_log', level=None):
     root_logger.addHandler(console_handler)
     root_logger.setLevel(_log_level[level])
     return root_logger
+
+
+##########################################
+#    ########  ####  ######  ########    #
+#    ##     ##  ##  ##    ##    ##       #
+#    ##     ##  ##  ##          ##       #
+#    ##     ##  ##  ##          ##       #
+#    ##     ##  ##  ##          ##       #
+#    ##     ##  ##  ##    ##    ##       #
+#    ########  ####  ######     ##       #
+##########################################
+
+
+def setdefault_callable(d, key_tuple, fn, *args, **kwargs):
+    if any(key in d for key in key_tuple):
+        raise KeyError('Some key does not exist.')
+    if all(key in d for key in key_tuple):
+        return (d[key] for key in key_tuple)
+    return (d.setdefault(k, v) for k, v in zip(key_tuple, fn(*args, **kwargs)))
+
+
+def dict_with_key_startswith(d, prefix):
+    return {k[len(prefix):]: v for k, v in d.items() if k.startswith(prefix)}
+
+
+def dict_with_key_endswith(d, suffix):
+    return {k[:-len(suffix)]: v for k, v in d.items() if k.endswith(suffix)}
+
+
+def get_with_dot_key(d, key):
+    if '.' in key:
+        keys = key.split('.')
+        return get_nested_dict(d, keys)
+    else:
+        return d[key]
+
+
+def get_nested_dict(d, key_tuple):
+    cur_d = d
+    for k in key_tuple:
+        cur_d = cur_d[k]
+    return cur_d
+
+
+#########################################################
+#    ##    ## ##     ## ##     ## ########  ##    ##    #
+#    ###   ## ##     ## ###   ### ##     ##  ##  ##     #
+#    ####  ## ##     ## #### #### ##     ##   ####      #
+#    ## ## ## ##     ## ## ### ## ########     ##       #
+#    ##  #### ##     ## ##     ## ##           ##       #
+#    ##   ### ##     ## ##     ## ##           ##       #
+#    ##    ##  #######  ##     ## ##           ##       #
+#########################################################
+
+
+def hstack_list(data, padding=0, dtype=np.int32):
+    lengths = list(map(len, data))
+    max_len = max(lengths)
+    arr = np.zeros((max_len, len(data)), dtype=dtype)
+    arr[:] = padding
+    for i, row in enumerate(data):
+        arr[0:len(row), i] = row
+    return arr, np.array(lengths, dtype=np.int32)
+
+
+def masked_full_like(np_data, value, num_non_padding=None, padding=0, dtype=np.float32):
+    arr = np.full_like(np_data, value, dtype=dtype)
+    total_non_pad = sum(num_non_padding)
+    if num_non_padding is not None and total_non_pad < np_data.size:
+        for i, last in enumerate(num_non_padding):
+            arr[last:, i] = 0
+    return arr, total_non_pad
+
+
+###########################################
+#    ##     ##    ###    #### ##    ##    #
+#    ###   ###   ## ##    ##  ###   ##    #
+#    #### ####  ##   ##   ##  ####  ##    #
+#    ## ### ## ##     ##  ##  ## ## ##    #
+#    ##     ## #########  ##  ##  ####    #
+#    ##     ## ##     ##  ##  ##   ###    #
+#    ##     ## ##     ## #### ##    ##    #
+###########################################
 
 
 def get_common_argparser(prog, usage=None, description=None):
@@ -181,3 +209,30 @@ def parse_set_args(parser, group_default=None):
             key_set.update(default.keys())
     other_opt = {k: v for k, v in args.items() if k not in key_set}
     return other_opt, groups
+
+
+def init_exp_opts(opt, groups, group_default):
+    load_model_opt, load_train_opt = {}, {}
+    if opt['load_model_opt'] is not None:
+        with open(opt['load_model_opt']) as ifp:
+            load_model_opt = json.load(ifp)
+    if opt['load_train_opt'] is not None:
+        with open(opt['load_train_opt']) as ifp:
+            load_train_opt = json.load(ifp)
+    model_opt = ChainMap(groups['model'], load_model_opt, group_default['model'])
+    train_opt = ChainMap(groups['train'], load_model_opt, group_default['train'])
+
+    epath = partial(os.path.join, opt['exp_dir'])
+    init_only = opt['command'] == 'init'
+    ensure_dir(opt['exp_dir'], delete=init_only)
+
+    with open(epath('basic_opt.json'), 'w') as ofp:
+        json.dump(opt, ofp, indent=2, sort_keys=True)
+    with open(epath('model_opt.json'), 'w') as ofp:
+        json.dump(dict(model_opt), ofp, indent=2, sort_keys=True)
+    with open(epath('train_opt.json'), 'w') as ofp:
+        json.dump(dict(train_opt), ofp, indent=2, sort_keys=True)
+
+    logger = get_logger(epath(opt['log_file']), 'exp_log', opt['log_level'])
+
+    return opt, model_opt, train_opt, logger

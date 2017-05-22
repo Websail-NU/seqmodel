@@ -18,31 +18,30 @@ def main(opt, model_opt, train_opt, logger):
     is_init_only = opt['command'] == 'init'
     logger.info('Loading data...')
     dpath = partial(os.path.join, opt['data_dir'])
-    vocab = sq.Vocabulary.from_vocab_file(dpath('vocab.txt'))
-    data_fn = partial(sq.read_seq_data, in_vocab=vocab, out_vocab=vocab,
-                      keep_sentence=opt['sentence_level'], seq_len=opt['seq_len'])
-    data = [data_fn(sq.read_lines(dpath(f), token_split=' '))
+    enc_vocab = sq.Vocabulary.from_vocab_file(dpath('enc_vocab.txt'))
+    dec_vocab = sq.Vocabulary.from_vocab_file(dpath('dec_vocab.txt'))
+    data_fn = partial(sq.read_seq2seq_data, in_vocab=enc_vocab, out_vocab=dec_vocab)
+    data = [data_fn(sq.read_lines(dpath(f), token_split=' ', part_split='\t',
+                                  part_indices=(0, -1)))
             for f in (opt['train_file'], opt['valid_file'], opt['eval_file'])]
 
-    batch_iter = partial(sq.seq_batch_iter, batch_size=opt['batch_size'],
-                         shuffle=opt['sentence_level'],
-                         keep_sentence=opt['sentence_level'])
+    batch_iter = partial(sq.seq2seq_batch_iter, batch_size=opt['batch_size'])
 
     logger.info('Loading model...')
     if opt['command'] == 'train':
         train_batch_iter = partial(batch_iter, *data[0])
         valid_batch_iter = partial(batch_iter, *data[1])
-        train_model = sq.SeqModel()
+        train_model = sq.Seq2SeqModel()
         init_lr = train_opt['train:init_lr']
         train_model.build_graph(model_opt)
-        train_model.set_default_feed('train_loss_denom', opt['batch_size'])
+        train_model.set_default_feed('dec.train_loss_denom', opt['batch_size'])
         lr = tf.placeholder(tf.float32, shape=None, name='learning_rate')
         train_op = sq.create_train_op(
             train_model.training_loss, optim_class=train_opt['train:optim_class'],
             learning_rate=lr, clip_gradients=train_opt['train:clip_gradients'])
 
     eval_batch_iter = partial(batch_iter, *data[-1])
-    eval_model = sq.SeqModel()
+    eval_model = sq.Seq2SeqModel()
     eval_model.build_graph(model_opt, reuse=is_training)
 
     for v in tf.global_variables():
@@ -87,11 +86,9 @@ def main(opt, model_opt, train_opt, logger):
 
 if __name__ == '__main__':
     start_time = time.time()
-    group_default = {'model': sq.SeqModel.default_opt(),
+    group_default = {'model': sq.Seq2SeqModel.default_opt(),
                      'train': sq.default_training_opt()}
     parser = sq.get_common_argparser('main_lm.py')
-    parser.add_argument('--seq_len', type=int, default=20, help=' ')
-    parser.add_argument('--sentence_level', action='store_true', help=' ')
     sq.add_arg_group_defaults(parser, group_default)
     opt, groups = sq.parse_set_args(parser, group_default)
     opt, model_opt, train_opt, logger = sq.init_exp_opts(opt, groups, group_default)

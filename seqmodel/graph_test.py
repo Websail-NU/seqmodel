@@ -61,7 +61,7 @@ class TestGraph(tf.test.TestCase):
             lookup, emb_vars = graph.create_lookup(input_, vocab_size=10, dim=5,
                                                    init=emb_init)
             onehot, __ = graph.create_lookup(input_, onehot=True, vocab_size=10,
-                                             lookup_name='onehotlookup')
+                                             prefix='onehot')
             sess.run(tf.global_variables_initializer())
             emb_tf = sess.run(emb_vars)
             self.assertAllClose(emb_tf, emb_init)  # 'init embedding works'

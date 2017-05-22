@@ -2,6 +2,7 @@ import warnings
 from contextlib import contextmanager
 import six
 from pydoc import locate
+from functools import partial
 
 import numpy as np
 import tensorflow as tf
@@ -10,20 +11,12 @@ from seqmodel import dstruct
 
 
 __all__ = ['_safe_div', 'tf_collection', 'create_2d_tensor', 'matmul', 'create_cells',
-           'create_rnn', 'select_rnn', 'select_nested_rnn', 'create_tdnn',
+           'create_rnn', 'select_rnn', 'select_nested_rnn', 'create_tdnn', 'maybe_scope',
            'create_highway_layer', 'create_gru_layer', 'get_seq_input_placeholders',
            'get_seq_label_placeholders', 'create_lookup', 'get_logit_layer',
            'select_from_logit', 'create_xent_loss', 'create_ent_loss',
            'create_slow_feature_loss', 'create_l2_loss', 'create_train_op',
-           'empty_tf_collection']
-
-
-def _safe_div(numerator, denominator, name='safe_div'):
-    """Computes a safe divide which returns 0 if the denominator is zero."""
-    return tf.where(tf.equal(denominator, 0),
-                    tf.zeros_like(numerator),
-                    tf.div(numerator, denominator),
-                    name=name)
+           'empty_tf_collection', 'scan_rnn_no_mask', 'create_decode']
 
 
 _global_collections = {}
@@ -60,6 +53,15 @@ def empty_tf_collection(collect_key):
         _global_collections[collect_key] = {}
 
 
+@contextmanager
+def maybe_scope(scope=None, reuse=False):
+    if scope is not None:
+        with tf.variable_scope(scope, reuse=reuse) as _scope:
+            yield _scope
+    else:
+        yield None
+
+
 def create_2d_tensor(dim1, dim2, trainable=True, init=None, name='tensor'):
     if init is None:
         return tf.get_variable(name, [dim1, dim2], trainable=trainable)
@@ -67,6 +69,14 @@ def create_2d_tensor(dim1, dim2, trainable=True, init=None, name='tensor'):
         init = np.load(init) if isinstance(init, six.string_types) else init
         return tf.get_variable(
             name, trainable=trainable, initializer=tf.constant(init, dtype=tf.float32))
+
+
+def _safe_div(numerator, denominator, name='safe_div'):
+    """Computes a safe divide which returns 0 if the denominator is zero."""
+    return tf.where(tf.equal(denominator, 0),
+                    tf.zeros_like(numerator),
+                    tf.div(numerator, denominator),
+                    name=name)
 
 
 def matmul(mat, mat2d, transpose_b=False):
@@ -123,7 +133,7 @@ def create_cells(num_units, num_layers, cell_class=tf.contrib.rnn.BasicLSTMCell,
 
 
 def scan_rnn(cell, inputs, sequence_length, initial_state=None, dtype=tf.float32,
-             scope='rnn', **_kwargs):
+             scope='rnn', mask_output=True, **_kwargs):
     """dynamically unroll cell to max(len(inputs)), and select last relevant state.
     IMPORTANT sequence_length shoule be at least 1, otherwise this function will return
     the first state even thought it is not relevant."""
@@ -135,7 +145,15 @@ def scan_rnn(cell, inputs, sequence_length, initial_state=None, dtype=tf.float32
                                   dtype=dtype, name='scan_rnn_init'),
                          initial_state))
         final_state = select_nested_rnn(states, tf.nn.relu(sequence_length - 1))
+        if mask_output:
+            max_len = tf.shape(inputs)[0]
+            mask = tf.expand_dims(
+                tf.sequence_mask(sequence_length, max_len, tf.float32), -1)
+            output = tf.multiply(output, tf.transpose(mask, (1, 0, 2)))
     return output, final_state
+
+
+scan_rnn_no_mask = partial(scan_rnn, mask_output=False)
 
 
 def create_rnn(cell, inputs, sequence_length=None, initial_state=None,
@@ -235,6 +253,32 @@ def create_gru_layer(transform, extra, carried):
     h = tf.tanh(matmul(tf.concat([scaled_extra, transform], -1), h_w) + h_b)
     return tf.multiply(h - carried, z) + carried
 
+
+def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, logit_b=None,
+                  min_len=1, max_len=10, back_prop=False, cell_scope=None):
+    gen_ta = tf.TensorArray(dtype=tf.int32, size=min_len, dynamic_size=True)
+
+    init_values = (tf.constant(0), initial_inputs, initial_state, gen_ta)
+
+    def cond(t, inputs, _state, _out_ta):
+        return t < max_len
+
+    def step(t, inputs, state, out_ta):
+        input_emb = tf.nn.embedding_lookup(emb_var, inputs)
+        with maybe_scope(cell_scope, reuse=True):
+            with tf.variable_scope('rnn', reuse=True):
+                output, new_state = cell(input_emb, state)
+        logit = tf.matmul(output, logit_w, transpose_b=True)
+        if logit_b is not None:
+            logit = logit + logit_b
+        next_token = tf.cast(tf.argmax(logit, axis=-1), tf.int32)
+        out_ta = out_ta.write(t, next_token)
+        return t + 1, next_token, new_state, out_ta
+
+    result = tf.while_loop(cond, step, init_values, back_prop=back_prop)
+    return result[-1].stack()
+
+
 #######################################
 #    ####          ##     #######     #
 #     ##          ##     ##     ##    #
@@ -279,40 +323,41 @@ def get_seq_label_placeholders(label_dtype=tf.int32, prefix='decoder',
 
 
 def create_lookup(inputs, emb_vars=None, onehot=False, vocab_size=None, dim=None,
-                  trainable=True, init=None, lookup_name='input_lookup',
+                  trainable=True, init=None, prefix='input',
                   emb_name='embedding'):
     """return lookup, and embedding variable (None if onehot)"""
     if onehot:
         assert vocab_size is not None, 'onehot needs vocab_size to be set.'
         lookup = tf.one_hot(inputs, vocab_size, axis=-1, dtype=tf.float32,
-                            name=lookup_name)
+                            name=f'{prefix}_lookup')
         return lookup, None  # RETURN IS HERE TOO!
     if emb_vars is None:
         size_is_not_none = vocab_size is not None and dim is not None
         assert size_is_not_none or init is not None,\
             'If emb_vars and init is None, vocab_size and dim must be set.'
         emb_vars = create_2d_tensor(vocab_size, dim, trainable, init, emb_name)
-    lookup = tf.nn.embedding_lookup(emb_vars, inputs, name=lookup_name)
+    lookup = tf.nn.embedding_lookup(emb_vars, inputs, name=f'{prefix}_lookup')
     return lookup, emb_vars
 
 
 def get_logit_layer(inputs, logit_w=None, logit_b=None, output_size=None,
                     use_bias=True, temperature=None, trainable=True,
-                    init=None, prefix='logit', add_to_collection=True,
+                    init=None, prefix='output', add_to_collection=True,
                     collect_key='model_inputs'):
     """return logit with temperature layer and variables"""
     if logit_w is None:
         input_dim = int(inputs.get_shape()[-1])
         logit_w = create_2d_tensor(output_size, input_dim, trainable, init=init,
-                                   name=f'{prefix}_w')
+                                   name=f'logit_w')
     logit = matmul(inputs, logit_w, transpose_b=True)
     if use_bias:
         if logit_b is None:
-            logit_b = tf.get_variable(f'{prefix}_b', [output_size], dtype=tf.float32)
+            logit_b = tf.get_variable(f'logit_b', [output_size],
+                                      dtype=tf.float32)
         logit = logit + logit_b
     if temperature is None:
         with tf_collection(collect_key, add_to_collection) as get:
-            temp_key = f'{prefix}_temperature'
+            temp_key = f'{prefix}_logit_temperature'
             temperature = get(temp_key, tf.placeholder(
                 tf.float32, shape=None, name=temp_key))
     logit = logit / temperature
