@@ -158,10 +158,9 @@ class TestSeqModel(tf.test.TestCase):
             # prediction
             output, __ = m.predict(sess, (seq, seq_len), fetch_state=False)
             co = output['cell_output']
-            if rnn_fn == tf.nn.dynamic_rnn:
-                for iseq in range(co.shape[1]):
-                    np.testing.assert_array_equal(co[seq_len[iseq]:, iseq, :], 0,
-                                                  'cell output is zero after seq_len')
+            for iseq in range(co.shape[1]):
+                np.testing.assert_array_equal(co[seq_len[iseq]:, iseq, :], 0,
+                                              'cell output is zero after seq_len')
             for i in range(2):
                 self.assertEqual(output['dec_sample'][i].shape, (4, 3),
                                  'sample shape is the same as input\'s')
@@ -326,10 +325,9 @@ class TestSeq2SeqModel(tf.test.TestCase):
             features = (seq, seq_len, seq, seq_len)
             output, __ = m.predict(sess, features, fetch_state=False)
             co = output['cell_output']
-            if rnn_fn == tf.nn.dynamic_rnn:
-                for iseq in range(co.shape[1]):
-                    np.testing.assert_array_equal(co[seq_len[iseq]:, iseq, :], 0,
-                                                  'cell output is zero after seq_len')
+            for iseq in range(co.shape[1]):
+                np.testing.assert_array_equal(co[seq_len[iseq]:, iseq, :], 0,
+                                              'cell output is zero after seq_len')
             for i in range(2):
                 self.assertEqual(output['dec_sample'][i].shape, (4, 3),
                                  'sample shape is the same as input\'s')

@@ -2,6 +2,7 @@ import warnings
 from contextlib import contextmanager
 import six
 from pydoc import locate
+from functools import partial
 
 import numpy as np
 import tensorflow as tf
@@ -15,7 +16,7 @@ __all__ = ['_safe_div', 'tf_collection', 'create_2d_tensor', 'matmul', 'create_c
            'get_seq_label_placeholders', 'create_lookup', 'get_logit_layer',
            'select_from_logit', 'create_xent_loss', 'create_ent_loss',
            'create_slow_feature_loss', 'create_l2_loss', 'create_train_op',
-           'empty_tf_collection']
+           'empty_tf_collection', 'scan_rnn_no_mask']
 
 
 def _safe_div(numerator, denominator, name='safe_div'):
@@ -132,7 +133,7 @@ def create_cells(num_units, num_layers, cell_class=tf.contrib.rnn.BasicLSTMCell,
 
 
 def scan_rnn(cell, inputs, sequence_length, initial_state=None, dtype=tf.float32,
-             scope='rnn', **_kwargs):
+             scope='rnn', mask_output=True, **_kwargs):
     """dynamically unroll cell to max(len(inputs)), and select last relevant state.
     IMPORTANT sequence_length shoule be at least 1, otherwise this function will return
     the first state even thought it is not relevant."""
@@ -144,7 +145,15 @@ def scan_rnn(cell, inputs, sequence_length, initial_state=None, dtype=tf.float32
                                   dtype=dtype, name='scan_rnn_init'),
                          initial_state))
         final_state = select_nested_rnn(states, tf.nn.relu(sequence_length - 1))
+        if mask_output:
+            max_len = tf.shape(inputs)[0]
+            mask = tf.expand_dims(
+                tf.sequence_mask(sequence_length, max_len, tf.float32), -1)
+            output = tf.multiply(output, tf.transpose(mask, (1, 0, 2)))
     return output, final_state
+
+
+scan_rnn_no_mask = partial(scan_rnn, mask_output=False)
 
 
 def create_rnn(cell, inputs, sequence_length=None, initial_state=None,
