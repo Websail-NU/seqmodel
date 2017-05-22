@@ -204,8 +204,8 @@ class SeqModel(Model):
                'cell:cell_class': 'tensorflow.contrib.rnn.BasicLSTMCell',
                'cell:in_keep_prob': 1.0, 'cell:out_keep_prob': 1.0,
                'cell:state_keep_prob': 1.0, 'cell:variational': False,
-               # 'rnn:fn': 'tensorflow.nn.dynamic_rnn',
-               'rnn:fn': 'seqmodel.graph.scan_rnn',
+               'rnn:fn': 'tensorflow.nn.dynamic_rnn',
+               # 'rnn:fn': 'seqmodel.graph.scan_rnn',
                'out:logit': True, 'out:loss': True, 'logit:output_size': 14,
                'logit:use_bias': True, 'logit:trainable': True, 'logit:init': None,
                'loss:type': 'xent', 'share:input_emb_logit': False}
@@ -355,7 +355,6 @@ class Seq2SeqModel(SeqModel):
         rnn_opt = super().default_opt()
         encoder_opt = {f'enc:{k}': v for k, v in rnn_opt.items()
                        if not ('logit:' in k or 'loss:' in k or 'share:' in k)}
-        encoder_opt.update({'enc:out:logit': False, 'enc:out:loss': False})
         decoder_opt = {f'dec:{k}': v for k, v in rnn_opt.items()}
         decoder_opt.update({'share:enc_dec_rnn': False, 'share:enc_dec_emb': False})
         return {**encoder_opt, **decoder_opt}
@@ -366,6 +365,7 @@ class Seq2SeqModel(SeqModel):
         (see default_opt() for configuration)
         """
         opt = opt if opt else {}
+        opt.update({'enc:out:logit': False, 'enc:out:loss': False})
         chain_opt = ChainMap(kwargs, opt, self.default_opt())
         self._name = name
         with tf.variable_scope(name, reuse=reuse):

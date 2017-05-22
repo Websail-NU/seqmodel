@@ -21,6 +21,7 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - [x] Scripts to get data
 - [x] Main file to run language model
 - [x] Seq2SeqModel
+- [x] Main file to run seq2seq model with MLE training
 - [ ] Sampled-based running functions
 - [ ] Definition data reader
 - [ ] DefinitionModel
