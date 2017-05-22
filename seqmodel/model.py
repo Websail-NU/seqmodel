@@ -1,6 +1,7 @@
 import six
 import warnings
 from collections import ChainMap
+from collections import defaultdict
 from functools import partial
 
 import tensorflow as tf
@@ -10,7 +11,7 @@ from seqmodel import dstruct
 from seqmodel import graph as tfg
 
 
-__all__ = ['Model', 'SeqModel']
+__all__ = ['Model', 'SeqModel', 'Seq2SeqModel']
 
 
 #########################################################
@@ -191,6 +192,10 @@ class Model(object):
 class SeqModel(Model):
 
     _STATE_ = 's'
+    _RSK_EMB_ = 'emb'
+    _RSK_RNN_ = 'rnn'
+    _RSK_LOGIT_ = 'logit'
+    reuse_scopes = (_RSK_EMB_, _RSK_RNN_, _RSK_LOGIT_)
 
     @classmethod
     def default_opt(cls):
@@ -207,15 +212,19 @@ class SeqModel(Model):
         return opt
 
     def build_graph(self, opt=None, initial_state=None, reuse=False, name='seq_model',
-                    collect_key='seq_model', **kwargs):
+                    collect_key='seq_model', reuse_scope=None, **kwargs):
         """ build RNN graph with option (see default_opt() for configuration) and
             optionally initial_state (zero state if none provided)"""
         opt = opt if opt else {}
         chain_opt = ChainMap(kwargs, opt, self.default_opt())
-        self._collect_key = collect_key
+        reuse_scope = {} if reuse_scope is None else reuse_scope
+        reuse_scope = defaultdict(lambda: None, **reuse_scope)
         self._name = name
         with tf.variable_scope(name, reuse=reuse):
-            return self._build(chain_opt, initial_state, reuse, **kwargs)
+            nodes, graph_args = self._build(
+                chain_opt, reuse_scope, initial_state, reuse, collect_key, **kwargs)
+            self.set_graph(**graph_args)
+            return nodes
 
     def set_graph(self, feature_feed, predict_fetch, label_feed=None, train_fetch=None,
                   eval_fetch=None, node_dict=None, state_feed=None, state_fetch=None):
@@ -230,17 +239,22 @@ class SeqModel(Model):
         if 'temperature' in node_dict:
             self.set_default_feed('temperature', 1.0)
 
-    def _build(self, opt, initial_state=None, reuse=False, **kwargs):
-        collect_kwargs = {'add_to_collection': True, 'collect_key': self._collect_key}
+    def _build(self, opt, reuse_scope, initial_state=None, reuse=False,
+               collect_key='seq_model', prefix='lm', **kwargs):
+        collect_kwargs = {'add_to_collection': True, 'collect_key': collect_key,
+                          'prefix': prefix}
         # input and embedding
         input_, seq_len_ = tfg.get_seq_input_placeholders(**collect_kwargs)
         emb_opt = util.dict_with_key_startswith(opt, 'emb:')
-        lookup_, emb_vars_ = tfg.create_lookup(input_, **emb_opt)
+        with tfg.maybe_scope(reuse_scope[self._RSK_EMB_], reuse=True) as scope:
+            lookup_, emb_vars_ = tfg.create_lookup(input_, **emb_opt)
         # cell and rnn
         cell_opt = util.dict_with_key_startswith(opt, 'cell:')
-        cell_ = tfg.create_cells(reuse=reuse, input_size=opt['emb:dim'], **cell_opt)
-        cell_output_, initial_state_, final_state_ = tfg.create_rnn(
-            cell_, lookup_, seq_len_, initial_state, rnn_fn=opt['rnn:fn'])
+        with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
+            _reuse = reuse or scope is not None
+            cell_ = tfg.create_cells(reuse=_reuse, input_size=opt['emb:dim'], **cell_opt)
+            cell_output_, initial_state_, final_state_ = tfg.create_rnn(
+                cell_, lookup_, seq_len_, initial_state, rnn_fn=opt['rnn:fn'])
         predict_fetch = {'cell_output': cell_output_}
         nodes = util.dict_with_key_endswith(locals(), '_')
         graph_args = {'feature_feed': dstruct.SeqFeatureTuple(input_, seq_len_),
@@ -249,27 +263,28 @@ class SeqModel(Model):
         # output
         if opt['out:logit']:
             logit, label_feed, output_fectch, output_nodes = self._build_logit(
-                opt, collect_kwargs, emb_vars_, cell_output_)
+                opt, reuse_scope, collect_kwargs, emb_vars_, cell_output_)
             predict_fetch.update(output_fectch)
             nodes.update(output_nodes)
             graph_args.update(label_feed=label_feed)
         # loss
         if opt['out:logit'] and opt['out:loss']:
             train_fetch, eval_fetch, loss_nodes = self._build_loss(
-                opt, logit, *label_feed, collect_kwargs)
+                opt, logit, *label_feed, collect_key,
+                collect_kwargs['add_to_collection'])
             nodes.update(loss_nodes)
             graph_args.update(train_fetch=train_fetch, eval_fetch=eval_fetch)
         elif not opt['out:logit'] and opt['out:loss']:
             raise ValueError('out:logit is False, cannot build loss graph')
-        self.set_graph(**graph_args)
-        return nodes
+        return nodes, graph_args
 
-    def _build_logit(self, opt, collect_kwargs, emb_vars, cell_output):
+    def _build_logit(self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output):
         # logit
         logit_w_ = emb_vars if opt['share:input_emb_logit'] else None
         logit_opt = util.dict_with_key_startswith(opt, 'logit:')
-        logit_, temperature_, logit_w_, logit_b_ = tfg.get_logit_layer(
-            cell_output, logit_w=logit_w_, **logit_opt, **collect_kwargs)
+        with tfg.maybe_scope(reuse_scope[self._RSK_LOGIT_]) as scope:
+            logit_, temperature_, logit_w_, logit_b_ = tfg.get_logit_layer(
+                cell_output, logit_w=logit_w_, **logit_opt, **collect_kwargs)
         dist_, dec_max_, dec_sample_ = tfg.select_from_logit(logit_)
         # label
         label_, token_weight_, seq_weight_ = tfg.get_seq_label_placeholders(
@@ -283,9 +298,10 @@ class SeqModel(Model):
         nodes = util.dict_with_key_endswith(locals(), '_')
         return logit_, label_feed, predict_fetch, nodes
 
-    def _build_loss(self, opt, logit, label, weight, seq_weight, collect_kwargs):
+    def _build_loss(self, opt, logit, label, weight, seq_weight,
+                    collect_key, add_to_collection):
         if opt['loss:type'] == 'xent':
-            with tfg.tf_collection(**collect_kwargs) as get:
+            with tfg.tf_collection(collect_key, add_to_collection) as get:
                 name = 'train_loss_denom'
                 train_loss_denom_ = get(
                     name, tf.placeholder(tf.float32, shape=None, name=name))
@@ -330,3 +346,62 @@ class SeqModel(Model):
 #    ##    ## ##       ##    ##  ##        ##    ## ##       ##    ##     #
 #     ######  ########  ##### ## #########  ######  ########  ##### ##    #
 ###########################################################################
+
+
+class Seq2SeqModel(SeqModel):
+
+    @classmethod
+    def default_opt(cls):
+        rnn_opt = super().default_opt()
+        encoder_opt = {f'enc:{k}': v for k, v in rnn_opt.items()
+                       if not ('logit:' in k or 'loss:' in k or 'share:' in k)}
+        encoder_opt.update({'enc:out:logit': False, 'enc:out:loss': False})
+        decoder_opt = {f'dec:{k}': v for k, v in rnn_opt.items()}
+        decoder_opt.update({'share:enc_dec_rnn': False, 'share:enc_dec_emb': False})
+        return {**encoder_opt, **decoder_opt}
+
+    def build_graph(self, opt=None, reuse=False, name='seq2seq_model',
+                    collect_key='seq2seq_model', **kwargs):
+        """ build encoder-decoder graph with option
+        (see default_opt() for configuration)
+        """
+        opt = opt if opt else {}
+        chain_opt = ChainMap(kwargs, opt, self.default_opt())
+        self._name = name
+        with tf.variable_scope(name, reuse=reuse):
+            nodes, graph_args = self._build(
+                chain_opt, reuse, collect_key, **kwargs)
+            self.set_graph(**graph_args)
+            return nodes
+
+    def _build(self, opt, reuse=False, collect_key='seq2seq_model',
+               prefix='seq2seq', **kwargs):
+        reuse_scope = defaultdict(lambda: None)
+        enc_opt = util.dict_with_key_startswith(opt, 'enc:')
+        dec_opt = util.dict_with_key_startswith(opt, 'dec:')
+        with tf.variable_scope('enc', reuse=reuse) as enc_scope:
+            enc_nodes, enc_graph_args = super()._build(
+                enc_opt, reuse_scope, reuse=reuse, collect_key='seq2seq_enc',
+                prefix=f'{prefix}_enc')
+        if opt['share:enc_dec_emb']:
+            reuse_scope[self._RSK_EMB_] = enc_scope
+        if opt['share:enc_dec_rnn']:
+            reuse_scope[self._RSK_RNN_] = enc_scope
+        with tf.variable_scope('dec', reuse=reuse):
+            dec_nodes, dec_graph_args = super()._build(
+                dec_opt, reuse_scope, initial_state=enc_nodes['final_state'],
+                reuse=reuse, collect_key='seq2seq_dec', prefix=f'{prefix}_dec')
+        graph_args = dec_graph_args  # rename for visual
+        graph_args['feature_feed'] = dstruct.Seq2SeqFeatureTuple(
+            *enc_graph_args['feature_feed'], *dec_graph_args['feature_feed'])
+        graph_args['predict_fetch'].update(
+            {'encoder_state': enc_nodes['final_state']})
+        graph_args['node_dict'] = {'enc': enc_nodes, 'dec': dec_nodes}
+        return dec_graph_args['node_dict'], graph_args
+
+    def set_graph(self, *args, **kwargs):  # just pass along
+        super().set_graph(*args, **kwargs)
+        if 'train_loss_denom' in self._nodes['dec']:
+            self.set_default_feed('dec.train_loss_denom', 1.0)
+        if 'temperature' in self._nodes['dec']:
+            self.set_default_feed('dec.temperature', 1.0)

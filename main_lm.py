@@ -60,6 +60,7 @@ def main(opt, model_opt, train_opt, logger):
         sess.run(tf.global_variables_initializer())
         saver = tf.train.Saver()
         if is_training:
+            logger.info('Training...')
             train_state = sq.load_exp(sess, saver, opt['exp_dir'], latest=True)
             if train_state is None:
                 logger.info('No experiment to resume.')
@@ -82,6 +83,7 @@ def main(opt, model_opt, train_opt, logger):
         success = sq.load_exp(sess, saver, opt['exp_dir'], latest=False)
         if success is None:
             logger.warn('No model to load from.')
+        logger.info('Evaluating...')
         info = sq.run_epoch(sess, eval_model, eval_batch_iter)
         logger.info(info.summary('eval'))
 

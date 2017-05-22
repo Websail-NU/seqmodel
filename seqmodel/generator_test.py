@@ -90,7 +90,7 @@ class TestSeq2Seq(unittest.TestCase):
         for batch in generator.seq2seq_batch_iter(*data, batch_size=5):
             count += batch.num_tokens
             self.assertFalse(batch.keep_state, 'keep_state is False')
-            self.assertEqual(batch.num_tokens, sum(batch.features.decoder.seq_len),
+            self.assertEqual(batch.num_tokens, sum(batch.features.dec_seq_len),
                              'num_tokens is sum of seq_len')
         self.assertEqual(count, self.num_lines + self.num_tokens,
                          'number of tokens (including eos symbol)')

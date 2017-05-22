@@ -10,7 +10,7 @@ from seqmodel import dstruct
 
 
 __all__ = ['_safe_div', 'tf_collection', 'create_2d_tensor', 'matmul', 'create_cells',
-           'create_rnn', 'select_rnn', 'select_nested_rnn', 'create_tdnn',
+           'create_rnn', 'select_rnn', 'select_nested_rnn', 'create_tdnn', 'maybe_scope',
            'create_highway_layer', 'create_gru_layer', 'get_seq_input_placeholders',
            'get_seq_label_placeholders', 'create_lookup', 'get_logit_layer',
            'select_from_logit', 'create_xent_loss', 'create_ent_loss',
@@ -58,6 +58,15 @@ def empty_tf_collection(collect_key):
         _global_collections = {}
     else:
         _global_collections[collect_key] = {}
+
+
+@contextmanager
+def maybe_scope(scope=None, reuse=False):
+    if scope is not None:
+        with tf.variable_scope(scope, reuse=reuse) as _scope:
+            yield _scope
+    else:
+        yield None
 
 
 def create_2d_tensor(dim1, dim2, trainable=True, init=None, name='tensor'):
@@ -279,40 +288,41 @@ def get_seq_label_placeholders(label_dtype=tf.int32, prefix='decoder',
 
 
 def create_lookup(inputs, emb_vars=None, onehot=False, vocab_size=None, dim=None,
-                  trainable=True, init=None, lookup_name='input_lookup',
+                  trainable=True, init=None, prefix='input',
                   emb_name='embedding'):
     """return lookup, and embedding variable (None if onehot)"""
     if onehot:
         assert vocab_size is not None, 'onehot needs vocab_size to be set.'
         lookup = tf.one_hot(inputs, vocab_size, axis=-1, dtype=tf.float32,
-                            name=lookup_name)
+                            name=f'{prefix}_lookup')
         return lookup, None  # RETURN IS HERE TOO!
     if emb_vars is None:
         size_is_not_none = vocab_size is not None and dim is not None
         assert size_is_not_none or init is not None,\
             'If emb_vars and init is None, vocab_size and dim must be set.'
         emb_vars = create_2d_tensor(vocab_size, dim, trainable, init, emb_name)
-    lookup = tf.nn.embedding_lookup(emb_vars, inputs, name=lookup_name)
+    lookup = tf.nn.embedding_lookup(emb_vars, inputs, name=f'{prefix}_lookup')
     return lookup, emb_vars
 
 
 def get_logit_layer(inputs, logit_w=None, logit_b=None, output_size=None,
                     use_bias=True, temperature=None, trainable=True,
-                    init=None, prefix='logit', add_to_collection=True,
+                    init=None, prefix='output', add_to_collection=True,
                     collect_key='model_inputs'):
     """return logit with temperature layer and variables"""
     if logit_w is None:
         input_dim = int(inputs.get_shape()[-1])
         logit_w = create_2d_tensor(output_size, input_dim, trainable, init=init,
-                                   name=f'{prefix}_w')
+                                   name=f'logit_w')
     logit = matmul(inputs, logit_w, transpose_b=True)
     if use_bias:
         if logit_b is None:
-            logit_b = tf.get_variable(f'{prefix}_b', [output_size], dtype=tf.float32)
+            logit_b = tf.get_variable(f'logit_b', [output_size],
+                                      dtype=tf.float32)
         logit = logit + logit_b
     if temperature is None:
         with tf_collection(collect_key, add_to_collection) as get:
-            temp_key = f'{prefix}_temperature'
+            temp_key = f'{prefix}_logit_temperature'
             temperature = get(temp_key, tf.placeholder(
                 tf.float32, shape=None, name=temp_key))
     logit = logit / temperature

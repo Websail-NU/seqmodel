@@ -175,7 +175,6 @@ def seq2seq_batch_iter(enc_data, dec_data, batch_size=1, shuffle=True):
         token_weight, num_tokens = util.masked_full_like(
             out_dec, 1, num_non_padding=dec_len)
         seq_weight = seq_weight.astype(np.float32)
-        features = ds.Seq2SeqFeatureTuple(ds.SeqFeatureTuple(enc, enc_len),
-                                          ds.SeqFeatureTuple(in_dec, dec_len))
+        features = ds.Seq2SeqFeatureTuple(enc, enc_len, in_dec, dec_len)
         labels = ds.SeqLabelTuple(out_dec, token_weight, seq_weight)
         yield ds.BatchTuple(features, labels, num_tokens, False)

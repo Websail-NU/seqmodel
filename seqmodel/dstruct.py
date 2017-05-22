@@ -30,8 +30,12 @@ SeqLabelTuple = collections.namedtuple(
     'SeqLabelTuple', ('label', 'label_weight', 'seq_weight'))
 
 
+# Seq2SeqFeatureTuple = collections.namedtuple(
+#     'Seq2SeqFeatureTuple', (f'{m}_{f}' for m in ('enc', 'dec')
+#                             for f in SeqFeatureTuple._fields))
+
 Seq2SeqFeatureTuple = collections.namedtuple(
-    'Seq2SeqFeatureTuple', ('encoder', 'decoder'))
+    'Seq2SeqFeatureTuple', ('enc_inputs', 'enc_seq_len', 'dec_inputs', 'dec_seq_len'))
 
 OutputStateTuple = collections.namedtuple('OutputStateTuple', ('output', 'state'))
 
