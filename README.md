@@ -14,39 +14,29 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 
 ## TODO
 
-### Refactor:
-- [x] SeqModel
-- [x] Basic running function
-- [x] Learning rate update function
-- [x] Scripts to get data
-- [x] Main file to run language model
-- [x] Seq2SeqModel
-- [x] Main file to run seq2seq model with MLE training
-- [ ] Sampled-based running functions
-- [ ] Definition data reader
-- [ ] DefinitionModel
-- [ ] Scripts to get definition data
-
-
 ### Model
-- [ ] Make it possible to share variables between 2 different models
+- [x] Make it possible to share variables between 2 different models
 - [x] Reuse placeholder variables when creating a model
-- [ ] Use sess.partialrun() to cache encoder state
+- [x] Dynamic decode: greedy gen to fixed length
+- [ ] Dynamic decode: add stop id check and multinomial sample
+- [ ] DefinitionModel
 
 ### Run
-- [x] Add teacher forcing
+- [ ] Sampled-based running functions
+- [ ] Add teacher forcing
 - [ ] TD(lambda)
 - [ ] Bootstrap last state if not terminal
 
 ### Generator
-
+- [ ] Definition data reader
 
 ### Scripts
+- [ ] Scripts to get definition data
+- [ ] Add option to put all data into tf.constant
 
+### Refactor:
+- [ ] Move function in contrib package and add test
+- [ ] Less classes, more pythonic, and more unit test.
 
-## Goal:
-Less classes, more pythonic, and more unit test.
-
-After refactoring codes several times, I think OOP works againt my progress. It makes
-the project hard to add/change functions. It is also hard to read the code because
-relevant sequences of code are fragmented every where to fit the object's semantics.
+### Bucket list
+- [ ] Use sess.partialrun() to cache encoder state

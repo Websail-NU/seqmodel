@@ -379,23 +379,38 @@ class Seq2SeqModel(SeqModel):
         reuse_scope = defaultdict(lambda: None)
         enc_opt = util.dict_with_key_startswith(opt, 'enc:')
         dec_opt = util.dict_with_key_startswith(opt, 'dec:')
+        # encoder
         with tf.variable_scope('enc', reuse=reuse) as enc_scope:
             enc_nodes, enc_graph_args = super()._build(
                 enc_opt, reuse_scope, reuse=reuse, collect_key='seq2seq_enc',
                 prefix=f'{prefix}_enc')
+        # sharing (is caring)
         if opt['share:enc_dec_emb']:
             reuse_scope[self._RSK_EMB_] = enc_scope
         if opt['share:enc_dec_rnn']:
             reuse_scope[self._RSK_RNN_] = enc_scope
-        with tf.variable_scope('dec', reuse=reuse):
+        # decoder
+        with tf.variable_scope('dec', reuse=reuse) as dec_scope:
             dec_nodes, dec_graph_args = super()._build(
                 dec_opt, reuse_scope, initial_state=enc_nodes['final_state'],
                 reuse=reuse, collect_key='seq2seq_dec', prefix=f'{prefix}_dec')
+            dec_scope.reuse_variables()
+            batch_size = tf.shape(enc_nodes['input'])[1]
+            cell_scope = enc_scope if opt['share:enc_dec_rnn'] else None
+            # simplified dynamic decoding
+            decode_result = tfg.create_decode(
+                dec_nodes['emb_vars'], dec_nodes['cell'], dec_nodes['logit_w'],
+                dec_nodes['initial_state'], tf.tile((1, ), (batch_size, )),
+                logit_b=dec_nodes['logit_b'], max_len=10, back_prop=False,
+                cell_scope=cell_scope)
+        # prepare output
+        dec_nodes['decode_result'] = decode_result
         graph_args = dec_graph_args  # rename for visual
         graph_args['feature_feed'] = dstruct.Seq2SeqFeatureTuple(
             *enc_graph_args['feature_feed'], *dec_graph_args['feature_feed'])
         graph_args['predict_fetch'].update(
-            {'encoder_state': enc_nodes['final_state']})
+            {'encoder_state': enc_nodes['final_state'],
+             'decode_result': decode_result})
         graph_args['node_dict'] = {'enc': enc_nodes, 'dec': dec_nodes}
         return dec_graph_args['node_dict'], graph_args
 

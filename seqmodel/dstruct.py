@@ -29,11 +29,7 @@ SeqFeatureTuple = collections.namedtuple('SeqFeatureTuple', ('inputs', 'seq_len'
 SeqLabelTuple = collections.namedtuple(
     'SeqLabelTuple', ('label', 'label_weight', 'seq_weight'))
 
-
-# Seq2SeqFeatureTuple = collections.namedtuple(
-#     'Seq2SeqFeatureTuple', (f'{m}_{f}' for m in ('enc', 'dec')
-#                             for f in SeqFeatureTuple._fields))
-
+# always arrange enc before dec (help zipping placeholder during decoding)
 Seq2SeqFeatureTuple = collections.namedtuple(
     'Seq2SeqFeatureTuple', ('enc_inputs', 'enc_seq_len', 'dec_inputs', 'dec_seq_len'))
 

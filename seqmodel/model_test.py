@@ -369,7 +369,7 @@ class TestSeq2SeqModel(tf.test.TestCase):
             self.assertGreaterEqual(
                 output['train_loss'], output['eval_loss'],
                 'sum loss is at least larger than mean loss.')
-            for i in range(3):
+            for i in range(20):
                 output2, __ = m.train(sess, features, (seq, seq, np.ones((3))),
                                       train_op)
             self.assertLess(output2['train_loss'], output['train_loss'],
@@ -379,6 +379,10 @@ class TestSeq2SeqModel(tf.test.TestCase):
                                   m._no_op)
             self.assertAlmostEqual(output3['train_loss'], output2['train_loss'] / 10,
                                    places=1, msg='training loss denom is used')
+            # just smoke test for decode result
+            output4, __ = m.predict(sess, (seq, np.array([2, 3, 4])),
+                                    predict_key='decode_result')
+            np.testing.assert_array_equal(output4, 1, err_msg='output is all 1')
 
     def test_dynamic_rnn_run(self):
         self._run(tf.nn.dynamic_rnn)
