@@ -1,12 +1,23 @@
+### python
+- ipython auto reload
+
+    ```python
+    %load_ext autoreload
+    %autoreload 2
+    ```
+- pytest with printing `pytest -s seqmodel/some_test.py::Class::method`
+
+
 ### Refactor
 - I did code overhaul too many times. I think the problem stems from OOP is not quite
   suitable for research code.
-- We add new functions all the times, every time we have to find an object that fits
-  the semantics of the functions, i.e. a new argument. If it happens to be in a class
+- We add or change functions all the times, and every time we have to find
+  an object that fits the semantics of the functions. If it happens to be in a class
   hierarchy, suddenly we have to change a lot of code.
 - The logic in the code is scattered around into many different files, it is difficult
   to track down what a single function does.
-- So new coding style: *less OOP, fewer files, more procedural, lot of partial*!
+- Inheritance should not be overused. Encapsulation is easier with closure and partial.
+- *less OOP, fewer files, more procedural, lot of partial*.
 
 
 ### Dictionary default
@@ -39,4 +50,13 @@
     2. `tf.gather` only selects from the first k dimensions, meaning we have to transpose
        the batch data.
 - All-in-all, we do not gain much advantage as we do in Torch7 (lua)
-  where we can just :cuda() on almost anything.
+  where we can just `whatever:cuda()` on almost anything.
+
+
+### Sublime Text Packages
+- jedi - Python autocompletion
+- sublime-rsync-ssh
+- SublimeLinter-pep8
+- Git
+- Whitespace
+- Figlet Big ASCII Text

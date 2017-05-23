@@ -137,10 +137,21 @@ def masked_full_like(np_data, value, num_non_padding=None, padding=0, dtype=np.f
     arr = np.full_like(np_data, value, dtype=dtype)
     total_non_pad = sum(num_non_padding)
     if num_non_padding is not None and total_non_pad < np_data.size:
+        # is there a way to avoid this for loop?
         for i, last in enumerate(num_non_padding):
             arr[last:, i] = 0
     return arr, total_non_pad
 
+
+# Not faster
+# def masked_full_like(np_data, value, num_non_padding=None, padding=0,
+#                       dtype=np.float32):
+#     arr = np.full_like(np_data, value, dtype=dtype)
+#     total_non_pad = sum(num_non_padding)
+#     if num_non_padding is not None and total_non_pad < np_data.size:
+#         mask = (num_non_padding - 1)[:, None] < np.arange(np_data.shape[0])
+#         arr[mask.T] = 0
+#     return arr, total_non_pad
 
 ###########################################
 #    ##     ##    ###    #### ##    ##    #

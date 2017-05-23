@@ -4,9 +4,11 @@ import os
 import time
 from functools import partial
 
+import numpy as np
 import tensorflow as tf
 
 from seqmodel import util
+from seqmodel import generator as bgt
 from seqmodel import dstruct as ds
 
 
@@ -98,6 +100,36 @@ def run_epoch(sess, model, batch_iter, train_op=None):
         else:
             state = None
         info.update_step(result, batch.num_tokens)
+    info.end()
+    return info
+
+
+def _acc_discounted_rewards(rewards, discount_factor):
+        R = np.zeros_like(rewards)
+        r_tplus1 = np.zeros([rewards.shape[1]])
+        for i in range(len(rewards) - 1, -1, -1):
+            R[i, :] = rewards[i, :] + discount_factor * r_tplus1
+            r_tplus1 = R[i, :]
+        return R
+
+
+def run_sampling_epoch(sess, model, batch_iter, reward_fn, train_op=None,
+                       discount_factor=0.9, return_fn=_acc_discounted_rewards,
+                       pack_data_fn=None):
+    if pack_data_fn is None:
+        pack_data_fn = partial(bgt.get_batch_data, input_key='dec_inputs',
+                               seq_len_key='dec_seq_len')  # assume seq2seq data
+    train_result = None
+    info = ds.RunSamplingInfo()
+    for batch in batch_iter():
+        sample, __ = model.decode(sess, batch.features)
+        reward, avg_reward = reward_fn(sample, batch)
+        if train_op is not None:
+            ret = return_fn(reward, discount_factor)
+            train_batch = pack_data_fn(batch, sample, ret)
+            train_result, __ = model.train(
+                sess, train_batch.features, train_batch.labels, train_op=train_op)
+        info.update_step(avg_reward, batch.num_tokens, train_result)
     info.end()
     return info
 

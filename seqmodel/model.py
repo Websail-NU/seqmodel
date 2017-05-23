@@ -350,6 +350,8 @@ class SeqModel(Model):
 
 class Seq2SeqModel(SeqModel):
 
+    _ENC_FEA_LEN_ = 2
+
     @classmethod
     def default_opt(cls):
         rnn_opt = super().default_opt()
@@ -401,7 +403,8 @@ class Seq2SeqModel(SeqModel):
             decode_result = tfg.create_decode(
                 dec_nodes['emb_vars'], dec_nodes['cell'], dec_nodes['logit_w'],
                 dec_nodes['initial_state'], tf.tile((1, ), (batch_size, )),
-                logit_b=dec_nodes['logit_b'], max_len=10, back_prop=False,
+                tf.tile([False], (batch_size, )),
+                logit_b=dec_nodes['logit_b'], max_len=20, back_prop=False,
                 cell_scope=cell_scope)
         # prepare output
         dec_nodes['decode_result'] = decode_result
@@ -420,3 +423,19 @@ class Seq2SeqModel(SeqModel):
             self.set_default_feed('dec.train_loss_denom', 1.0)
         if 'temperature' in self._nodes['dec']:
             self.set_default_feed('dec.temperature', 1.0)
+
+    def decode(self, sess, features, predict_key=None, extra_fetch=None, **kwargs):
+        return self.predict(sess, features[0: self._ENC_FEA_LEN_],
+                            predict_key='decode_result',
+                            extra_fetch=extra_fetch, **kwargs)
+
+
+#############################
+#    ########  ##     ##    #
+#    ##     ## ###   ###    #
+#    ##     ## #### ####    #
+#    ##     ## ## ### ##    #
+#    ##     ## ##     ##    #
+#    ##     ## ##     ##    #
+#    ########  ##     ##    #
+#############################

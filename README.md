@@ -29,7 +29,7 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - [ ] Value Network
 
 ### Run
-- [ ] Sampled-based running functions
+- [x] Sampled-based running functions
 - [ ] Add teacher forcing
 - [ ] TD(lambda)
 - [ ] Bootstrap last state if not terminal

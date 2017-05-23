@@ -254,16 +254,17 @@ def create_gru_layer(transform, extra, carried):
     return tf.multiply(h - carried, z) + carried
 
 
-def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, logit_b=None,
-                  min_len=1, max_len=10, back_prop=False, cell_scope=None):
+def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs,
+                  initial_finish, logit_b=None,
+                  min_len=1, max_len=40, back_prop=False, cell_scope=None):
     gen_ta = tf.TensorArray(dtype=tf.int32, size=min_len, dynamic_size=True)
 
-    init_values = (tf.constant(0), initial_inputs, initial_state, gen_ta)
+    init_values = (tf.constant(0), initial_inputs, initial_state, gen_ta, initial_finish)
 
-    def cond(t, inputs, _state, _out_ta):
-        return t < max_len
+    def cond(t, _inputs, _state, _out_ta, finished):
+        return tf.logical_and(t < max_len, tf.logical_not(tf.reduce_all(finished)))
 
-    def step(t, inputs, state, out_ta):
+    def step(t, inputs, state, out_ta, finished):
         input_emb = tf.nn.embedding_lookup(emb_var, inputs)
         with maybe_scope(cell_scope, reuse=True):
             with tf.variable_scope('rnn', reuse=True):
@@ -273,10 +274,11 @@ def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, logit_b
             logit = logit + logit_b
         next_token = tf.cast(tf.argmax(logit, axis=-1), tf.int32)
         out_ta = out_ta.write(t, next_token)
-        return t + 1, next_token, new_state, out_ta
+        finished = tf.logical_or(finished, tf.equal(next_token, 0))
+        return t + 1, next_token, new_state, out_ta, finished
 
-    result = tf.while_loop(cond, step, init_values, back_prop=back_prop)
-    return result[-1].stack()
+    _t, _i, _s, result, _f = tf.while_loop(cond, step, init_values, back_prop=back_prop)
+    return result.stack()
 
 
 #######################################

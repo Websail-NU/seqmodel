@@ -88,7 +88,7 @@ if __name__ == '__main__':
     start_time = time.time()
     group_default = {'model': sq.Seq2SeqModel.default_opt(),
                      'train': sq.default_training_opt()}
-    parser = sq.get_common_argparser('main_lm.py')
+    parser = sq.get_common_argparser('main_seq2seq.py')
     sq.add_arg_group_defaults(parser, group_default)
     opt, groups = sq.parse_set_args(parser, group_default)
     opt, model_opt, train_opt, logger = sq.init_exp_opts(opt, groups, group_default)
