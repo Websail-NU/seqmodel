@@ -36,7 +36,7 @@ def main(opt, model_opt, train_opt, logger):
         init_lr = train_opt['train:init_lr']
         train_model.build_graph(model_opt)
         train_model.set_default_feed('train_loss_denom', opt['batch_size'])
-        lr = tf.placeholder(tf.float32, shape=None, name='learning_rate')
+        lr = tf.placeholder(tf.float32, shape=[], name='learning_rate')
         train_op = sq.create_train_op(
             train_model.training_loss, optim_class=train_opt['train:optim_class'],
             learning_rate=lr, clip_gradients=train_opt['train:clip_gradients'])

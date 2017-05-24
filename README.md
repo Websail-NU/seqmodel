@@ -24,7 +24,7 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - [x] Make it possible to share variables between 2 different models
 - [x] Reuse placeholder variables when creating a model
 - [x] Dynamic decode: greedy gen to fixed length
-- [ ] Dynamic decode: add stop id check and multinomial sample
+- [x] Dynamic decode: add stop id check and multinomial sample
 - [ ] DefinitionModel
 - [ ] Value Network
 

@@ -124,6 +124,14 @@ class Model(object):
         else:
             self._default_feed[key] = value
 
+    def group_predict_key(self, new_key, key_list):
+        'group a new predict_key for the predict method. Return old value if exists.'
+        new_val = {key: util.get_with_dot_key(self._predict_fetch, key)
+                   for key in key_list}
+        old_val = self._predict_fetch.get(new_key, None)
+        self._predict_fetch[new_key] = new_val
+        return old_val
+
     def _get_fetch(self, mode, extra_fetch=None, **kwargs):
         if mode in self._fetches:
             fetch = self._fetches[mode]
@@ -208,7 +216,9 @@ class SeqModel(Model):
                # 'rnn:fn': 'seqmodel.graph.scan_rnn',
                'out:logit': True, 'out:loss': True, 'out:decode': False,
                'logit:output_size': 14, 'logit:use_bias': True, 'logit:trainable': True,
-               'logit:init': None, 'loss:type': 'xent', 'share:input_emb_logit': False}
+               'logit:init': None, 'loss:type': 'xent',
+               'decode:add_greedy': True, 'decode:add_sampling': False,
+               'share:input_emb_logit': False}
         return opt
 
     def build_graph(self, opt=None, initial_state=None, reuse=False, name='seq_model',
@@ -280,10 +290,13 @@ class SeqModel(Model):
             raise ValueError('out:logit is False, cannot build loss graph')
         # decode
         if opt['out:decode'] and opt['out:logit']:
+            if not (opt['decode:add_greedy'] or opt['decode:add_sampling']):
+                assert ValueError(('Both decode:add_greedy and decode:add_sampling are '
+                                   ' False. out:decode should not be True.'))
             decode_result, decode_nodes = self._build_decoder(
-                nodes, reuse_scope[self._RSK_RNN_], collect_key,
+                opt, nodes, reuse_scope[self._RSK_RNN_], collect_key,
                 collect_kwargs['add_to_collection'])
-            predict_fetch['decode_result'] = decode_result
+            predict_fetch.update(decode_result)
             nodes.update(decode_nodes)
         elif not opt['out:logit'] and opt['out:decode']:
             raise ValueError('out:logit is False, cannot build decode graph')
@@ -315,7 +328,7 @@ class SeqModel(Model):
         if opt['loss:type'] == 'xent':
             with tfg.tfph_collection(collect_key, add_to_collection) as get:
                 name = 'train_loss_denom'
-                train_loss_denom_ = get(name, tf.float32, shape=None)
+                train_loss_denom_ = get(name, tf.float32, shape=[])
             mean_loss_, train_loss_, loss_ = tfg.create_xent_loss(
                 logit, label, weight, seq_weight, train_loss_denom_)
             train_fetch = {'train_loss': train_loss_, 'eval_loss': mean_loss_}
@@ -325,21 +338,32 @@ class SeqModel(Model):
         nodes = util.dict_with_key_endswith(locals(), '_')
         return train_fetch, eval_fetch, nodes
 
-    def _build_decoder(self, nodes, cell_scope, collect_key,
+    def _build_decoder(self, opt, nodes, cell_scope, collect_key,
                        add_to_collection, start_id=1, end_id=0):
+        output = {}
         with tfg.tfph_collection(collect_key, add_to_collection) as get:
-            max_len = get('decode_max_len', tf.int32, None)
-            if hasattr(self, '_batch_size'):
-                batch_size = self._batch_size
-            else:
-                batch_size = tf.shape(nodes['input'])[1]
-            decode_result = tfg.create_decode(
-                nodes['emb_vars'], nodes['cell'], nodes['logit_w'],
-                nodes['initial_state'], tf.tile((1, ), (batch_size, )),
-                tf.tile([False], (batch_size, )),
-                logit_b=nodes['logit_b'], max_len=max_len, back_prop=False,
-                cell_scope=cell_scope, reuse_cell=True)
-        return decode_result, {'decode_result': decode_result, 'decode_max_len': max_len}
+            decode_max_len_ = get('decode_max_len', tf.int32, None)
+        if hasattr(self, '_batch_size'):
+            batch_size = self._batch_size
+        else:
+            batch_size = tf.shape(nodes['input'])[1]
+        decode_fn = partial(
+            tfg.create_decode, nodes['emb_vars'], nodes['cell'], nodes['logit_w'],
+            nodes['initial_state'], tf.tile((1, ), (batch_size, )),
+            tf.tile([False], (batch_size, )), logit_b=nodes['logit_b'],
+            logit_temperature=nodes['temperature'], max_len=decode_max_len_,
+            cell_scope=cell_scope)
+        if opt['decode:add_greedy']:
+            decode_greedy_ = decode_fn()
+            output['decode_greedy'] = decode_greedy_
+        if opt['decode:add_sampling']:
+            def select_fn(logit):
+                # return tf.multinomial(logit, 1)
+                return tf.squeeze(tf.multinomial(logit, 1), axis=(1, ))
+            decode_sampling_ = decode_fn(select_fn=select_fn)
+            output['decode_sampling'] = decode_sampling_
+        nodes = util.dict_with_key_endswith(locals(), '_')
+        return output, nodes
 
     def _get_fetch(self, mode, extra_fetch=None, fetch_state=False, **kwargs):
         fetch = super()._get_fetch(mode, extra_fetch, **kwargs)
@@ -387,7 +411,8 @@ class Seq2SeqModel(SeqModel):
                        if k not in not_encoder_opt}
         decoder_opt = {f'dec:{k}': v for k, v in rnn_opt.items()}
         decoder_opt.update({'share:enc_dec_rnn': False, 'share:enc_dec_emb': False,
-                            'dec:out:decode': True})
+                            'dec:out:decode': True, 'dec:decode:add_greedy': True,
+                            'dec:decode:add_sampling': True})
         return {**encoder_opt, **decoder_opt}
 
     def build_graph(self, opt=None, reuse=False, name='seq2seq_model',
@@ -444,9 +469,20 @@ class Seq2SeqModel(SeqModel):
         if 'decode_max_len' in self._nodes['dec']:
             self.set_default_feed('dec.decode_max_len', 40)
 
-    def decode(self, sess, features, predict_key=None, extra_fetch=None, **kwargs):
+    def decode(self, sess, features, greedy=False, extra_fetch=None, **kwargs):
+        if greedy:
+            return self.decode_greedy(sess, features, extra_fetch, **kwargs)
+        else:
+            return self.decode_sampling(sess, features, extra_fetch, **kwargs)
+
+    def decode_greedy(self, sess, features, extra_fetch=None, **kwargs):
         return self.predict(sess, features[0: self._ENC_FEA_LEN_],
-                            predict_key='decode_result',
+                            predict_key='decode_greedy',
+                            extra_fetch=extra_fetch, **kwargs)
+
+    def decode_sampling(self, sess, features, extra_fetch=None, **kwargs):
+        return self.predict(sess, features[0: self._ENC_FEA_LEN_],
+                            predict_key='decode_sampling',
                             extra_fetch=extra_fetch, **kwargs)
 
 

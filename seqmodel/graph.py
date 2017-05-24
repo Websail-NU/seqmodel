@@ -256,11 +256,15 @@ def create_gru_layer(transform, extra, carried):
     return tf.multiply(h - carried, z) + carried
 
 
-def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs,
-                  initial_finish, logit_b=None, min_len=1, max_len=40, end_id=0,
-                  cell_scope=None, reuse_cell=True, back_prop=False):
-    gen_ta = tf.TensorArray(dtype=tf.int32, size=min_len, dynamic_size=True)
+def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial_finish,
+                  logit_b=None, logit_temperature=None, min_len=1, max_len=40, end_id=0,
+                  cell_scope=None, reuse_cell=True, back_prop=False,
+                  select_fn=None):
 
+    if select_fn is None:
+        # sample_idx = tf.cast(tf.multinomial(logit_2d, 1), dtype=tf.int32)
+        select_fn = partial(tf.argmax, axis=-1)
+    gen_ta = tf.TensorArray(dtype=tf.int32, size=min_len, dynamic_size=True)
     init_values = (tf.constant(0), initial_inputs, initial_state, gen_ta, initial_finish)
 
     def cond(t, _inputs, _state, _out_ta, finished):
@@ -274,7 +278,11 @@ def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs,
         logit = tf.matmul(output, logit_w, transpose_b=True)
         if logit_b is not None:
             logit = logit + logit_b
-        next_token = tf.cast(tf.argmax(logit, axis=-1), tf.int32)
+        if logit_temperature is not None:
+            logit = logit / logit_temperature
+        # print(logit)
+        # print(logit_temperature)
+        next_token = tf.cast(select_fn(logit), tf.int32)
         out_ta = out_ta.write(t, next_token)
         finished = tf.logical_or(finished, tf.equal(next_token, end_id))
         return t + 1, next_token, new_state, out_ta, finished
@@ -308,8 +316,8 @@ def get_seq_input_placeholders(prefix='decoder', add_to_collection=True,
     with tfph_collection(collect_key, add_to_collection) as get:
         input_key = f'{prefix}_input'
         seq_len_key = f'{prefix}_seq_len'
-        input_ = get(input_key, tf.int32, [None, None])
-        seq_len_ = get(seq_len_key, tf.int32, [None])
+        input_ = get(input_key, tf.int32, (None, None))
+        seq_len_ = get(seq_len_key, tf.int32, (None, ))
     return input_, seq_len_
 
 
@@ -322,9 +330,9 @@ def get_seq_label_placeholders(label_dtype=tf.int32, prefix='decoder',
         label_key = f'{prefix}_label'
         tk_w_key = f'{prefix}_token_weight'
         seq_w_key = f'{prefix}_seq_weight'
-        label = get(label_key, label_dtype, [None, None])
-        tk_w = get(tk_w_key, tf.float32, [None, None])
-        seq_w = get(seq_w_key, tf.float32, [None])
+        label = get(label_key, label_dtype, (None, None))
+        tk_w = get(tk_w_key, tf.float32, (None, None))
+        seq_w = get(seq_w_key, tf.float32, (None, ))
     return label, tk_w, seq_w
 
 
@@ -364,7 +372,7 @@ def get_logit_layer(inputs, logit_w=None, logit_b=None, output_size=None,
     if temperature is None:
         with tfph_collection(collect_key, add_to_collection) as get:
             temp_key = f'{prefix}_logit_temperature'
-            temperature = get(temp_key, tf.float32, shape=None)
+            temperature = get(temp_key, tf.float32, shape=[])
     logit = logit / temperature
     return logit, temperature, logit_w, logit_b
 

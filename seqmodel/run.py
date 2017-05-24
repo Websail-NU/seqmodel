@@ -113,16 +113,19 @@ def _acc_discounted_rewards(rewards, discount_factor):
         return R
 
 
-def run_sampling_epoch(sess, model, batch_iter, reward_fn, train_op=None,
+def run_sampling_epoch(sess, model, batch_iter, reward_fn, greedy=False, train_op=None,
                        discount_factor=0.9, return_fn=_acc_discounted_rewards,
                        pack_data_fn=None):
     if pack_data_fn is None:
         pack_data_fn = partial(bgt.get_batch_data, input_key='dec_inputs',
                                seq_len_key='dec_seq_len')  # assume seq2seq data
+    decode_fn = model.decode_sampling
+    if greedy:
+        decode_fn = model.decode_greedy
     train_result = None
     info = ds.RunSamplingInfo()
     for batch in batch_iter():
-        sample, __ = model.decode(sess, batch.features)
+        sample, __ = decode_fn(sess, batch.features)
         reward, avg_reward = reward_fn(sample, batch)
         num_tokens = batch.num_tokens
         if train_op is not None:
