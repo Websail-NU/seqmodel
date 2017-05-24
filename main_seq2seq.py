@@ -35,7 +35,7 @@ def main(opt, model_opt, train_opt, logger):
         init_lr = train_opt['train:init_lr']
         train_model.build_graph(model_opt)
         train_model.set_default_feed('dec.train_loss_denom', opt['batch_size'])
-        lr = tf.placeholder(tf.float32, shape=None, name='learning_rate')
+        lr = tf.placeholder(tf.float32, shape=[], name='learning_rate')
         train_op = sq.create_train_op(
             train_model.training_loss, optim_class=train_opt['train:optim_class'],
             learning_rate=lr, clip_gradients=train_opt['train:clip_gradients'])
@@ -88,7 +88,7 @@ if __name__ == '__main__':
     start_time = time.time()
     group_default = {'model': sq.Seq2SeqModel.default_opt(),
                      'train': sq.default_training_opt()}
-    parser = sq.get_common_argparser('main_lm.py')
+    parser = sq.get_common_argparser('main_seq2seq.py')
     sq.add_arg_group_defaults(parser, group_default)
     opt, groups = sq.parse_set_args(parser, group_default)
     opt, model_opt, train_opt, logger = sq.init_exp_opts(opt, groups, group_default)

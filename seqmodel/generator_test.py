@@ -4,6 +4,7 @@ import unittest
 import numpy as np
 
 from seqmodel.dstruct import Vocabulary
+from seqmodel import dstruct
 from seqmodel import generator
 
 
@@ -22,6 +23,43 @@ class TestBatch(unittest.TestCase):
                 10, shuffle=False, num_tokens=num_tokens, keep_state=True)):
             self.assertTrue(b.keep_state, 'keep state is True')
             self.assertEqual(b.num_tokens, num_tokens[i], 'num tokens is correct')
+
+    def test_get_batch_data(self):
+        data = np.array([[12, 10, 10, 0],
+                         [12, 8, 7, 0],
+                         [13, 4, 11, 0],
+                         [8, 13, 9, 0],
+                         [7, 5, 11, 0],
+                         [0, 12, 12, 0],
+                         [0, 10, 0, 0],
+                         [0, 0, 0, 0]])
+        seq_len = np.array([6, 8, 7, 0])
+        features = dstruct.Seq2SeqFeatureTuple(*(data, seq_len, None, None))
+        labels = dstruct.SeqLabelTuple(*(None, None, None))
+        batch = dstruct.BatchTuple(features, labels, None, False)
+        new_batch = generator.get_batch_data(
+            batch, data, start_id=1, seq_len_idx=1, input_key='dec_inputs',
+            seq_len_key='dec_seq_len', unmasked_token_weight=np.ones_like(data) * 2)
+        _f, _l, _n, _k = new_batch
+        self.assertIs(data, _f.enc_inputs, 'enc data is the same object.')
+        self.assertIs(seq_len, _f.enc_seq_len, 'enc seq len is the same object.')
+        np.testing.assert_array_equal(data[:-1, :], _f.dec_inputs[1:, :],
+                                      err_msg='dec input is shifted data.')
+        np.testing.assert_array_equal(data, _l.label,
+                                      err_msg='dec output is data.')
+        np.testing.assert_array_equal(seq_len, _f.dec_seq_len,
+                                      err_msg='dec seq len is correct.')
+        self.assertEqual(sum(seq_len), _n, 'num tokens is correct.')
+        w = np.array([[1, 1, 1, 0],
+                      [1, 1, 1, 0],
+                      [1, 1, 1, 0],
+                      [1, 1, 1, 0],
+                      [1, 1, 1, 0],
+                      [1, 1, 1, 0],
+                      [0, 1, 1, 0],
+                      [0, 1, 0, 0]])
+        np.testing.assert_array_equal(w * 2, new_batch.labels.label_weight,
+                                      err_msg='token weight')
 
 
 class TestSeq(unittest.TestCase):
@@ -95,6 +133,59 @@ class TestSeq2Seq(unittest.TestCase):
         self.assertEqual(count, self.num_lines + self.num_tokens,
                          'number of tokens (including eos symbol)')
 
+
+class TestReward(unittest.TestCase):
+
+    def test_reward_match_label(self):
+        data = np.array([[12, 10, 10, 0],
+                         [12, 8, 7, 0],
+                         [13, 4, 11, 0],
+                         [8, 13, 9, 0],
+                         [7, 5, 11, 0],
+                         [0, 12, 12, 0],
+                         [0, 10, 0, 0],
+                         [0, 0, 0, 0]])
+        features = dstruct.Seq2SeqFeatureTuple(*(None, None, None, None))
+        labels = dstruct.SeqLabelTuple(*(data, None, None))
+        batch = dstruct.BatchTuple(features, labels, None, False)
+        sample = np.array([[12, 10, 10, 0],
+                           [12, 8, 7, 0],
+                           [11, 4, 11, 0],
+                           [8, 13, 9, 0],
+                           [7, 5, 11, 0],
+                           [0, 12, 12, 0],
+                           [0, 1, 0, 0],
+                           [0, 1, 0, 0],
+                           [0, 0, 0, 0]])
+        exact_match = np.array([[0, 0, 1, 0],
+                                [0, 0, 1, 0],
+                                [0, 0, 1, 0],
+                                [0, 0, 1, 0],
+                                [0, 0, 1, 0],
+                                [0, 0, 1, 0],
+                                [0, 0, 1, 0],
+                                [0, 0, 0, 0],
+                                [0, 0, 0, 0]])
+        parti_match = np.array([[1, 1, 1, 0],
+                                [1, 1, 1, 0],
+                                [0, 1, 1, 0],
+                                [1, 1, 1, 0],
+                                [1, 1, 1, 0],
+                                [1, 1, 1, 0],
+                                [0, 0, 1, 0],
+                                [0, 0, 0, 0],
+                                [0, 0, 0, 0]])
+        sample_len = np.array([6., 9., 7., 0.])
+        _sample_len = np.array([6., 9., 7., 1.])  # for division
+        m, avg = generator.reward_match_label(sample, batch)
+        np.testing.assert_array_equal(m, exact_match, 'label exact match reward')
+        self.assertEqual(avg, np.sum(exact_match) / np.sum(sample_len),
+                         'average correct')
+        m, avg = generator.reward_match_label(sample, batch, partial_match=True)
+        np.testing.assert_array_equal(m, parti_match / _sample_len,
+                                      'label match reward')
+        self.assertEqual(avg, np.sum(parti_match / _sample_len) / np.sum(sample_len),
+                         'average correct')
 
 if __name__ == '__main__':
     unittest.main()

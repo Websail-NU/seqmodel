@@ -9,7 +9,7 @@ import math
 
 __all__ = ['BatchTuple', 'SeqFeatureTuple', 'SeqLabelTuple', 'Seq2SeqFeatureTuple',
            'OutputStateTuple', 'IndexScoreTuple', 'Vocabulary', 'TrainingState',
-           'RunningInfo']
+           'RunningInfo', 'RunSamplingInfo']
 
 ########################################################
 #    ######## ##     ## ########  ##       ########    #
@@ -226,6 +226,35 @@ class RunningInfo(object):
         else:
             return (f'@{self._step} eval_loss: {self.eval_loss:.5f} ({exp_loss:.5f}), '
                     f'wps: {self.wps:.1f}')
+
+    def __str__(self):
+        return f'{self.__class__.__name__}: {vars(self)}'
+
+
+class RunSamplingInfo(RunningInfo):
+
+    @property
+    def eval_loss(self):
+        return -1 * self._eval_loss / self._step
+
+    def summary(self, mode='train'):
+        exp_loss = math.exp(self.eval_loss)
+        if mode == 'train':
+            return (f'@{self._step} tr_loss: {self.train_loss:.5f}, '
+                    f'avg_reward: {-1 * self.eval_loss:.5f}, '
+                    f'wps: {self.wps:.1f}')
+        else:
+            return (f'@{self._step} avg_reward: {-1 * self.eval_loss:.5f}, '
+                    f'wps: {self.wps:.1f}')
+
+    def update_step(self, avg_reward, num_tokens, train_result=None):
+        if train_result is not None and 'train_loss' in train_result:
+            self._train_loss += train_result['train_loss']
+        # if 'eval_loss' in result:
+        #     self._eval_loss += result['eval_loss'] * num_tokens
+        self._eval_loss += avg_reward
+        self._num_tokens += num_tokens
+        self._step += 1
 
     def __str__(self):
         return f'{self.__class__.__name__}: {vars(self)}'

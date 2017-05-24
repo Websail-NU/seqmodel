@@ -10,33 +10,35 @@ import tensorflow as tf
 from seqmodel import dstruct
 
 
-__all__ = ['_safe_div', 'tf_collection', 'create_2d_tensor', 'matmul', 'create_cells',
+__all__ = ['_safe_div', 'tfph_collection', 'create_2d_tensor', 'matmul', 'create_cells',
            'create_rnn', 'select_rnn', 'select_nested_rnn', 'create_tdnn', 'maybe_scope',
            'create_highway_layer', 'create_gru_layer', 'get_seq_input_placeholders',
            'get_seq_label_placeholders', 'create_lookup', 'get_logit_layer',
            'select_from_logit', 'create_xent_loss', 'create_ent_loss',
            'create_slow_feature_loss', 'create_l2_loss', 'create_train_op',
-           'empty_tf_collection', 'scan_rnn_no_mask', 'create_decode']
+           'empty_tfph_collection', 'scan_rnn_no_mask', 'create_decode']
 
 
 _global_collections = {}
 
 
 @contextmanager
-def tf_collection(collect_key, add_to_collection):
-    """return a function to get value from tf's collection, and update if needed."""
+def tfph_collection(collect_key, add_to_collection):
+    """return a function to get value from global collection, and update if needed."""
     global _global_collections
     collection = {}
     if collect_key is not None:
         collection = _global_collections.setdefault(collect_key, {})
     temp = {}
 
-    def _get_and_set(key, value):
-        assert key not in temp, f'{key} is already existed in this context.'
-        value = collection.get(key, value)
-        if key not in collection:
-            temp[key] = value
-        return value
+    def _get_and_set(name, dtype, shape):
+        assert name not in temp, f'{name} is already existed in this context.'
+        if name not in collection:
+            ph = tf.placeholder(dtype, shape, name)
+            temp[name] = ph
+        else:
+            ph = collection[name]
+        return ph
 
     yield _get_and_set
 
@@ -44,8 +46,8 @@ def tf_collection(collect_key, add_to_collection):
         collection.update(temp)
 
 
-def empty_tf_collection(collect_key):
-    """clean tensorflow collection that we use temporarily"""
+def empty_tfph_collection(collect_key):
+    """clean global placeholder collection that we use temporarily"""
     global _global_collections
     if collect_key == '*':
         _global_collections = {}
@@ -254,29 +256,41 @@ def create_gru_layer(transform, extra, carried):
     return tf.multiply(h - carried, z) + carried
 
 
-def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, logit_b=None,
-                  min_len=1, max_len=10, back_prop=False, cell_scope=None):
+def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial_finish,
+                  logit_b=None, logit_temperature=None, min_len=1, max_len=40, end_id=0,
+                  cell_scope=None, reuse_cell=True, back_prop=False,
+                  select_fn=None):
+
+    if select_fn is None:
+        # sample_idx = tf.cast(tf.multinomial(logit_2d, 1), dtype=tf.int32)
+        select_fn = partial(tf.argmax, axis=-1)
     gen_ta = tf.TensorArray(dtype=tf.int32, size=min_len, dynamic_size=True)
+    init_values = (tf.constant(0), initial_inputs, initial_state, gen_ta, initial_finish)
 
-    init_values = (tf.constant(0), initial_inputs, initial_state, gen_ta)
+    def cond(t, _inputs, _state, _out_ta, finished):
+        return tf.logical_and(t < max_len, tf.logical_not(tf.reduce_all(finished)))
 
-    def cond(t, inputs, _state, _out_ta):
-        return t < max_len
-
-    def step(t, inputs, state, out_ta):
+    def step(t, inputs, state, out_ta, finished):
         input_emb = tf.nn.embedding_lookup(emb_var, inputs)
-        with maybe_scope(cell_scope, reuse=True):
+        with maybe_scope(cell_scope, reuse=reuse_cell):
             with tf.variable_scope('rnn', reuse=True):
                 output, new_state = cell(input_emb, state)
         logit = tf.matmul(output, logit_w, transpose_b=True)
         if logit_b is not None:
             logit = logit + logit_b
-        next_token = tf.cast(tf.argmax(logit, axis=-1), tf.int32)
+        if logit_temperature is not None:
+            logit = logit / logit_temperature
+        # print(logit)
+        # print(logit_temperature)
+        next_token = tf.cast(select_fn(logit), tf.int32)
         out_ta = out_ta.write(t, next_token)
-        return t + 1, next_token, new_state, out_ta
+        finished = tf.logical_or(finished, tf.equal(next_token, end_id))
+        return t + 1, next_token, new_state, out_ta, finished
 
-    result = tf.while_loop(cond, step, init_values, back_prop=back_prop)
-    return result[-1].stack()
+    _t, _i, _s, result, _f = tf.while_loop(cond, step, init_values, back_prop=back_prop,
+                                           parallel_iterations=10)
+    # parallel_iterations does not matter much here.
+    return result.stack()
 
 
 #######################################
@@ -299,11 +313,11 @@ def get_seq_input_placeholders(prefix='decoder', add_to_collection=True,
     create if not existed in collection. If add_to_collection is True, this function
     adds placeholders to tensorflow collection."""
     # collect_key = f'{tf.get_variable_scope().name}/placeholders'
-    with tf_collection(collect_key, add_to_collection) as get:
+    with tfph_collection(collect_key, add_to_collection) as get:
         input_key = f'{prefix}_input'
         seq_len_key = f'{prefix}_seq_len'
-        input_ = get(input_key, tf.placeholder(tf.int32, [None, None], name=input_key))
-        seq_len_ = get(seq_len_key, tf.placeholder(tf.int32, [None], name=seq_len_key))
+        input_ = get(input_key, tf.int32, (None, None))
+        seq_len_ = get(seq_len_key, tf.int32, (None, ))
     return input_, seq_len_
 
 
@@ -312,13 +326,13 @@ def get_seq_label_placeholders(label_dtype=tf.int32, prefix='decoder',
     """return label, token weight, and sequence weight placeholders,
     create if not existed in collection. If add_to_collection is True, this function
     adds placeholders to tensorflow collection."""
-    with tf_collection(collect_key, add_to_collection) as get:
+    with tfph_collection(collect_key, add_to_collection) as get:
         label_key = f'{prefix}_label'
         tk_w_key = f'{prefix}_token_weight'
         seq_w_key = f'{prefix}_seq_weight'
-        label = get(label_key, tf.placeholder(label_dtype, [None, None], name=label_key))
-        tk_w = get(tk_w_key, tf.placeholder(tf.float32, [None, None], name=tk_w_key))
-        seq_w = get(seq_w_key, tf.placeholder(tf.float32, [None], name=seq_w_key))
+        label = get(label_key, label_dtype, (None, None))
+        tk_w = get(tk_w_key, tf.float32, (None, None))
+        seq_w = get(seq_w_key, tf.float32, (None, ))
     return label, tk_w, seq_w
 
 
@@ -356,10 +370,9 @@ def get_logit_layer(inputs, logit_w=None, logit_b=None, output_size=None,
                                       dtype=tf.float32)
         logit = logit + logit_b
     if temperature is None:
-        with tf_collection(collect_key, add_to_collection) as get:
+        with tfph_collection(collect_key, add_to_collection) as get:
             temp_key = f'{prefix}_logit_temperature'
-            temperature = get(temp_key, tf.placeholder(
-                tf.float32, shape=None, name=temp_key))
+            temperature = get(temp_key, tf.float32, shape=[])
     logit = logit / temperature
     return logit, temperature, logit_w, logit_b
 

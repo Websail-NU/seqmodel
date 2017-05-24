@@ -10,7 +10,8 @@ from seqmodel import util
 
 
 __all__ = ['open_files', 'read_lines', 'read_seq_data', 'read_seq2seq_data',
-           'batch_iter', 'seq_batch_iter', 'seq2seq_batch_iter', 'position_batch_iter']
+           'batch_iter', 'seq_batch_iter', 'seq2seq_batch_iter', 'position_batch_iter',
+           'get_batch_data', 'reward_match_label']
 
 ##################################################
 #    ######## #### ##       ########  ######     #
@@ -149,6 +150,24 @@ def position_batch_iter(data_len, labels=(), batch_size=1, shuffle=True,
         yield fill_data(pos)
 
 
+def get_batch_data(batch, y_arr, unmasked_token_weight=None, unmasked_seq_weight=None,
+                   start_id=1, seq_len_idx=1, input_key='inputs', seq_len_key='seq_len'):
+    y_len = np.argmin(y_arr, axis=0) + 1
+    y_len[batch.features[seq_len_idx] <= 0] = 0
+    seq_weight = np.where(y_len > 0, 1, 0).astype(np.float32)
+    if unmasked_seq_weight is not None:
+        seq_weight *= unmasked_seq_weight
+    token_weight, num_tokens = util.masked_full_like(y_arr, 1, y_len)
+    if unmasked_token_weight is not None:
+        token_weight *= unmasked_token_weight
+    start = np.full((1, len(y_len)), start_id, dtype=np.int32) * seq_weight
+    x_arr = np.vstack((start.astype(np.int32), y_arr))[:-1, :]
+    features = batch.features._replace(**{input_key: x_arr, seq_len_key: y_len})
+    labels = ds.SeqLabelTuple(y_arr, token_weight, seq_weight)
+    batch = ds.BatchTuple(features, labels, num_tokens, batch.keep_state)
+    return batch
+
+
 def seq_batch_iter(in_data, out_data, batch_size=1, shuffle=True, keep_sentence=True):
     """wrapper of batch_iter to format seq data"""
     keep_state = not keep_sentence
@@ -178,3 +197,41 @@ def seq2seq_batch_iter(enc_data, dec_data, batch_size=1, shuffle=True):
         features = ds.Seq2SeqFeatureTuple(enc, enc_len, in_dec, dec_len)
         labels = ds.SeqLabelTuple(out_dec, token_weight, seq_weight)
         yield ds.BatchTuple(features, labels, num_tokens, False)
+
+
+#####################################################################
+#    ########  ######## ##      ##    ###    ########  ########     #
+#    ##     ## ##       ##  ##  ##   ## ##   ##     ## ##     ##    #
+#    ##     ## ##       ##  ##  ##  ##   ##  ##     ## ##     ##    #
+#    ########  ######   ##  ##  ## ##     ## ########  ##     ##    #
+#    ##   ##   ##       ##  ##  ## ######### ##   ##   ##     ##    #
+#    ##    ##  ##       ##  ##  ## ##     ## ##    ##  ##     ##    #
+#    ##     ## ########  ###  ###  ##     ## ##     ## ########     #
+#####################################################################
+
+
+def reward_match_label(sample, batch, partial_match=False):
+    seq_len = np.argmin(sample, axis=0)
+    mask, __ = util.masked_full_like(
+        sample, 1, num_non_padding=seq_len + 1, dtype=np.int32)
+    mask = mask * (seq_len > 0)
+    sample, _sample = sample * mask, sample
+    label = _label = batch.labels.label
+    pad_width = abs(len(sample) - len(label))
+    pad_width = ((0, pad_width), (0, 0))
+    if len(label) < len(sample):
+        label = np.pad(label, pad_width, 'constant', constant_values=0)
+    elif len(sample) < len(label):
+        sample = np.pad(sample, pad_width, 'constant', constant_values=0)
+    diff = np.abs(sample - label)
+    if partial_match:
+        match = (diff == 0).astype(np.float32) / (seq_len + 1)
+        if len(_label) < len(_sample):
+            match[len(_label) - 1:, :] = 0
+        elif len(_sample) < len(_label):
+            match = match[:len(_sample), :]
+    else:
+        match = (np.sum(diff, axis=0) == 0).astype(np.float32)
+        match = np.tile(match, (len(_sample), 1))
+    match = match * mask
+    return match, np.sum(match) / np.sum(mask)

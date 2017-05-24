@@ -29,7 +29,7 @@ class TestRun(tf.test.TestCase):
 
     def tearDown(self):
         super().tearDown()
-        graph.empty_tf_collection('*')
+        graph.empty_tfph_collection('*')
 
     def test_run_epoch(self):
         data = generator.read_seq_data(
@@ -101,3 +101,49 @@ class TestRun(tf.test.TestCase):
         self.assertEqual(train_state.learning_rate, 0.5, 'decay lr every 2, not at 0')
         self.assertEqual(d['lr'], 0.5, 'learning rate is not change')
         # TODO: need more test for adaptive decay
+
+
+class TestSamplingRun(tf.test.TestCase):
+
+    sess_config = tf.ConfigProto(device_count={'GPU': 0})
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestSamplingRun, cls).setUpClass()
+        data_dir = 'test_data/tiny_copy'
+        cls.vocab = Vocabulary.from_vocab_file(f'{data_dir}/vocab.txt')
+        cls.gen = partial(generator.read_lines, f'{data_dir}/valid.txt',
+                          token_split=' ', part_split='\t')
+
+    def tearDown(self):
+        super().tearDown()
+        graph.empty_tfph_collection('*')
+
+    def test_run_epoch(self):
+        data = generator.read_seq2seq_data(self.gen(), self.vocab, self.vocab)
+        batch_iter = partial(generator.seq2seq_batch_iter, *data,
+                             batch_size=20, shuffle=True)
+        with self.test_session(config=self.sess_config) as sess:
+            m = tfm.Seq2SeqModel()
+            n = m.build_graph()
+            m.set_default_feed('dec.train_loss_denom', 20)
+            optimizer = tf.train.AdamOptimizer(0.005, epsilon=1e-3)
+            train_op = optimizer.minimize(m.training_loss)
+            sess.run(tf.global_variables_initializer())
+            run_fn = partial(run.run_epoch, sess, m, batch_iter)
+            for __ in range(10):  # do some pre-train
+                train_info = run_fn(train_op=train_op)
+                # print(train_info.summary())
+            reward_fn = generator.reward_match_label
+            eval_info = run.run_sampling_epoch(
+                sess, m, batch_iter, reward_fn, greedy=True)
+            # print(eval_info.summary('eval'))
+            run_fn = partial(run.run_sampling_epoch, sess, m, batch_iter, reward_fn)
+            for __ in range(4):
+                train_info = run_fn(train_op=train_op)
+                # print(train_info.summary())
+            eval_info2 = run.run_sampling_epoch(
+                sess, m, batch_iter, reward_fn, greedy=True)
+            # print(eval_info2.summary('eval'))
+            self.assertLess(eval_info2.eval_loss, eval_info.eval_loss,
+                            'after training, eval loss is lower.')

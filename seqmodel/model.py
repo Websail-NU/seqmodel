@@ -124,6 +124,14 @@ class Model(object):
         else:
             self._default_feed[key] = value
 
+    def group_predict_key(self, new_key, key_list):
+        'group a new predict_key for the predict method. Return old value if exists.'
+        new_val = {key: util.get_with_dot_key(self._predict_fetch, key)
+                   for key in key_list}
+        old_val = self._predict_fetch.get(new_key, None)
+        self._predict_fetch[new_key] = new_val
+        return old_val
+
     def _get_fetch(self, mode, extra_fetch=None, **kwargs):
         if mode in self._fetches:
             fetch = self._fetches[mode]
@@ -206,9 +214,11 @@ class SeqModel(Model):
                'cell:state_keep_prob': 1.0, 'cell:variational': False,
                'rnn:fn': 'tensorflow.nn.dynamic_rnn',
                # 'rnn:fn': 'seqmodel.graph.scan_rnn',
-               'out:logit': True, 'out:loss': True, 'logit:output_size': 14,
-               'logit:use_bias': True, 'logit:trainable': True, 'logit:init': None,
-               'loss:type': 'xent', 'share:input_emb_logit': False}
+               'out:logit': True, 'out:loss': True, 'out:decode': False,
+               'logit:output_size': 14, 'logit:use_bias': True, 'logit:trainable': True,
+               'logit:init': None, 'loss:type': 'xent',
+               'decode:add_greedy': True, 'decode:add_sampling': False,
+               'share:input_emb_logit': False}
         return opt
 
     def build_graph(self, opt=None, initial_state=None, reuse=False, name='seq_model',
@@ -220,7 +230,7 @@ class SeqModel(Model):
         reuse_scope = {} if reuse_scope is None else reuse_scope
         reuse_scope = defaultdict(lambda: None, **reuse_scope)
         self._name = name
-        with tf.variable_scope(name, reuse=reuse):
+        with tf.variable_scope(name, reuse=reuse) as scope:
             nodes, graph_args = self._build(
                 chain_opt, reuse_scope, initial_state, reuse, collect_key, **kwargs)
             self.set_graph(**graph_args)
@@ -238,6 +248,8 @@ class SeqModel(Model):
             self.set_default_feed('train_loss_denom', 1.0)
         if 'temperature' in node_dict:
             self.set_default_feed('temperature', 1.0)
+        if 'decode_max_len' in node_dict:
+            self.set_default_feed('decode_max_len', 40)
 
     def _build(self, opt, reuse_scope, initial_state=None, reuse=False,
                collect_key='seq_model', prefix='lm', **kwargs):
@@ -268,7 +280,7 @@ class SeqModel(Model):
             nodes.update(output_nodes)
             graph_args.update(label_feed=label_feed)
         # loss
-        if opt['out:logit'] and opt['out:loss']:
+        if opt['out:loss'] and opt['out:logit']:
             train_fetch, eval_fetch, loss_nodes = self._build_loss(
                 opt, logit, *label_feed, collect_key,
                 collect_kwargs['add_to_collection'])
@@ -276,6 +288,19 @@ class SeqModel(Model):
             graph_args.update(train_fetch=train_fetch, eval_fetch=eval_fetch)
         elif not opt['out:logit'] and opt['out:loss']:
             raise ValueError('out:logit is False, cannot build loss graph')
+        # decode
+        if opt['out:decode'] and opt['out:logit']:
+            if not (opt['decode:add_greedy'] or opt['decode:add_sampling']):
+                assert ValueError(('Both decode:add_greedy and decode:add_sampling are '
+                                   ' False. out:decode should not be True.'))
+            decode_result, decode_nodes = self._build_decoder(
+                opt, nodes, reuse_scope[self._RSK_RNN_], collect_key,
+                collect_kwargs['add_to_collection'])
+            predict_fetch.update(decode_result)
+            nodes.update(decode_nodes)
+        elif not opt['out:logit'] and opt['out:decode']:
+            raise ValueError('out:logit is False, cannot build decode graph')
+
         return nodes, graph_args
 
     def _build_logit(self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output):
@@ -301,10 +326,9 @@ class SeqModel(Model):
     def _build_loss(self, opt, logit, label, weight, seq_weight,
                     collect_key, add_to_collection):
         if opt['loss:type'] == 'xent':
-            with tfg.tf_collection(collect_key, add_to_collection) as get:
+            with tfg.tfph_collection(collect_key, add_to_collection) as get:
                 name = 'train_loss_denom'
-                train_loss_denom_ = get(
-                    name, tf.placeholder(tf.float32, shape=None, name=name))
+                train_loss_denom_ = get(name, tf.float32, shape=[])
             mean_loss_, train_loss_, loss_ = tfg.create_xent_loss(
                 logit, label, weight, seq_weight, train_loss_denom_)
             train_fetch = {'train_loss': train_loss_, 'eval_loss': mean_loss_}
@@ -313,6 +337,33 @@ class SeqModel(Model):
             raise ValueError(f'{opt["loss:type"]} is not supported, use (xent or mse)')
         nodes = util.dict_with_key_endswith(locals(), '_')
         return train_fetch, eval_fetch, nodes
+
+    def _build_decoder(self, opt, nodes, cell_scope, collect_key,
+                       add_to_collection, start_id=1, end_id=0):
+        output = {}
+        with tfg.tfph_collection(collect_key, add_to_collection) as get:
+            decode_max_len_ = get('decode_max_len', tf.int32, None)
+        if hasattr(self, '_batch_size'):
+            batch_size = self._batch_size
+        else:
+            batch_size = tf.shape(nodes['input'])[1]
+        decode_fn = partial(
+            tfg.create_decode, nodes['emb_vars'], nodes['cell'], nodes['logit_w'],
+            nodes['initial_state'], tf.tile((1, ), (batch_size, )),
+            tf.tile([False], (batch_size, )), logit_b=nodes['logit_b'],
+            logit_temperature=nodes['temperature'], max_len=decode_max_len_,
+            cell_scope=cell_scope)
+        if opt['decode:add_greedy']:
+            decode_greedy_ = decode_fn()
+            output['decode_greedy'] = decode_greedy_
+        if opt['decode:add_sampling']:
+            def select_fn(logit):
+                # return tf.multinomial(logit, 1)
+                return tf.squeeze(tf.multinomial(logit, 1), axis=(1, ))
+            decode_sampling_ = decode_fn(select_fn=select_fn)
+            output['decode_sampling'] = decode_sampling_
+        nodes = util.dict_with_key_endswith(locals(), '_')
+        return output, nodes
 
     def _get_fetch(self, mode, extra_fetch=None, fetch_state=False, **kwargs):
         fetch = super()._get_fetch(mode, extra_fetch, **kwargs)
@@ -350,13 +401,18 @@ class SeqModel(Model):
 
 class Seq2SeqModel(SeqModel):
 
+    _ENC_FEA_LEN_ = 2
+
     @classmethod
     def default_opt(cls):
         rnn_opt = super().default_opt()
+        not_encoder_opt = {'logit:', 'loss:', 'share:', 'out:'}
         encoder_opt = {f'enc:{k}': v for k, v in rnn_opt.items()
-                       if not ('logit:' in k or 'loss:' in k or 'share:' in k)}
+                       if k not in not_encoder_opt}
         decoder_opt = {f'dec:{k}': v for k, v in rnn_opt.items()}
-        decoder_opt.update({'share:enc_dec_rnn': False, 'share:enc_dec_emb': False})
+        decoder_opt.update({'share:enc_dec_rnn': False, 'share:enc_dec_emb': False,
+                            'dec:out:decode': True, 'dec:decode:add_greedy': True,
+                            'dec:decode:add_sampling': True})
         return {**encoder_opt, **decoder_opt}
 
     def build_graph(self, opt=None, reuse=False, name='seq2seq_model',
@@ -365,7 +421,8 @@ class Seq2SeqModel(SeqModel):
         (see default_opt() for configuration)
         """
         opt = opt if opt else {}
-        opt.update({'enc:out:logit': False, 'enc:out:loss': False})
+        opt.update({'enc:out:logit': False, 'enc:out:loss': False,
+                    'enc:out:decode': False})
         chain_opt = ChainMap(kwargs, opt, self.default_opt())
         self._name = name
         with tf.variable_scope(name, reuse=reuse):
@@ -389,28 +446,17 @@ class Seq2SeqModel(SeqModel):
             reuse_scope[self._RSK_EMB_] = enc_scope
         if opt['share:enc_dec_rnn']:
             reuse_scope[self._RSK_RNN_] = enc_scope
+        self._batch_size = tf.shape(enc_nodes['input'])[1]
         # decoder
         with tf.variable_scope('dec', reuse=reuse) as dec_scope:
             dec_nodes, dec_graph_args = super()._build(
                 dec_opt, reuse_scope, initial_state=enc_nodes['final_state'],
                 reuse=reuse, collect_key='seq2seq_dec', prefix=f'{prefix}_dec')
-            dec_scope.reuse_variables()
-            batch_size = tf.shape(enc_nodes['input'])[1]
-            cell_scope = enc_scope if opt['share:enc_dec_rnn'] else None
-            # simplified dynamic decoding
-            decode_result = tfg.create_decode(
-                dec_nodes['emb_vars'], dec_nodes['cell'], dec_nodes['logit_w'],
-                dec_nodes['initial_state'], tf.tile((1, ), (batch_size, )),
-                logit_b=dec_nodes['logit_b'], max_len=10, back_prop=False,
-                cell_scope=cell_scope)
         # prepare output
-        dec_nodes['decode_result'] = decode_result
         graph_args = dec_graph_args  # rename for visual
         graph_args['feature_feed'] = dstruct.Seq2SeqFeatureTuple(
             *enc_graph_args['feature_feed'], *dec_graph_args['feature_feed'])
-        graph_args['predict_fetch'].update(
-            {'encoder_state': enc_nodes['final_state'],
-             'decode_result': decode_result})
+        graph_args['predict_fetch'].update({'encoder_state': enc_nodes['final_state']})
         graph_args['node_dict'] = {'enc': enc_nodes, 'dec': dec_nodes}
         return dec_graph_args['node_dict'], graph_args
 
@@ -420,3 +466,32 @@ class Seq2SeqModel(SeqModel):
             self.set_default_feed('dec.train_loss_denom', 1.0)
         if 'temperature' in self._nodes['dec']:
             self.set_default_feed('dec.temperature', 1.0)
+        if 'decode_max_len' in self._nodes['dec']:
+            self.set_default_feed('dec.decode_max_len', 40)
+
+    def decode(self, sess, features, greedy=False, extra_fetch=None, **kwargs):
+        if greedy:
+            return self.decode_greedy(sess, features, extra_fetch, **kwargs)
+        else:
+            return self.decode_sampling(sess, features, extra_fetch, **kwargs)
+
+    def decode_greedy(self, sess, features, extra_fetch=None, **kwargs):
+        return self.predict(sess, features[0: self._ENC_FEA_LEN_],
+                            predict_key='decode_greedy',
+                            extra_fetch=extra_fetch, **kwargs)
+
+    def decode_sampling(self, sess, features, extra_fetch=None, **kwargs):
+        return self.predict(sess, features[0: self._ENC_FEA_LEN_],
+                            predict_key='decode_sampling',
+                            extra_fetch=extra_fetch, **kwargs)
+
+
+#############################
+#    ########  ##     ##    #
+#    ##     ## ###   ###    #
+#    ##     ## #### ####    #
+#    ##     ## ## ### ##    #
+#    ##     ## ##     ##    #
+#    ##     ## ##     ##    #
+#    ########  ##     ##    #
+#############################

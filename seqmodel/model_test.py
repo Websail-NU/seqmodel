@@ -22,7 +22,7 @@ class TestModel(tf.test.TestCase):
 
     def tearDown(self):
         super().tearDown()
-        graph.empty_tf_collection('*')
+        graph.empty_tfph_collection('*')
 
     def test_check_feed_dict(self):
         with self.test_session(config=self.sess_config) as sess:
@@ -88,7 +88,7 @@ class TestSeqModel(tf.test.TestCase):
 
     def tearDown(self):
         super().tearDown()
-        graph.empty_tf_collection('*')
+        graph.empty_tfph_collection('*')
 
     def test_build(self):
         with self.test_session(config=self.sess_config) as sess:
@@ -120,6 +120,19 @@ class TestSeqModel(tf.test.TestCase):
                 if k == m._PREDICT_:
                     self.assertNotEqual(v[0], v[1], 'predict fetch array is set')
             self.assertRaises(ValueError, m.build_graph, **{'out:logit': False})
+
+    def test_build_decode(self):
+        with self.test_session(config=self.sess_config) as sess:
+            m = model.SeqModel(check_feed_dict=False)
+            n = m.build_graph(**{'out:logit': True, 'out:decode': True,
+                                 'decode:add_greedy': True,
+                                 'decode:add_sampling': True})
+            self.assertTrue('decode_greedy' in n, 'decode_greedy in nodes')
+            self.assertTrue('decode_greedy' in m._predict_fetch,
+                            'decode_greedy in predict dict')
+            self.assertTrue('decode_sampling' in n, 'decode_sampling in nodes')
+            self.assertTrue('decode_sampling' in m._predict_fetch,
+                            'decode_sampling in predict dict')
 
     def test_build_overwrite_opt(self):
         with self.test_session(config=self.sess_config) as sess:
@@ -224,7 +237,7 @@ class TestSeq2SeqModel(tf.test.TestCase):
 
     def tearDown(self):
         super().tearDown()
-        graph.empty_tf_collection('*')
+        graph.empty_tfph_collection('*')
 
     def test_build(self):
         with self.test_session(config=self.sess_config) as sess:
@@ -381,7 +394,7 @@ class TestSeq2SeqModel(tf.test.TestCase):
                                    places=1, msg='training loss denom is used')
             # just smoke test for decode result
             output4, __ = m.predict(sess, (seq, np.array([2, 3, 4])),
-                                    predict_key='decode_result')
+                                    predict_key='decode_greedy')
             np.testing.assert_array_equal(output4, 1, err_msg='output is all 1')
 
     def test_dynamic_rnn_run(self):
