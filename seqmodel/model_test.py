@@ -121,6 +121,14 @@ class TestSeqModel(tf.test.TestCase):
                     self.assertNotEqual(v[0], v[1], 'predict fetch array is set')
             self.assertRaises(ValueError, m.build_graph, **{'out:logit': False})
 
+    def test_build_decode(self):
+        with self.test_session(config=self.sess_config) as sess:
+            m = model.SeqModel(check_feed_dict=False)
+            n = m.build_graph(**{'out:logit': True, 'out:decode': True})
+            self.assertTrue('decode_result' in n, 'decode result in nodes')
+            self.assertTrue('decode_result' in m._predict_fetch,
+                            'decode result in predict dict')
+
     def test_build_overwrite_opt(self):
         with self.test_session(config=self.sess_config) as sess:
             m = model.SeqModel(check_feed_dict=False)

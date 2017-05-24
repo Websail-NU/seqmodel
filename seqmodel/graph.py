@@ -258,7 +258,7 @@ def create_gru_layer(transform, extra, carried):
 
 def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs,
                   initial_finish, logit_b=None, min_len=1, max_len=40, end_id=0,
-                  cell_scope=None, reuse_cell=False, back_prop=False):
+                  cell_scope=None, reuse_cell=True, back_prop=False):
     gen_ta = tf.TensorArray(dtype=tf.int32, size=min_len, dynamic_size=True)
 
     init_values = (tf.constant(0), initial_inputs, initial_state, gen_ta, initial_finish)
