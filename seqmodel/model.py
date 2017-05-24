@@ -206,9 +206,9 @@ class SeqModel(Model):
                'cell:state_keep_prob': 1.0, 'cell:variational': False,
                'rnn:fn': 'tensorflow.nn.dynamic_rnn',
                # 'rnn:fn': 'seqmodel.graph.scan_rnn',
-               'out:logit': True, 'out:loss': True, 'logit:output_size': 14,
-               'logit:use_bias': True, 'logit:trainable': True, 'logit:init': None,
-               'loss:type': 'xent', 'share:input_emb_logit': False}
+               'out:logit': True, 'out:loss': True, 'out:decoder': False,
+               'logit:output_size': 14, 'logit:use_bias': True, 'logit:trainable': True,
+               'logit:init': None, 'loss:type': 'xent', 'share:input_emb_logit': False}
         return opt
 
     def build_graph(self, opt=None, initial_state=None, reuse=False, name='seq_model',
@@ -220,7 +220,7 @@ class SeqModel(Model):
         reuse_scope = {} if reuse_scope is None else reuse_scope
         reuse_scope = defaultdict(lambda: None, **reuse_scope)
         self._name = name
-        with tf.variable_scope(name, reuse=reuse):
+        with tf.variable_scope(name, reuse=reuse) as scope:
             nodes, graph_args = self._build(
                 chain_opt, reuse_scope, initial_state, reuse, collect_key, **kwargs)
             self.set_graph(**graph_args)
@@ -301,10 +301,9 @@ class SeqModel(Model):
     def _build_loss(self, opt, logit, label, weight, seq_weight,
                     collect_key, add_to_collection):
         if opt['loss:type'] == 'xent':
-            with tfg.tf_collection(collect_key, add_to_collection) as get:
+            with tfg.tfph_collection(collect_key, add_to_collection) as get:
                 name = 'train_loss_denom'
-                train_loss_denom_ = get(
-                    name, tf.placeholder(tf.float32, shape=None, name=name))
+                train_loss_denom_ = get(name, tf.float32, shape=None)
             mean_loss_, train_loss_, loss_ = tfg.create_xent_loss(
                 logit, label, weight, seq_weight, train_loss_denom_)
             train_fetch = {'train_loss': train_loss_, 'eval_loss': mean_loss_}
@@ -313,6 +312,16 @@ class SeqModel(Model):
             raise ValueError(f'{opt["loss:type"]} is not supported, use (xent or mse)')
         nodes = util.dict_with_key_endswith(locals(), '_')
         return train_fetch, eval_fetch, nodes
+
+    # def _build_decoder(self, batch_size, nodes, cell_scope, collect_key,
+    #                    add_to_collection, start_id=1, end_id=0):
+    #     with tfg.tfph_collection(collect_key, add_to_collection) as get:
+    #         decode_result = tfg.create_decode(
+    #             nodes['emb_vars'], nodes['cell'], nodes['logit_w'],
+    #             nodes['initial_state'], tf.tile((1, ), (batch_size, )),
+    #             tf.tile([False], (batch_size, )),
+    #             logit_b=dec_nodes['logit_b'], max_len=20, back_prop=False,
+    #             cell_scope=cell_scope)
 
     def _get_fetch(self, mode, extra_fetch=None, fetch_state=False, **kwargs):
         fetch = super()._get_fetch(mode, extra_fetch, **kwargs)

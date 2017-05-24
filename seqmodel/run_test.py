@@ -29,7 +29,7 @@ class TestRun(tf.test.TestCase):
 
     def tearDown(self):
         super().tearDown()
-        graph.empty_tf_collection('*')
+        graph.empty_tfph_collection('*')
 
     def test_run_epoch(self):
         data = generator.read_seq_data(
@@ -117,7 +117,7 @@ class TestSamplingRun(tf.test.TestCase):
 
     def tearDown(self):
         super().tearDown()
-        graph.empty_tf_collection('*')
+        graph.empty_tfph_collection('*')
 
     def test_run_epoch(self):
         data = generator.read_seq2seq_data(self.gen(), self.vocab, self.vocab)

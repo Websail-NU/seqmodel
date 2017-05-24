@@ -22,7 +22,7 @@ class TestModel(tf.test.TestCase):
 
     def tearDown(self):
         super().tearDown()
-        graph.empty_tf_collection('*')
+        graph.empty_tfph_collection('*')
 
     def test_check_feed_dict(self):
         with self.test_session(config=self.sess_config) as sess:
@@ -88,7 +88,7 @@ class TestSeqModel(tf.test.TestCase):
 
     def tearDown(self):
         super().tearDown()
-        graph.empty_tf_collection('*')
+        graph.empty_tfph_collection('*')
 
     def test_build(self):
         with self.test_session(config=self.sess_config) as sess:
@@ -224,7 +224,7 @@ class TestSeq2SeqModel(tf.test.TestCase):
 
     def tearDown(self):
         super().tearDown()
-        graph.empty_tf_collection('*')
+        graph.empty_tfph_collection('*')
 
     def test_build(self):
         with self.test_session(config=self.sess_config) as sess:

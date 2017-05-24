@@ -124,12 +124,14 @@ def run_sampling_epoch(sess, model, batch_iter, reward_fn, train_op=None,
     for batch in batch_iter():
         sample, __ = model.decode(sess, batch.features)
         reward, avg_reward = reward_fn(sample, batch)
+        num_tokens = batch.num_tokens
         if train_op is not None:
             ret = return_fn(reward, discount_factor)
             train_batch = pack_data_fn(batch, sample, ret)
             train_result, __ = model.train(
                 sess, train_batch.features, train_batch.labels, train_op=train_op)
-        info.update_step(avg_reward, batch.num_tokens, train_result)
+            num_tokens = train_batch.num_tokens
+        info.update_step(avg_reward, num_tokens, train_result)
     info.end()
     return info
 

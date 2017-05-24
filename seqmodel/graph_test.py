@@ -20,7 +20,7 @@ class TestGraph(tf.test.TestCase):
 
     def tearDown(self):
         super().tearDown()
-        graph.empty_tf_collection('*')
+        graph.empty_tfph_collection('*')
 
     def test_rnn(self):
         with self.test_session(config=self.sess_config) as sess:
