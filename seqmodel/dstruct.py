@@ -9,7 +9,7 @@ import math
 
 __all__ = ['BatchTuple', 'SeqFeatureTuple', 'SeqLabelTuple', 'Seq2SeqFeatureTuple',
            'OutputStateTuple', 'IndexScoreTuple', 'Vocabulary', 'TrainingState',
-           'RunningInfo', 'RunSamplingInfo']
+           'RunningInfo', 'RunSamplingInfo', 'Word2DefFeatureTuple']
 
 ########################################################
 #    ######## ##     ## ########  ##       ########    #
@@ -32,6 +32,10 @@ SeqLabelTuple = collections.namedtuple(
 # always arrange enc before dec (help zipping placeholder during decoding)
 Seq2SeqFeatureTuple = collections.namedtuple(
     'Seq2SeqFeatureTuple', ('enc_inputs', 'enc_seq_len', 'dec_inputs', 'dec_seq_len'))
+
+Word2DefFeatureTuple = collections.namedtuple(
+    'Word2DefFeatureTuple', ('enc_inputs', 'enc_seq_len', 'words', 'chars', 'char_len',
+                             'dec_inputs', 'dec_seq_len'))
 
 OutputStateTuple = collections.namedtuple('OutputStateTuple', ('output', 'state'))
 

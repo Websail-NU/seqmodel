@@ -134,6 +134,50 @@ class TestSeq2Seq(unittest.TestCase):
                          'number of tokens (including eos symbol)')
 
 
+class TestWord2Def(unittest.TestCase):
+
+    def setUp(self):
+        data_dir = 'test_data/tiny_def'
+        self.gen = partial(generator.read_lines, f'{data_dir}/valid.txt',
+                           token_split=' ', part_split='\t', part_indices=[0, -1])
+        self.enc_vocab = Vocabulary.from_vocab_file(f'{data_dir}/enc_vocab.txt')
+        self.dec_vocab = Vocabulary.from_vocab_file(f'{data_dir}/dec_vocab.txt')
+        self.char_vocab = Vocabulary.from_vocab_file(f'{data_dir}/char_vocab.txt')
+        self.num_lines = 1000
+        self.num_tokens = 5463
+
+    def test_read_word2def_data(self):
+        x, w, c, y = generator.read_word2def_data(
+            self.gen(), self.enc_vocab, self.dec_vocab, self.char_vocab)
+        self.assertEqual(len(x), self.num_lines, 'number of sequences')
+        self.assertEqual(len(y), self.num_lines, 'number of sequences')
+        self.assertEqual(len(c), self.num_lines, 'number of sequences')
+        for x_, w_, c_ in zip(x, w, c):
+            self.assertEqual(''.join(self.char_vocab.i2w(c_[1:-1])),
+                             self.enc_vocab.i2w(x_[0]),
+                             'characters same as first word in enc data')
+            self.assertEqual(''.join(self.char_vocab.i2w(c_[1:-1])),
+                             self.enc_vocab.i2w(w_),
+                             'characters same as word in word data')
+            self.assertEqual(x_[0], w_, 'first enc data same as word data')
+
+    def test_word2def_batch_iter(self):
+        data = generator.read_word2def_data(
+            self.gen(), self.enc_vocab, self.dec_vocab, self.char_vocab)
+        count = 0
+        for batch in generator.word2def_batch_iter(*data, batch_size=3):
+            count += batch.num_tokens
+            self.assertFalse(batch.keep_state, 'keep_state is False')
+            self.assertEqual(batch.num_tokens, sum(batch.features.dec_seq_len),
+                             'num_tokens is sum of seq_len')
+            self.assertEqual(batch.features.chars.shape[0], 3,
+                             'char data is in batch-major')
+            self.assertEqual(batch.features.words.shape, (3, ),
+                             'word data is 1D with batch size elements')
+        self.assertEqual(count, self.num_lines + self.num_tokens,
+                         'number of tokens (including eos symbol)')
+
+
 class TestReward(unittest.TestCase):
 
     def test_reward_match_label(self):

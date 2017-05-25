@@ -35,15 +35,17 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - [ ] Bootstrap last state if not terminal
 
 ### Generator
-- [ ] Definition data reader
+- [x] Definition data reader and batching
 
 ### Scripts
 - [ ] Scripts to get definition data
 - [ ] Add option to put all data into tf.constant
 
 ### Bucket list
+- [ ] Use tf.summary for tensorboard.
 - [ ] Use sess.partialrun() to cache encoder state, then we can decode and update
       the networks without running encoding twice!
 - [ ] It would be nice if we do not need to fecth state and feed it back in when
       training a langauge model (sentence dependent).
-- [ ] Ensure the indices of `</s>` and `<s>` are 0 and 1.
+- [ ] Ensure the indices of `</s>` and `<s>` are 0 and 1,
+      and index of `_` is 0 for char-level data

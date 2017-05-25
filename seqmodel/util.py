@@ -121,15 +121,23 @@ def get_nested_dict(d, key_tuple):
 #    ##   ### ##     ## ##     ## ##           ##       #
 #    ##    ##  #######  ##     ## ##           ##       #
 #########################################################
+# duplicate hstack and vstack to avoid if... else...
+
+def vstack_list(data, padding=0, dtype=np.int32):
+    lengths = list(map(len, data))
+    max_len = max(lengths)
+    arr = np.full((len(data), max_len), padding, dtype=dtype)
+    for i, row in enumerate(data):
+        arr[i, 0:len(row)] = row
+    return arr, np.array(lengths, dtype=np.int32)
 
 
 def hstack_list(data, padding=0, dtype=np.int32):
     lengths = list(map(len, data))
     max_len = max(lengths)
-    arr = np.zeros((max_len, len(data)), dtype=dtype)
-    arr[:] = padding
+    arr = np.full((max_len, len(data)), padding, dtype=dtype)
     for i, row in enumerate(data):
-        arr[0:len(row), i] = row
+        arr[0:len(row), i] = row  # assign row of data to a column
     return arr, np.array(lengths, dtype=np.int32)
 
 
