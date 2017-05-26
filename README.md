@@ -25,7 +25,7 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - [x] Reuse placeholder variables when creating a model
 - [x] Dynamic decode: greedy gen to fixed length
 - [x] Dynamic decode: add stop id check and multinomial sample
-- [ ] DefinitionModel
+- [x] DefinitionModel
 - [ ] Value Network
 
 ### Run
@@ -38,7 +38,8 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - [x] Definition data reader and batching
 
 ### Scripts
-- [ ] Scripts to get definition data
+- [x] Scripts to get definition data
+- [ ] Scripts to train definition model
 - [ ] Add option to put all data into tf.constant
 
 ### Bucket list

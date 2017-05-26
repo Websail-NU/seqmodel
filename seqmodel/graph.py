@@ -196,6 +196,8 @@ def create_tdnn(inputs, sequence_length=None, filter_widths=[2, 3, 4, 5, 6],
                 num_filters=[10, 30, 40, 40, 40], activation_fn=tf.tanh):
     """return time-delayed network as a tensor of [batch, sum num_filters].
     This function expects batch major input."""
+    if isinstance(activation_fn, six.string_types):
+        activation_fn = locate(activation_fn)
     input_dim = inputs.get_shape()[-1]
     if sequence_length is not None:
         max_len = tf.shape(inputs)[1]
@@ -232,7 +234,7 @@ def create_highway_layer(transform, extra, carried):
     z = matmul(tf.concat([transform, extra], -1), gate_w) + gate_b
     t = tf.sigmoid(tf.slice(z, [0, 0, 0], [-1, -1, carried_dim]))
     h = tf.tanh(tf.slice(z, [0, 0, carried_dim], [-1, -1, -1]))
-    return tf.multiply(h - carried, t) + carried
+    return tf.multiply(h - carried, t) + carried, t
 
 
 def create_gru_layer(transform, extra, carried):
@@ -246,14 +248,14 @@ def create_gru_layer(transform, extra, carried):
     out_size = carried_dim + extra_dim
     zr_w = tf.get_variable('gate_zr_w', [in_size, out_size])
     zr_b = tf.get_variable('gate_zr_b', [out_size])
-    zr = matmul(tf.concat([extra, transform], -1), zr_w) + zr_b
-    z = tf.sigmoid(tf.slice(zr, [0, 0, 0], [-1, -1, carried_dim]))
-    r = tf.sigmoid(tf.slice(zr, [0, 0, carried_dim], [-1, -1, -1]))
+    zr = tf.sigmoid(matmul(tf.concat([extra, transform], -1), zr_w) + zr_b)
+    z = tf.slice(zr, [0, 0, 0], [-1, -1, carried_dim])
+    r = tf.slice(zr, [0, 0, carried_dim], [-1, -1, -1])
     h_w = tf.get_variable('h_w', [in_size, carried_dim])
     h_b = tf.get_variable('h_b', [carried_dim])
     scaled_extra = tf.multiply(r, extra)
     h = tf.tanh(matmul(tf.concat([scaled_extra, transform], -1), h_w) + h_b)
-    return tf.multiply(h - carried, z) + carried
+    return tf.multiply(h - carried, z) + carried, zr
 
 
 def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial_finish,
