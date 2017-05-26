@@ -227,7 +227,7 @@ class TestSeqModel(tf.test.TestCase):
             m = model.SeqModel(check_feed_dict=False)
             n = m.build_graph()
             num_vars = len(tf.global_variables())
-            n = m.build_graph(reuse=True, **{'cell:in_keep_prob': 1.0})
+            n = m.build_graph(reuse=True, no_dropout=True)
             self.assertEqual(type(n['cell']), tf.contrib.rnn.BasicLSTMCell,
                              'overwrite default options with kwargs')
             num_vars_ = len(tf.global_variables())
@@ -352,9 +352,11 @@ class TestWord2DefModel(tf.test.TestCase):
         with self.test_session(config=self.sess_config) as sess:
             m = model.Word2DefModel(check_feed_dict=False)
             opt = {'emb:vocab_size': 20, 'emb:dim': 5, 'cell:num_units': 10,
-                   'cell:cell_class': 'tensorflow.contrib.rnn.BasicLSTMCell'}
+                   'cell:cell_class': 'tensorflow.contrib.rnn.BasicLSTMCell',
+                   'cell:out_keep_prob': 0.5}
             opt = {f'{n}:{k}': v for k, v in opt.items() for n in ('enc', 'dec')}
             opt['dec:logit:output_size'] = 2
+            opt['wbdef:keep_prob'] = 0.5
             expected_vars = {'embedding:0': (20, 5),
                              'rnn/basic_lstm_cell/weights:0': (10 + 5, 10 * 4),
                              'rnn/basic_lstm_cell/biases:0': (10 * 4,)}
@@ -370,6 +372,10 @@ class TestWord2DefModel(tf.test.TestCase):
                                   't/wbdef/h_w:0': (115, 10),
                                   't/wbdef/h_b:0': (10,)})
             n = m.build_graph(opt, name='t')
+            self.assertIsInstance(n['dec']['cell'], tf.contrib.rnn.BasicLSTMCell,
+                                  'no dropout at the final cell (1-layer)')
+            for name in ('wbdef', 'updated_output'):
+                self.assertTrue('dropout' in n['bridge'][name].name, 'dropout')
             for v in tf.global_variables():
                 self.assertTrue(v.name in expected_vars, 'expected variable scope/name')
                 self.assertEqual(v.shape, expected_vars[v.name], 'shape is correct')

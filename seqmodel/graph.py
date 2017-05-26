@@ -112,14 +112,17 @@ def matmul(mat, mat2d, transpose_b=False):
 
 def create_cells(num_units, num_layers, cell_class=tf.contrib.rnn.BasicLSTMCell,
                  reuse=False, in_keep_prob=1.0, out_keep_prob=1.0, state_keep_prob=1.0,
-                 variational=False, input_size=None):
+                 variational=False, input_size=None, drop_out_last_layer=True):
     """return an RNN cell with optionally DropoutWrapper and MultiRNNCell."""
     cells = []
     for layer in range(num_layers):
         if isinstance(cell_class, six.string_types):
             cell_class = locate(cell_class)
         cell = cell_class(num_units, reuse=reuse)
-        if any(kp < 1.0 for kp in [in_keep_prob, out_keep_prob, state_keep_prob]):
+        any_drop = any(kp < 1.0 for kp in [in_keep_prob, out_keep_prob, state_keep_prob])
+        last_layer_drop = ((layer == num_layers - 1 and drop_out_last_layer) or
+                           layer != num_layers - 1)
+        if any_drop and last_layer_drop:
             cell = tf.contrib.rnn.DropoutWrapper(
                 cell, in_keep_prob, out_keep_prob, state_keep_prob, variational,
                 input_size, tf.float32)
