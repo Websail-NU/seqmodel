@@ -76,7 +76,7 @@ def _run(obj, model_class, rnn_fn, mode='seq'):
         obj.assertAlmostEqual(output3['train_loss'], output2['train_loss'] / 10,
                               places=1, msg='training loss denom is used')
         # decode
-        if mode == 'seq2seq':
+        if mode == 'seq2seq' or mode == 'word2def':
             # just smoke test for decode result
             output4, __ = m.predict(sess, features, predict_key='decode_greedy')
             np.testing.assert_array_equal(output4[:, :2], 1, err_msg='output is all 1')

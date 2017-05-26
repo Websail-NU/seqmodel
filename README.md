@@ -26,6 +26,7 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - [x] Dynamic decode: greedy gen to fixed length
 - [x] Dynamic decode: add stop id check and multinomial sample
 - [x] DefinitionModel
+- [x] Fix graph.create_decode to handle context (i.e. attention)
 - [ ] Value Network
 
 ### Run
@@ -42,10 +43,13 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - [ ] Scripts to train definition model
 - [ ] Add option to put all data into tf.constant
 
+### TensorFlow
+- [ ] Compile my own TensorFlow
+- [ ] Upgrade to TensorFlow v1.2 (Pending for its release)
+- [ ] Take advantage of tf.Session.make_callable (Pending for its release)
+
 ### Bucket list
 - [ ] Use tf.summary for tensorboard.
-- [ ] Use sess.partialrun() to cache encoder state, then we can decode and update
-      the networks without running encoding twice!
 - [ ] It would be nice if we do not need to fecth state and feed it back in when
       training a langauge model (sentence dependent).
 - [ ] Ensure the indices of `</s>` and `<s>` are 0 and 1,

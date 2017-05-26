@@ -12,7 +12,8 @@ from seqmodel import util
 
 __all__ = ['open_files', 'read_lines', 'read_seq_data', 'read_seq2seq_data',
            'batch_iter', 'seq_batch_iter', 'seq2seq_batch_iter', 'position_batch_iter',
-           'get_batch_data', 'reward_match_label', 'read_word2def_data']
+           'get_batch_data', 'reward_match_label', 'read_word2def_data',
+           'word2def_batch_iter']
 
 ##################################################
 #    ######## #### ##       ########  ######     #

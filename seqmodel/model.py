@@ -354,12 +354,15 @@ class SeqModel(Model):
             batch_size = self._batch_size
         else:
             batch_size = tf.shape(nodes['input'])[1]
+        late_attn_fn = None
+        if hasattr(self, '_decode_late_attn'):
+            late_attn_fn = self._decode_late_attn
         decode_fn = partial(
             tfg.create_decode, nodes['emb_vars'], nodes['cell'], nodes['logit_w'],
             nodes['initial_state'], tf.tile((1, ), (batch_size, )),
             tf.tile([False], (batch_size, )), logit_b=nodes['logit_b'],
             logit_temperature=nodes['temperature'], max_len=decode_max_len_,
-            cell_scope=cell_scope)
+            cell_scope=cell_scope, late_attn_fn=late_attn_fn)
         if opt['decode:add_greedy']:
             decode_greedy_ = decode_fn()
             output['decode_greedy'] = decode_greedy_
@@ -574,14 +577,16 @@ class Word2DefModel(Seq2SeqModel):
                 wbdef_ = tf.nn.dropout(wbdef_, opt['wbdef:keep_prob'])
         nodes = util.dict_with_key_endswith(locals(), '_')
         # add param to super()_build_logit
-        self._build_logit = partial(self._build_att_logit, wbdef=wbdef_,
+        self._build_logit = partial(self._build_attn_logit, wbdef=wbdef_,
                                     wbdef_scope=wbdef_scope, wbdef_nodes=nodes,
                                     full_opt=opt, reuse=reuse)
+        self._decode_late_attn = partial(self._build_decode_late_attn, wbdef=wbdef_,
+                                         wbdef_scope=wbdef_scope)
         return enc_nodes['final_state'], nodes
 
-    def _build_att_logit(self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output,
-                         wbdef=None, wbdef_scope=None, wbdef_nodes=None, full_opt=None,
-                         reuse=False):
+    def _build_attn_logit(self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output,
+                          wbdef=None, wbdef_scope=None, wbdef_nodes=None, full_opt=None,
+                          reuse=False):
         assert wbdef is not None, 'wbdef is None, did you forget to add kwargs in partial()?'  # noqa
         wbdef_nodes = {} if wbdef_nodes is None else wbdef_nodes
         with tfg.maybe_scope(wbdef_scope, reuse):
@@ -600,3 +605,9 @@ class Word2DefModel(Seq2SeqModel):
         logit_, label_feed, predict_fetch, nodes = super()._build_logit(
             opt, reuse_scope, collect_kwargs, emb_vars, updated_output_)
         return logit_, label_feed, predict_fetch, nodes
+
+    def _build_decode_late_attn(self, cell_output, wbdef=None, wbdef_scope=None):
+        with tfg.maybe_scope(wbdef_scope, True):
+            updated_output, __ = tfg.create_gru_layer(
+                cell_output, wbdef, cell_output)
+        return updated_output

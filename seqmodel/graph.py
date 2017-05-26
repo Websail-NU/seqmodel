@@ -252,8 +252,12 @@ def create_gru_layer(transform, extra, carried):
     zr_w = tf.get_variable('gate_zr_w', [in_size, out_size])
     zr_b = tf.get_variable('gate_zr_b', [out_size])
     zr = tf.sigmoid(matmul(tf.concat([extra, transform], -1), zr_w) + zr_b)
-    z = tf.slice(zr, [0, 0, 0], [-1, -1, carried_dim])
-    r = tf.slice(zr, [0, 0, carried_dim], [-1, -1, -1])
+    if len(transform.get_shape()) == 2:
+        z = tf.slice(zr, [0, 0], [-1, carried_dim])
+        r = tf.slice(zr, [0, carried_dim], [-1, -1])
+    else:
+        z = tf.slice(zr, [0, 0, 0], [-1, -1, carried_dim])
+        r = tf.slice(zr, [0, 0, carried_dim], [-1, -1, -1])
     h_w = tf.get_variable('h_w', [in_size, carried_dim])
     h_b = tf.get_variable('h_b', [carried_dim])
     scaled_extra = tf.multiply(r, extra)
@@ -263,11 +267,9 @@ def create_gru_layer(transform, extra, carried):
 
 def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial_finish,
                   logit_b=None, logit_temperature=None, min_len=1, max_len=40, end_id=0,
-                  cell_scope=None, reuse_cell=True, back_prop=False,
-                  select_fn=None):
-
+                  cell_scope=None, reuse_cell=True, back_prop=False, select_fn=None,
+                  late_attn_fn=None):
     if select_fn is None:
-        # sample_idx = tf.cast(tf.multinomial(logit_2d, 1), dtype=tf.int32)
         select_fn = partial(tf.argmax, axis=-1)
     gen_ta = tf.TensorArray(dtype=tf.int32, size=min_len, dynamic_size=True)
     init_values = (tf.constant(0), initial_inputs, initial_state, gen_ta, initial_finish)
@@ -280,13 +282,13 @@ def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial
         with maybe_scope(cell_scope, reuse=reuse_cell):
             with tf.variable_scope('rnn', reuse=True):
                 output, new_state = cell(input_emb, state)
+        if late_attn_fn is not None:
+            output = late_attn_fn(output)
         logit = tf.matmul(output, logit_w, transpose_b=True)
         if logit_b is not None:
             logit = logit + logit_b
         if logit_temperature is not None:
             logit = logit / logit_temperature
-        # print(logit)
-        # print(logit_temperature)
         next_token = tf.cast(select_fn(logit), tf.int32)
         out_ta = out_ta.write(t, next_token)
         finished = tf.logical_or(finished, tf.equal(next_token, end_id))

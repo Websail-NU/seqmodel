@@ -36,7 +36,7 @@ def main(opt, model_opt, train_opt, logger, data_fn, model_class):
 
     eval_batch_iter = partial(batch_iter, *data[-1])
     eval_model = model_class()
-    eval_model.build_graph(model_opt, reuse=is_training)
+    eval_model.build_graph(model_opt, reuse=is_training, no_dropout=True)
 
     for v in tf.global_variables():
         logger.debug(f'{v.name}, {v.get_shape()}')
