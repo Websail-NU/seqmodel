@@ -144,15 +144,15 @@ class TestWord2Def(unittest.TestCase):
         self.dec_vocab = Vocabulary.from_vocab_file(f'{data_dir}/dec_vocab.txt')
         self.char_vocab = Vocabulary.from_vocab_file(f'{data_dir}/char_vocab.txt')
         self.num_lines = 1000
-        self.num_tokens = 5463
+        self.num_tokens = 5465
 
     def test_read_word2def_data(self):
-        x, w, c, y = generator.read_word2def_data(
+        x, w, c, y, sw = generator.read_word2def_data(
             self.gen(), self.enc_vocab, self.dec_vocab, self.char_vocab)
         self.assertEqual(len(x), self.num_lines, 'number of sequences')
         self.assertEqual(len(y), self.num_lines, 'number of sequences')
         self.assertEqual(len(c), self.num_lines, 'number of sequences')
-        for x_, w_, c_ in zip(x, w, c):
+        for x_, w_, c_, sw_ in zip(x, w, c, sw):
             self.assertEqual(''.join(self.char_vocab.i2w(c_[1:-1])),
                              self.enc_vocab.i2w(x_[0]),
                              'characters same as first word in enc data')
@@ -160,6 +160,15 @@ class TestWord2Def(unittest.TestCase):
                              self.enc_vocab.i2w(w_),
                              'characters same as word in word data')
             self.assertEqual(x_[0], w_, 'first enc data same as word data')
+            self.assertEqual(sw_, 1, 'seq weight is set to 1')
+
+    def test_read_word2def_data_freq_weight(self):
+        x, w, c, y, sw = generator.read_word2def_data(
+            self.gen(), self.enc_vocab, self.dec_vocab, self.char_vocab,
+            freq_down_weight=True)
+        for w_, sw_ in zip(w, sw):
+            if self.enc_vocab.i2w(w_) == 'eijfceib':
+                self.assertEqual(sw_, 1/3, 'seq weight is set to 1/freq')
 
     def test_word2def_batch_iter(self):
         data = generator.read_word2def_data(

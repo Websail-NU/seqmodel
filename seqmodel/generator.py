@@ -2,6 +2,7 @@ import codecs
 import six
 import random
 from contextlib import contextmanager
+from collections import defaultdict
 
 import numpy as np
 
@@ -98,7 +99,8 @@ def read_seq2seq_data(tokenized_lines, in_vocab, out_vocab):
     return enc_data, dec_data
 
 
-def read_word2def_data(tokenized_lines, in_vocab, out_vocab, char_vocab):
+def read_word2def_data(tokenized_lines, in_vocab, out_vocab, char_vocab,
+                       freq_down_weight=False):
     """this is a copy of read_seq2seq_data with character data"""
 
     def tokens2chars(tokens):
@@ -111,17 +113,23 @@ def read_word2def_data(tokenized_lines, in_vocab, out_vocab, char_vocab):
     sod_sym = ds.Vocabulary.special_symbols['start_seq']
     eod_sym = ds.Vocabulary.special_symbols['end_seq']
     enc_data, char_data, word_data, dec_data = [], [], [], []
+    freq = defaultdict(int)
     for part in tokenized_lines:
         enc_, dec_ = part[:2]
         enc_ = in_vocab.w2i(enc_ + [eoe_sym])
         dec_ = out_vocab.w2i([sod_sym] + dec_ + [eod_sym])
         word_ = enc_[0]
         char_ = char_vocab.w2i(tokens2chars(part[0]))
+        freq[word_] += 1
         enc_data.append(enc_)
         dec_data.append(dec_)
         char_data.append(char_)
         word_data.append(word_)
-    return enc_data, word_data, char_data, dec_data
+    if freq_down_weight:
+        seq_weight_data = [1 / freq[w] for w in word_data]
+    else:
+        seq_weight_data = [1 for __ in range(len(enc_data))]
+    return enc_data, word_data, char_data, dec_data, seq_weight_data
 
 
 #########################################################
@@ -227,19 +235,20 @@ def seq2seq_batch_iter(enc_data, dec_data, batch_size=1, shuffle=True):
         yield ds.BatchTuple(features, labels, num_tokens, False)
 
 
-def word2def_batch_iter(enc_data, word_data, char_data, dec_data,
+def word2def_batch_iter(enc_data, word_data, char_data, dec_data, seq_weight_data,
                         batch_size=1, shuffle=True):
     """same as seq2seq_batch_iter, just add more info"""
-    for x, w, c, y in batch_iter(batch_size, shuffle, enc_data, word_data, char_data,
-                                 dec_data, pad=[[], 0, [], []]):
+    for x, w, c, y, sw in batch_iter(batch_size, shuffle, enc_data, word_data,
+                                     char_data, dec_data, seq_weight_data,
+                                     pad=[[], 0, [], [], 0]):
         enc, enc_len = util.hstack_list(x)
         dec, dec_len = util.hstack_list(y)
         word = np.array(w, dtype=np.int32)
         char, char_len = util.vstack_list(c)
         in_dec = dec[:-1, :]
         out_dec = dec[1:, :]
-        seq_weight = np.where(dec_len > 0, 1, 0)
-        dec_len -= seq_weight
+        seq_weight = np.array(sw, dtype=np.float32)
+        dec_len -= np.where(dec_len > 0, 1, 0)
         token_weight, num_tokens = util.masked_full_like(
             out_dec, 1, num_non_padding=dec_len)
         seq_weight = seq_weight.astype(np.float32)
