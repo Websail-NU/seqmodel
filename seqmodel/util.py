@@ -121,15 +121,23 @@ def get_nested_dict(d, key_tuple):
 #    ##   ### ##     ## ##     ## ##           ##       #
 #    ##    ##  #######  ##     ## ##           ##       #
 #########################################################
+# duplicate hstack and vstack to avoid if... else...
+
+def vstack_list(data, padding=0, dtype=np.int32):
+    lengths = list(map(len, data))
+    max_len = max(lengths)
+    arr = np.full((len(data), max_len), padding, dtype=dtype)
+    for i, row in enumerate(data):
+        arr[i, 0:len(row)] = row
+    return arr, np.array(lengths, dtype=np.int32)
 
 
 def hstack_list(data, padding=0, dtype=np.int32):
     lengths = list(map(len, data))
     max_len = max(lengths)
-    arr = np.zeros((max_len, len(data)), dtype=dtype)
-    arr[:] = padding
+    arr = np.full((max_len, len(data)), padding, dtype=dtype)
     for i, row in enumerate(data):
-        arr[0:len(row), i] = row
+        arr[0:len(row), i] = row  # assign row of data to a column
     return arr, np.array(lengths, dtype=np.int32)
 
 
@@ -182,6 +190,7 @@ def get_common_argparser(prog, usage=None, description=None):
               '. Similar behavior for train_opt.json. Model is resumed from checkpoint '
               'directory by default if --load_checkpoint is not provided.'))
     parser.add_argument('--gpu', action='store_true')
+    parser.add_argument('--set_vocab_size', action='store_false')
     parser.add_argument('--train_file', type=str, default='train.txt')
     parser.add_argument('--valid_file', type=str, default='valid.txt')
     parser.add_argument('--eval_file', type=str, default='test.txt')
@@ -209,9 +218,22 @@ def add_arg_group_defaults(parser, group_default):
         add_dict_to_argparser(v, group_parser)
 
 
-def parse_set_args(parser, group_default=None):
-    args = vars(parser.parse_args())
-    opt = {k: v for k, v in args.items() if f'--{k}' in set(sys.argv)}
+def parse_set_args(parser, group_default=None, dup_replaces=None, dup_prefix='__:'):
+    argv = sys.argv[1:]
+    if dup_replaces is not None:
+        new_argv = []
+        while argv:
+            opt = argv.pop(0)
+            if opt.startswith(f'--{dup_prefix}'):
+                val = argv.pop(0)
+                for key in dup_replaces:
+                    new_argv.append(opt.replace(f'--{dup_prefix}', f'--{key}', 1))
+                    new_argv.append(val)
+            else:
+                new_argv.append(opt)
+        argv = new_argv
+    args = vars(parser.parse_args(argv))
+    opt = {k: v for k, v in args.items() if f'--{k}' in set(argv)}
     groups = {}
     key_set = set()
     if group_default:

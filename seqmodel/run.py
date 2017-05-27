@@ -95,8 +95,8 @@ def run_epoch(sess, model, batch_iter, train_op=None):
     for batch in batch_iter():
         result, __ = run_fn(batch.features, batch.labels, state=state,
                             fetch_state=batch.keep_state)
-        if batch.keep_state and isinstance(result, ds.OutputStateTuple):
-            result, state = result
+        if batch.keep_state:
+            result, state = result  # ds.OutputStateTuple
         else:
             state = None
         info.update_step(result, batch.num_tokens)
@@ -105,12 +105,12 @@ def run_epoch(sess, model, batch_iter, train_op=None):
 
 
 def _acc_discounted_rewards(rewards, discount_factor):
-        R = np.zeros_like(rewards)
-        r_tplus1 = np.zeros([rewards.shape[1]])
-        for i in range(len(rewards) - 1, -1, -1):
-            R[i, :] = rewards[i, :] + discount_factor * r_tplus1
-            r_tplus1 = R[i, :]
-        return R
+    R = np.zeros_like(rewards)
+    r_tplus1 = np.zeros([rewards.shape[1]])
+    for i in range(len(rewards) - 1, -1, -1):
+        R[i, :] = rewards[i, :] + discount_factor * r_tplus1
+        r_tplus1 = R[i, :]
+    return R
 
 
 def run_sampling_epoch(sess, model, batch_iter, reward_fn, greedy=False, train_op=None,

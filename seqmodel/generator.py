@@ -2,6 +2,7 @@ import codecs
 import six
 import random
 from contextlib import contextmanager
+from collections import defaultdict
 
 import numpy as np
 
@@ -11,7 +12,8 @@ from seqmodel import util
 
 __all__ = ['open_files', 'read_lines', 'read_seq_data', 'read_seq2seq_data',
            'batch_iter', 'seq_batch_iter', 'seq2seq_batch_iter', 'position_batch_iter',
-           'get_batch_data', 'reward_match_label']
+           'get_batch_data', 'reward_match_label', 'read_word2def_data',
+           'word2def_batch_iter']
 
 ##################################################
 #    ######## #### ##       ########  ######     #
@@ -97,6 +99,40 @@ def read_seq2seq_data(tokenized_lines, in_vocab, out_vocab):
         dec_data.append(dec_)
     return enc_data, dec_data
 
+
+def read_word2def_data(tokenized_lines, in_vocab, out_vocab, char_vocab,
+                       freq_down_weight=False):
+    """this is a copy of read_seq2seq_data with character data"""
+
+    def tokens2chars(tokens):
+        tokens[0] = '<' + tokens[0]
+        tokens[-1] += '>'
+        phrase = '><'.join(tokens)
+        return list(phrase)
+
+    eoe_sym = ds.Vocabulary.special_symbols['end_encode']
+    sod_sym = ds.Vocabulary.special_symbols['start_seq']
+    eod_sym = ds.Vocabulary.special_symbols['end_seq']
+    enc_data, char_data, word_data, dec_data = [], [], [], []
+    freq = defaultdict(int)
+    for part in tokenized_lines:
+        enc_, dec_ = part[:2]
+        enc_ = in_vocab.w2i(enc_ + [eoe_sym])
+        dec_ = out_vocab.w2i([sod_sym] + dec_ + [eod_sym])
+        word_ = enc_[0]
+        char_ = char_vocab.w2i(tokens2chars(part[0]))
+        freq[word_] += 1
+        enc_data.append(enc_)
+        dec_data.append(dec_)
+        char_data.append(char_)
+        word_data.append(word_)
+    if freq_down_weight:
+        seq_weight_data = [1 / freq[w] for w in word_data]
+    else:
+        seq_weight_data = [1 for __ in range(len(enc_data))]
+    return enc_data, word_data, char_data, dec_data, seq_weight_data
+
+
 #########################################################
 #    ########     ###    ########  ######  ##     ##    #
 #    ##     ##   ## ##      ##    ##    ## ##     ##    #
@@ -108,7 +144,7 @@ def read_seq2seq_data(tokenized_lines, in_vocab, out_vocab):
 #########################################################
 
 
-def batch_iter(batch_size, shuffle, data, *more_data, pad=[]):
+def batch_iter(batch_size, shuffle, data, *more_data, pad=[[]]):
     """iterate over data using equally distant pointers. Left overs are always at the
     last sequences of the last batch.
     """
@@ -129,7 +165,8 @@ def batch_iter(batch_size, shuffle, data, *more_data, pad=[]):
         if pad is not None:
             # add empty as a pad
             yield ([d_[pos[p + num_batch]] for p in pointers[:left_over]] +
-                   [[] for __ in range(batch_size - left_over)] for d_ in all_data)
+                   [pad[j] for __ in range(batch_size - left_over)]
+                   for j, d_ in enumerate(all_data))
         else:
             yield ([d_[pos[p + num_batch]] for p in pointers[:left_over]]
                    for d_ in all_data)
@@ -171,7 +208,7 @@ def get_batch_data(batch, y_arr, unmasked_token_weight=None, unmasked_seq_weight
 def seq_batch_iter(in_data, out_data, batch_size=1, shuffle=True, keep_sentence=True):
     """wrapper of batch_iter to format seq data"""
     keep_state = not keep_sentence
-    for x, y in batch_iter(batch_size, shuffle, in_data, out_data):
+    for x, y in batch_iter(batch_size, shuffle, in_data, out_data, pad=[[], []]):
         x_arr, x_len = util.hstack_list(x)
         y_arr, y_len = util.hstack_list(y)
         seq_weight = np.where(y_len > 0, 1, 0).astype(np.float32)
@@ -184,7 +221,7 @@ def seq_batch_iter(in_data, out_data, batch_size=1, shuffle=True, keep_sentence=
 
 def seq2seq_batch_iter(enc_data, dec_data, batch_size=1, shuffle=True):
     """wrapper of batch_iter to format seq2seq data"""
-    for x, y in batch_iter(batch_size, shuffle, enc_data, dec_data):
+    for x, y in batch_iter(batch_size, shuffle, enc_data, dec_data, pad=[[], []]):
         enc, enc_len = util.hstack_list(x)
         dec, dec_len = util.hstack_list(y)
         in_dec = dec[:-1, :]
@@ -198,6 +235,28 @@ def seq2seq_batch_iter(enc_data, dec_data, batch_size=1, shuffle=True):
         labels = ds.SeqLabelTuple(out_dec, token_weight, seq_weight)
         yield ds.BatchTuple(features, labels, num_tokens, False)
 
+
+def word2def_batch_iter(enc_data, word_data, char_data, dec_data, seq_weight_data,
+                        batch_size=1, shuffle=True):
+    """same as seq2seq_batch_iter, just add more info"""
+    for x, w, c, y, sw in batch_iter(batch_size, shuffle, enc_data, word_data,
+                                     char_data, dec_data, seq_weight_data,
+                                     pad=[[], 0, [], [], 0]):
+        enc, enc_len = util.hstack_list(x)
+        dec, dec_len = util.hstack_list(y)
+        word = np.array(w, dtype=np.int32)
+        char, char_len = util.vstack_list(c)
+        in_dec = dec[:-1, :]
+        out_dec = dec[1:, :]
+        seq_weight = np.array(sw, dtype=np.float32)
+        dec_len -= np.where(dec_len > 0, 1, 0)
+        token_weight, num_tokens = util.masked_full_like(
+            out_dec, 1, num_non_padding=dec_len)
+        seq_weight = seq_weight.astype(np.float32)
+        features = ds.Word2DefFeatureTuple(enc, enc_len, word, char, char_len,
+                                           in_dec, dec_len)
+        labels = ds.SeqLabelTuple(out_dec, token_weight, seq_weight)
+        yield ds.BatchTuple(features, labels, num_tokens, False)
 
 #####################################################################
 #    ########  ######## ##      ##    ###    ########  ########     #

@@ -21,29 +21,28 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 ## TODO
 
 ### Model
-- [x] Make it possible to share variables between 2 different models
-- [x] Reuse placeholder variables when creating a model
-- [x] Dynamic decode: greedy gen to fixed length
-- [x] Dynamic decode: add stop id check and multinomial sample
-- [ ] DefinitionModel
 - [ ] Value Network
 
 ### Run
-- [x] Sampled-based running functions
 - [ ] Add teacher forcing
 - [ ] TD(lambda)
 - [ ] Bootstrap last state if not terminal
 
 ### Generator
-- [ ] Definition data reader
+- [ ] Reward functions for NLG (i.e. BLEU and token match)
 
 ### Scripts
-- [ ] Scripts to get definition data
 - [ ] Add option to put all data into tf.constant
 
+### TensorFlow
+- [ ] Compile my own TensorFlow
+- [ ] Upgrade to TensorFlow v1.2 (Pending for its release)
+- [ ] Take advantage of tf.Session.make_callable (Pending for its release)
+
 ### Bucket list
-- [ ] Use sess.partialrun() to cache encoder state, then we can decode and update
-      the networks without running encoding twice!
+- [ ] Use tf.summary for tensorboard.
+- [ ] Wrap manual attention in definition model to RNNCell
 - [ ] It would be nice if we do not need to fecth state and feed it back in when
       training a langauge model (sentence dependent).
-- [ ] Ensure the indices of `</s>` and `<s>` are 0 and 1.
+- [ ] Ensure the indices of `</s>` and `<s>` are 0 and 1,
+      and index of `_` is 0 for char-level data

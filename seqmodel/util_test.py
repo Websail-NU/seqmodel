@@ -46,6 +46,17 @@ class TestUtil(unittest.TestCase):
         self.assertTrue(np.all(lengths == np.array(list(map(len, inputs)),
                                                    dtype=np.int32)), 'length is correct')
 
+    def test_vstack_list(self):
+        inputs = [[1, 2, 3, 4], [5, 6], [7, 8, 9, 10, 11], []]
+        targets = np.array([[1, 2, 3, 4, 0],
+                            [5, 6, 0, 0, 0],
+                            [7, 8, 9, 10, 11],
+                            [0, 0, 0, 0, 0]], dtype=np.int32)
+        outputs, lengths = util.vstack_list(inputs, padding=0, dtype=np.int32)
+        self.assertTrue(np.all(outputs == targets), 'data is correct')
+        self.assertTrue(np.all(lengths == np.array(list(map(len, inputs)),
+                                                   dtype=np.int32)), 'length is correct')
+
     def test_masked_full_like(self):
         data = np.random.randn(4, 3)
         num_non_padding = np.array([4, 1, 0])

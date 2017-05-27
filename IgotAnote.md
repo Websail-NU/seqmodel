@@ -24,9 +24,9 @@
 - `dict.get()` and `dict.setdefault()` are greate for shortening code.
 - But they can add unintended computation cost because of the *default*.
 - In many cases such as creating a tuple, those functions will run faster than
-  having `if: ... else: ...`.
+  having `if: ... else: ...` and hashing twice.
 - We need to be careful about costly functions and functions that have side-effect
-  i.e. `tf.almost\_anything()`
+  i.e. `tf.almost_anything()`
 
 
 ### Actor-Critic implementation

@@ -112,14 +112,17 @@ def matmul(mat, mat2d, transpose_b=False):
 
 def create_cells(num_units, num_layers, cell_class=tf.contrib.rnn.BasicLSTMCell,
                  reuse=False, in_keep_prob=1.0, out_keep_prob=1.0, state_keep_prob=1.0,
-                 variational=False, input_size=None):
+                 variational=False, input_size=None, drop_out_last_layer=True):
     """return an RNN cell with optionally DropoutWrapper and MultiRNNCell."""
     cells = []
     for layer in range(num_layers):
         if isinstance(cell_class, six.string_types):
             cell_class = locate(cell_class)
         cell = cell_class(num_units, reuse=reuse)
-        if any(kp < 1.0 for kp in [in_keep_prob, out_keep_prob, state_keep_prob]):
+        any_drop = any(kp < 1.0 for kp in [in_keep_prob, out_keep_prob, state_keep_prob])
+        last_layer_drop = ((layer == num_layers - 1 and drop_out_last_layer) or
+                           layer != num_layers - 1)
+        if any_drop and last_layer_drop:
             cell = tf.contrib.rnn.DropoutWrapper(
                 cell, in_keep_prob, out_keep_prob, state_keep_prob, variational,
                 input_size, tf.float32)
@@ -196,6 +199,8 @@ def create_tdnn(inputs, sequence_length=None, filter_widths=[2, 3, 4, 5, 6],
                 num_filters=[10, 30, 40, 40, 40], activation_fn=tf.tanh):
     """return time-delayed network as a tensor of [batch, sum num_filters].
     This function expects batch major input."""
+    if isinstance(activation_fn, six.string_types):
+        activation_fn = locate(activation_fn)
     input_dim = inputs.get_shape()[-1]
     if sequence_length is not None:
         max_len = tf.shape(inputs)[1]
@@ -232,7 +237,7 @@ def create_highway_layer(transform, extra, carried):
     z = matmul(tf.concat([transform, extra], -1), gate_w) + gate_b
     t = tf.sigmoid(tf.slice(z, [0, 0, 0], [-1, -1, carried_dim]))
     h = tf.tanh(tf.slice(z, [0, 0, carried_dim], [-1, -1, -1]))
-    return tf.multiply(h - carried, t) + carried
+    return tf.multiply(h - carried, t) + carried, t
 
 
 def create_gru_layer(transform, extra, carried):
@@ -246,23 +251,25 @@ def create_gru_layer(transform, extra, carried):
     out_size = carried_dim + extra_dim
     zr_w = tf.get_variable('gate_zr_w', [in_size, out_size])
     zr_b = tf.get_variable('gate_zr_b', [out_size])
-    zr = matmul(tf.concat([extra, transform], -1), zr_w) + zr_b
-    z = tf.sigmoid(tf.slice(zr, [0, 0, 0], [-1, -1, carried_dim]))
-    r = tf.sigmoid(tf.slice(zr, [0, 0, carried_dim], [-1, -1, -1]))
+    zr = tf.sigmoid(matmul(tf.concat([extra, transform], -1), zr_w) + zr_b)
+    if len(transform.get_shape()) == 2:
+        z = tf.slice(zr, [0, 0], [-1, carried_dim])
+        r = tf.slice(zr, [0, carried_dim], [-1, -1])
+    else:
+        z = tf.slice(zr, [0, 0, 0], [-1, -1, carried_dim])
+        r = tf.slice(zr, [0, 0, carried_dim], [-1, -1, -1])
     h_w = tf.get_variable('h_w', [in_size, carried_dim])
     h_b = tf.get_variable('h_b', [carried_dim])
     scaled_extra = tf.multiply(r, extra)
     h = tf.tanh(matmul(tf.concat([scaled_extra, transform], -1), h_w) + h_b)
-    return tf.multiply(h - carried, z) + carried
+    return tf.multiply(h - carried, z) + carried, zr
 
 
 def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial_finish,
                   logit_b=None, logit_temperature=None, min_len=1, max_len=40, end_id=0,
-                  cell_scope=None, reuse_cell=True, back_prop=False,
-                  select_fn=None):
-
+                  cell_scope=None, reuse_cell=True, back_prop=False, select_fn=None,
+                  late_attn_fn=None):
     if select_fn is None:
-        # sample_idx = tf.cast(tf.multinomial(logit_2d, 1), dtype=tf.int32)
         select_fn = partial(tf.argmax, axis=-1)
     gen_ta = tf.TensorArray(dtype=tf.int32, size=min_len, dynamic_size=True)
     init_values = (tf.constant(0), initial_inputs, initial_state, gen_ta, initial_finish)
@@ -275,13 +282,13 @@ def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial
         with maybe_scope(cell_scope, reuse=reuse_cell):
             with tf.variable_scope('rnn', reuse=True):
                 output, new_state = cell(input_emb, state)
+        if late_attn_fn is not None:
+            output = late_attn_fn(output)
         logit = tf.matmul(output, logit_w, transpose_b=True)
         if logit_b is not None:
             logit = logit + logit_b
         if logit_temperature is not None:
             logit = logit / logit_temperature
-        # print(logit)
-        # print(logit_temperature)
         next_token = tf.cast(select_fn(logit), tf.int32)
         out_ta = out_ta.write(t, next_token)
         finished = tf.logical_or(finished, tf.equal(next_token, end_id))

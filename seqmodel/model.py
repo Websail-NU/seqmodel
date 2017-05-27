@@ -11,7 +11,7 @@ from seqmodel import dstruct
 from seqmodel import graph as tfg
 
 
-__all__ = ['Model', 'SeqModel', 'Seq2SeqModel']
+__all__ = ['Model', 'SeqModel', 'Seq2SeqModel', 'Word2DefModel']
 
 
 #########################################################
@@ -185,6 +185,10 @@ class Model(object):
                 raise ValueError(f'None value found for {key}')
         return feed_dict
 
+    @classmethod
+    def _all_keep_prob_shall_be_one(cls, opt):
+        return {k: 1.0 for k, _v in opt.items() if 'keep_prob' in k}
+
 #####################################
 #     ######  ########  #######     #
 #    ##    ## ##       ##     ##    #
@@ -221,12 +225,19 @@ class SeqModel(Model):
                'share:input_emb_logit': False}
         return opt
 
+    @classmethod
+    def get_vocab_opt(cls, in_size, out_size):
+        return {'emb:vocab_size': in_size, 'logit:output_size': out_size}
+
     def build_graph(self, opt=None, initial_state=None, reuse=False, name='seq_model',
-                    collect_key='seq_model', reuse_scope=None, **kwargs):
+                    collect_key='seq_model', reuse_scope=None, no_dropout=False,
+                    **kwargs):
         """ build RNN graph with option (see default_opt() for configuration) and
             optionally initial_state (zero state if none provided)"""
         opt = opt if opt else {}
         chain_opt = ChainMap(kwargs, opt, self.default_opt())
+        if no_dropout:
+            chain_opt = ChainMap(self._all_keep_prob_shall_be_one(chain_opt), chain_opt)
         reuse_scope = {} if reuse_scope is None else reuse_scope
         reuse_scope = defaultdict(lambda: None, **reuse_scope)
         self._name = name
@@ -347,12 +358,15 @@ class SeqModel(Model):
             batch_size = self._batch_size
         else:
             batch_size = tf.shape(nodes['input'])[1]
+        late_attn_fn = None
+        if hasattr(self, '_decode_late_attn'):
+            late_attn_fn = self._decode_late_attn
         decode_fn = partial(
             tfg.create_decode, nodes['emb_vars'], nodes['cell'], nodes['logit_w'],
             nodes['initial_state'], tf.tile((1, ), (batch_size, )),
             tf.tile([False], (batch_size, )), logit_b=nodes['logit_b'],
             logit_temperature=nodes['temperature'], max_len=decode_max_len_,
-            cell_scope=cell_scope)
+            cell_scope=cell_scope, late_attn_fn=late_attn_fn)
         if opt['decode:add_greedy']:
             decode_greedy_ = decode_fn()
             output['decode_greedy'] = decode_greedy_
@@ -406,17 +420,23 @@ class Seq2SeqModel(SeqModel):
     @classmethod
     def default_opt(cls):
         rnn_opt = super().default_opt()
-        not_encoder_opt = {'logit:', 'loss:', 'share:', 'out:'}
+        not_encoder_opt = {'logit:', 'loss:', 'share:', 'out:', 'decode:'}
         encoder_opt = {f'enc:{k}': v for k, v in rnn_opt.items()
-                       if k not in not_encoder_opt}
+                       if k[:k.find(':') + 1] not in not_encoder_opt}
         decoder_opt = {f'dec:{k}': v for k, v in rnn_opt.items()}
         decoder_opt.update({'share:enc_dec_rnn': False, 'share:enc_dec_emb': False,
                             'dec:out:decode': True, 'dec:decode:add_greedy': True,
                             'dec:decode:add_sampling': True})
         return {**encoder_opt, **decoder_opt}
 
+    @classmethod
+    def get_vocab_opt(cls, enc_size, dec_size):
+        return {'enc:emb:vocab_size': enc_size,
+                'dec:emb:vocab_size': dec_size,
+                'dec:logit:output_size': dec_size}
+
     def build_graph(self, opt=None, reuse=False, name='seq2seq_model',
-                    collect_key='seq2seq_model', **kwargs):
+                    collect_key='seq2seq_model', no_dropout=False, **kwargs):
         """ build encoder-decoder graph with option
         (see default_opt() for configuration)
         """
@@ -424,41 +444,48 @@ class Seq2SeqModel(SeqModel):
         opt.update({'enc:out:logit': False, 'enc:out:loss': False,
                     'enc:out:decode': False})
         chain_opt = ChainMap(kwargs, opt, self.default_opt())
+        if no_dropout:
+            chain_opt = ChainMap(self._all_keep_prob_shall_be_one(chain_opt), chain_opt)
         self._name = name
         with tf.variable_scope(name, reuse=reuse):
-            nodes, graph_args = self._build(
-                chain_opt, reuse, collect_key, **kwargs)
+            nodes, graph_args = self._build(chain_opt, reuse, collect_key, **kwargs)
             self.set_graph(**graph_args)
             return nodes
 
-    def _build(self, opt, reuse=False, collect_key='seq2seq_model',
-               prefix='seq2seq', **kwargs):
+    def _build(self, opt, reuse=False, collect_key='seq2seq', prefix='seq2seq',
+               bridge_fn=None, **kwargs):
         reuse_scope = defaultdict(lambda: None)
         enc_opt = util.dict_with_key_startswith(opt, 'enc:')
         dec_opt = util.dict_with_key_startswith(opt, 'dec:')
         # encoder
         with tf.variable_scope('enc', reuse=reuse) as enc_scope:
             enc_nodes, enc_graph_args = super()._build(
-                enc_opt, reuse_scope, reuse=reuse, collect_key='seq2seq_enc',
+                enc_opt, reuse_scope, reuse=reuse, collect_key=f'{collect_key}_enc',
                 prefix=f'{prefix}_enc')
+        self._batch_size = tf.shape(enc_nodes['input'])[1]
         # sharing (is caring)
         if opt['share:enc_dec_emb']:
             reuse_scope[self._RSK_EMB_] = enc_scope
         if opt['share:enc_dec_rnn']:
             reuse_scope[self._RSK_RNN_] = enc_scope
-        self._batch_size = tf.shape(enc_nodes['input'])[1]
+        # bridging
+        if bridge_fn is not None:
+            dec_initial_state, b_nodes = bridge_fn(
+                opt, reuse, enc_nodes, enc_scope, collect_key)
+        else:
+            dec_initial_state, b_nodes = enc_nodes['final_state'], {}
         # decoder
         with tf.variable_scope('dec', reuse=reuse) as dec_scope:
             dec_nodes, dec_graph_args = super()._build(
                 dec_opt, reuse_scope, initial_state=enc_nodes['final_state'],
-                reuse=reuse, collect_key='seq2seq_dec', prefix=f'{prefix}_dec')
+                reuse=reuse, collect_key=f'{collect_key}_dec', prefix=f'{prefix}_dec')
         # prepare output
         graph_args = dec_graph_args  # rename for visual
         graph_args['feature_feed'] = dstruct.Seq2SeqFeatureTuple(
             *enc_graph_args['feature_feed'], *dec_graph_args['feature_feed'])
         graph_args['predict_fetch'].update({'encoder_state': enc_nodes['final_state']})
-        graph_args['node_dict'] = {'enc': enc_nodes, 'dec': dec_nodes}
-        return dec_graph_args['node_dict'], graph_args
+        graph_args['node_dict'] = {'enc': enc_nodes, 'dec': dec_nodes, 'bridge': b_nodes}
+        return graph_args['node_dict'], graph_args
 
     def set_graph(self, *args, **kwargs):  # just pass along
         super().set_graph(*args, **kwargs)
@@ -495,3 +522,109 @@ class Seq2SeqModel(SeqModel):
 #    ##     ## ##     ##    #
 #    ########  ##     ##    #
 #############################
+
+
+class Word2DefModel(Seq2SeqModel):
+
+    _ENC_FEA_LEN_ = 5
+
+    @classmethod
+    def default_opt(cls):
+        opt = super().default_opt()
+        char_emb_opt = {'onehot': True, 'vocab_size': 55, 'dim': 55,
+                        'init': None, 'trainable': False}
+        char_tdnn_opt = {'filter_widths': [2, 3, 4, 5], 'num_filters': [20, 20, 30, 30],
+                         'activation_fn': 'tensorflow.nn.relu'}
+        opt.update({f'wbdef:char_emb:{k}': v for k, v in char_emb_opt.items()})
+        opt.update({f'wbdef:char_tdnn:{k}': v for k, v in char_tdnn_opt.items()})
+        opt.update({'wbdef:keep_prob': 1.0, 'share:enc_dec_rnn': True})
+        return opt
+
+    @classmethod
+    def get_vocab_opt(cls, enc_size, dec_size, char_size):
+        return {'enc:emb:vocab_size': enc_size,
+                'dec:emb:vocab_size': dec_size,
+                'dec:logit:output_size': dec_size,
+                'wbdef:char_emb:vocab_size': char_size}
+
+    def build_graph(self, opt=None, reuse=False, name='word2def_model',
+                    collect_key='word2def_model', no_dropout=False, **kwargs):
+        """ build encoder-decoder graph for definition modeling
+        (see default_opt() for configuration)
+        """
+        opt = opt if opt else {}
+        opt.update({'enc:out:logit': False, 'enc:out:loss': False,
+                    'enc:out:decode': False, 'dec:cell:drop_out_last_layer': False})
+        chain_opt = ChainMap(kwargs, opt, self.default_opt())
+        if no_dropout:
+            chain_opt = ChainMap(self._all_keep_prob_shall_be_one(chain_opt), chain_opt)
+        self._name = name
+        with tf.variable_scope(name, reuse=reuse):
+            nodes, graph_args = self._build(chain_opt, reuse, collect_key,
+                                            bridge_fn=self._build_wbdef, **kwargs)
+            _f = graph_args['feature_feed']
+            _b = nodes['bridge']
+            graph_args['feature_feed'] = dstruct.Word2DefFeatureTuple(
+                *_f[0:2], _b['wbdef_word'], _b['wbdef_char'], _b['wbdef_char_len'],
+                *_f[2:])
+            self.set_graph(**graph_args)
+            return nodes
+
+    def _build_wbdef(self, opt, reuse, enc_nodes, enc_scope, collect_key):
+        prefix = 'wbdef'
+        wbdef_opt = util.dict_with_key_startswith(opt, 'wbdef:')
+        with tf.variable_scope('wbdef', reuse=reuse) as wbdef_scope:
+            with tfg.tfph_collection(f'{collect_key}_wbdef', True) as get:
+                wbdef_word_ = get(f'{prefix}_word', tf.int32, (None,))
+                wbdef_char_ = get(f'{prefix}_char', tf.int32, (None, None))
+                wbdef_char_len_ = get(f'{prefix}_char_len', tf.int32, (None,))
+            word_emb_scope = enc_scope   # if opt['share:enc_word_emb'] else None
+            word_emb_opt = util.dict_with_key_startswith(opt, 'enc:emb:')
+            with tfg.maybe_scope(word_emb_scope, True):
+                wbdef_word_lookup_, _e = tfg.create_lookup(
+                    wbdef_word_, prefix='wbdef_word', **word_emb_opt)
+            char_emb_opt = util.dict_with_key_startswith(wbdef_opt, 'char_emb:')
+            wbdef_char_lookup_, wbdef_char_emb_vars_ = tfg.create_lookup(
+                wbdef_char_, **char_emb_opt)
+            char_tdnn_opt = util.dict_with_key_startswith(wbdef_opt, 'char_tdnn:')
+            wbdef_char_tdnn_ = tfg.create_tdnn(wbdef_char_lookup_, wbdef_char_len_,
+                                               **char_tdnn_opt)
+            wbdef_ = tf.concat((wbdef_word_lookup_, wbdef_char_tdnn_), axis=-1)
+            if wbdef_opt['keep_prob'] < 1.0:
+                wbdef_ = tf.nn.dropout(wbdef_, opt['wbdef:keep_prob'])
+        nodes = util.dict_with_key_endswith(locals(), '_')
+        # add param to super()_build_logit
+        self._build_logit = partial(self._build_attn_logit, wbdef=wbdef_,
+                                    wbdef_scope=wbdef_scope, wbdef_nodes=nodes,
+                                    full_opt=opt, reuse=reuse)
+        self._decode_late_attn = partial(self._build_decode_late_attn, wbdef=wbdef_,
+                                         wbdef_scope=wbdef_scope)
+        return enc_nodes['final_state'], nodes
+
+    def _build_attn_logit(self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output,
+                          wbdef=None, wbdef_scope=None, wbdef_nodes=None, full_opt=None,
+                          reuse=False):
+        assert wbdef is not None, 'wbdef is None, did you forget to add kwargs in partial()?'  # noqa
+        wbdef_nodes = {} if wbdef_nodes is None else wbdef_nodes
+        with tfg.maybe_scope(wbdef_scope, reuse):
+            _multiples = [tf.shape(cell_output)[0], 1, 1]
+            tiled_wbdef_ = tf.tile(tf.expand_dims(wbdef, 0), _multiples)
+            carried_output = cell_output
+            if full_opt['dec:cell:out_keep_prob'] < 1.0:  # no variational dropout :(
+                cell_output = tf.nn.dropout(
+                    cell_output, full_opt['dec:cell:out_keep_prob'])
+            updated_output_, attention_ = tfg.create_gru_layer(
+                cell_output, tiled_wbdef_, carried_output)
+            if full_opt['dec:cell:out_keep_prob'] < 1.0:  # no variational dropout :(
+                updated_output_ = tf.nn.dropout(
+                    updated_output_, full_opt['dec:cell:out_keep_prob'])
+        wbdef_nodes.update(util.dict_with_key_endswith(locals(), '_'))
+        logit_, label_feed, predict_fetch, nodes = super()._build_logit(
+            opt, reuse_scope, collect_kwargs, emb_vars, updated_output_)
+        return logit_, label_feed, predict_fetch, nodes
+
+    def _build_decode_late_attn(self, cell_output, wbdef=None, wbdef_scope=None):
+        with tfg.maybe_scope(wbdef_scope, True):
+            updated_output, __ = tfg.create_gru_layer(
+                cell_output, wbdef, cell_output)
+        return updated_output
