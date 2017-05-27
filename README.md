@@ -21,27 +21,17 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 ## TODO
 
 ### Model
-- [x] Make it possible to share variables between 2 different models
-- [x] Reuse placeholder variables when creating a model
-- [x] Dynamic decode: greedy gen to fixed length
-- [x] Dynamic decode: add stop id check and multinomial sample
-- [x] DefinitionModel
-- [x] Fix graph.create_decode to handle context (i.e. attention)
 - [ ] Value Network
 
 ### Run
-- [x] Sampled-based running functions
 - [ ] Add teacher forcing
 - [ ] TD(lambda)
 - [ ] Bootstrap last state if not terminal
 
 ### Generator
-- [x] Definition data reader and batching
+- [ ] Reward functions for NLG (i.e. BLEU and token match)
 
 ### Scripts
-- [x] Scripts to get definition data
-- [x] Scripts to train definition model
-- [x] Automate some setting (i.e. vocab size and logit output size)
 - [ ] Add option to put all data into tf.constant
 
 ### TensorFlow
