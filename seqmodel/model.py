@@ -225,6 +225,10 @@ class SeqModel(Model):
                'share:input_emb_logit': False}
         return opt
 
+    @classmethod
+    def get_vocab_opt(cls, in_size, out_size):
+        return {'emb:vocab_size': in_size, 'logit:output_size': out_size}
+
     def build_graph(self, opt=None, initial_state=None, reuse=False, name='seq_model',
                     collect_key='seq_model', reuse_scope=None, no_dropout=False,
                     **kwargs):
@@ -425,6 +429,12 @@ class Seq2SeqModel(SeqModel):
                             'dec:decode:add_sampling': True})
         return {**encoder_opt, **decoder_opt}
 
+    @classmethod
+    def get_vocab_opt(cls, enc_size, dec_size):
+        return {'enc:emb:vocab_size': enc_size,
+                'dec:emb:vocab_size': dec_size,
+                'dec:logit:output_size': dec_size}
+
     def build_graph(self, opt=None, reuse=False, name='seq2seq_model',
                     collect_key='seq2seq_model', no_dropout=False, **kwargs):
         """ build encoder-decoder graph with option
@@ -527,8 +537,15 @@ class Word2DefModel(Seq2SeqModel):
                          'activation_fn': 'tensorflow.nn.relu'}
         opt.update({f'wbdef:char_emb:{k}': v for k, v in char_emb_opt.items()})
         opt.update({f'wbdef:char_tdnn:{k}': v for k, v in char_tdnn_opt.items()})
-        opt.update({'wbdef:keep_prob': 1.0, 'share:enc_word_emb': True})
+        opt.update({'wbdef:keep_prob': 1.0, 'share:enc_dec_rnn': True})
         return opt
+
+    @classmethod
+    def get_vocab_opt(cls, enc_size, dec_size, char_size):
+        return {'enc:emb:vocab_size': enc_size,
+                'dec:emb:vocab_size': dec_size,
+                'dec:logit:output_size': dec_size,
+                'wbdef:char_emb:vocab_size': char_size}
 
     def build_graph(self, opt=None, reuse=False, name='word2def_model',
                     collect_key='word2def_model', no_dropout=False, **kwargs):
@@ -561,7 +578,7 @@ class Word2DefModel(Seq2SeqModel):
                 wbdef_word_ = get(f'{prefix}_word', tf.int32, (None,))
                 wbdef_char_ = get(f'{prefix}_char', tf.int32, (None, None))
                 wbdef_char_len_ = get(f'{prefix}_char_len', tf.int32, (None,))
-            word_emb_scope = enc_scope if opt['share:enc_word_emb'] else None
+            word_emb_scope = enc_scope   # if opt['share:enc_word_emb'] else None
             word_emb_opt = util.dict_with_key_startswith(opt, 'enc:emb:')
             with tfg.maybe_scope(word_emb_scope, True):
                 wbdef_word_lookup_, _e = tfg.create_lookup(

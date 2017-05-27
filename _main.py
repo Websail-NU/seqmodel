@@ -1,15 +1,12 @@
-import time
 import sys
-import os
+from collections import ChainMap
 from functools import partial
 
-import numpy as np
 import tensorflow as tf
 
 sys.path.insert(0, '../')
 
 import seqmodel as sq  # noqa
-from seqmodel import contrib  # noqa
 
 
 def main(opt, model_opt, train_opt, logger, data_fn, model_class):
@@ -17,7 +14,18 @@ def main(opt, model_opt, train_opt, logger, data_fn, model_class):
     is_testing = opt['command'] == 'eval'
     is_init_only = opt['command'] == 'init'
     logger.info('Loading data...')
-    data, batch_iter = data_fn()
+    data, batch_iter, vocabs = data_fn()
+    if opt['set_vocab_size']:
+        model_vocab_opt = model_class.get_vocab_opt(*(v.vocab_size for v in vocabs))
+        model_opt = ChainMap(model_vocab_opt, model_opt)
+
+    opt_str = []
+    for d in (opt, model_opt, train_opt):
+        for k, v in sorted(d.items()):
+            opt_str.append(f'    - {k}: {v}')
+    opt_str = '\n'.join(opt_str)
+    logger.debug(f'Options:\n{opt_str}')
+
     logger.info('Loading model...')
     if opt['command'] == 'train':
         train_batch_iter = partial(batch_iter, *data[0])
@@ -38,7 +46,8 @@ def main(opt, model_opt, train_opt, logger, data_fn, model_class):
     eval_model = model_class()
     eval_model.build_graph(model_opt, reuse=is_training, no_dropout=True)
 
-    for v in tf.global_variables():
+    logger.debug('Training Variables:')
+    for v in tf.trainable_variables():
         logger.debug(f'{v.name}, {v.get_shape()}')
 
     if is_init_only:

@@ -31,7 +31,7 @@ if __name__ == '__main__':
         batch_iter = partial(sq.seq_batch_iter, batch_size=opt['batch_size'],
                              shuffle=opt['sentence_level'],
                              keep_sentence=opt['sentence_level'])
-        return data, batch_iter
+        return data, batch_iter, (vocab, vocab)
 
     main(opt, model_opt, train_opt, logger, data_fn, sq.SeqModel)
     logger.info(f'Total time: {sq.time_span_str(time.time() - start_time)}')

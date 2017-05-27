@@ -15,7 +15,7 @@ if __name__ == '__main__':
                      'train': sq.default_training_opt()}
     parser = sq.get_common_argparser('main_seq2seq.py')
     sq.add_arg_group_defaults(parser, group_default)
-    opt, groups = sq.parse_set_args(parser, group_default)
+    opt, groups = sq.parse_set_args(parser, group_default, dup_replaces=('enc:', 'dec:'))
     opt, model_opt, train_opt, logger = sq.init_exp_opts(opt, groups, group_default)
 
     def data_fn():
@@ -28,7 +28,7 @@ if __name__ == '__main__':
                 for f in (opt['train_file'], opt['valid_file'], opt['eval_file'])]
 
         batch_iter = partial(sq.seq2seq_batch_iter, batch_size=opt['batch_size'])
-        return data, batch_iter
+        return data, batch_iter, (enc_vocab, dec_vocab)
 
     main(opt, model_opt, train_opt, logger, data_fn, sq.Seq2SeqModel)
     logger.info(f'Total time: {sq.time_span_str(time.time() - start_time)}')

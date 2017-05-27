@@ -40,7 +40,8 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 
 ### Scripts
 - [x] Scripts to get definition data
-- [ ] Scripts to train definition model
+- [x] Scripts to train definition model
+- [x] Automate some setting (i.e. vocab size and logit output size)
 - [ ] Add option to put all data into tf.constant
 
 ### TensorFlow
@@ -50,6 +51,7 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 
 ### Bucket list
 - [ ] Use tf.summary for tensorboard.
+- [ ] Wrap manual attention in definition model to RNNCell
 - [ ] It would be nice if we do not need to fecth state and feed it back in when
       training a langauge model (sentence dependent).
 - [ ] Ensure the indices of `</s>` and `<s>` are 0 and 1,
