@@ -1,10 +1,8 @@
 import time
-import sys
 import os
 from functools import partial
 
 import numpy as np
-import tensorflow as tf
 
 from _main import sq
 from _main import main
