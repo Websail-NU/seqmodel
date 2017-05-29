@@ -8,6 +8,7 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - python 3.6
 - tensorflow 1.1
 - numpy 1.12
+- nltk 3.2.4
 - six 1.10
 
 ## Overview
@@ -21,6 +22,7 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 ## TODO
 
 ### Model
+- [ ] Decode with option to return likelihood
 - [ ] Value Network
 
 ### Run

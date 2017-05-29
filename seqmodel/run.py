@@ -13,7 +13,7 @@ from seqmodel import dstruct as ds
 
 
 __all__ = ['_no_run', 'default_training_opt', 'update_learning_rate', 'load_exp',
-           'is_done_training_early', 'save_exp', 'run_epoch', 'train']
+           'is_done_training_early', 'save_exp', 'run_epoch', 'train', 'decode_epoch']
 
 
 def _no_run(*args, **kwargs):
@@ -160,3 +160,15 @@ def train(train_run_epoch_fn, logger, max_epoch=1, train_state=None, init_lr=Non
     else:
         logger.info(f'Maximum epoch reach at {train_state.cur_epoch}')
     return train_state
+
+
+def decode_epoch(sess, model, batch_iter, greedy=False, num_samples=1):
+    decode_fn = model.decode_sampling
+    if greedy:
+        decode_fn = model.decode_greedy
+    for batch in batch_iter():
+        samples = []
+        for __ in range(num_samples):
+            sample, __ = decode_fn(sess, batch.features)
+            samples.append(sample)
+        yield batch, samples

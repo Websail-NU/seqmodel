@@ -5,6 +5,7 @@ import json
 from collections import ChainMap
 from functools import partial
 import logging as py_logging
+from nltk.translate import bleu_score
 
 import numpy as np
 
@@ -161,6 +162,46 @@ def masked_full_like(np_data, value, num_non_padding=None, padding=0, dtype=np.f
 #         arr[mask.T] = 0
 #     return arr, total_non_pad
 
+######################################################################
+#    ##     ## ######## ######## ########  ####  ######   ######     #
+#    ###   ### ##          ##    ##     ##  ##  ##    ## ##    ##    #
+#    #### #### ##          ##    ##     ##  ##  ##       ##          #
+#    ## ### ## ######      ##    ########   ##  ##        ######     #
+#    ##     ## ##          ##    ##   ##    ##  ##             ##    #
+#    ##     ## ##          ##    ##    ##   ##  ##    ## ##    ##    #
+#    ##     ## ########    ##    ##     ## ####  ######   ######     #
+######################################################################
+# For smoothing method http://www.aclweb.org/anthology/W14-3346
+_SMOOTH_FN_ = bleu_score.SmoothingFunction().method2  # just add 1
+
+
+def sentence_bleu(references, candidate):
+    return bleu_score.sentence_bleu(
+        references, candidate, smoothing_function=_SMOOTH_FN_)
+
+
+def max_sentence_bleu(references, candidate):
+    bleu = (bleu_score.sentence_bleu((ref, ), candidate,
+                                     smoothing_function=_SMOOTH_FN_)
+            for ref in references)
+    return max(bleu)
+
+
+def max_word_overlap(references, candidate):
+    best_ref = None
+    best_match = None
+    best_avg_match = 0.0
+    for ir, ref in enumerate(references):
+        match = [float(r == c) for r, c in zip(ref, candidate)]
+        num_match = sum(match)
+        avg_match = num_match / len(ref)
+        if avg_match > best_avg_match:
+            best_avg_match = avg_match
+            best_match = match
+            best_ref = ref
+    return best_avg_match, best_match, best_ref
+
+
 ###########################################
 #    ##     ##    ###    #### ##    ##    #
 #    ###   ###   ## ##    ##  ###   ##    #
@@ -179,7 +220,7 @@ def get_common_argparser(prog, usage=None, description=None):
         prog=prog, usage=usage, description=description,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
-        'command', choices=('eval', 'train', 'init'),
+        'command', choices=('eval', 'train', 'init', 'decode'),
         help=('eval only, train and then eval, or '
               'REMOVE existing exp_dir, attemp to load data and model, then quit.'))
     parser.add_argument('data_dir', type=str, help='Data directory')
@@ -189,13 +230,13 @@ def get_common_argparser(prog, usage=None, description=None):
               'model_opt.json, --load_model_opt, and options provided here respectively '
               '. Similar behavior for train_opt.json. Model is resumed from checkpoint '
               'directory by default if --load_checkpoint is not provided.'))
-    parser.add_argument('--gpu', action='store_true')
-    parser.add_argument('--set_vocab_size', action='store_false')
-    parser.add_argument('--train_file', type=str, default='train.txt')
-    parser.add_argument('--valid_file', type=str, default='valid.txt')
-    parser.add_argument('--eval_file', type=str, default='test.txt')
-    parser.add_argument('--log_file', type=str, default='experiment.log')
-    parser.add_argument('--log_level', type=str, default='info')
+    parser.add_argument('--gpu', action='store_true', help=' ')
+    parser.add_argument('--set_vocab_size', action='store_false', help=' ')
+    parser.add_argument('--train_file', type=str, default='train.txt', help=' ')
+    parser.add_argument('--valid_file', type=str, default='valid.txt', help=' ')
+    parser.add_argument('--eval_file', type=str, default='test.txt', help=' ')
+    parser.add_argument('--log_file', type=str, default='experiment.log', help=' ')
+    parser.add_argument('--log_level', type=str, default='info', help=' ')
     parser.add_argument(
         '--load_checkpoint', type=str,
         help=('Directory of TF checkpoint files to load from. This is separate from '
@@ -206,13 +247,18 @@ def get_common_argparser(prog, usage=None, description=None):
                         help='A json file specifying training options.')
     parser.add_argument('--batch_size', type=int, default=20,
                         help='batch size to run the model.')
+    parser.add_argument('--decode_greedy', action='store_false', help=' ')
+    parser.add_argument('--decode_outpath', type=str, default='decode.txt', help=' ')
     return parser
 
 
 def add_arg_group_defaults(parser, group_default):
     def add_dict_to_argparser(d, parser):
         for k, v in d.items():
-            parser.add_argument(f'--{k}', type=type(v), default=v, help=' ')
+            t = type(v)
+            if v is None:
+                t = str
+            parser.add_argument(f'--{k}', type=t, default=v, help=' ')
     for k, v in group_default.items():
         group_parser = parser.add_argument_group(f'{k} options')
         add_dict_to_argparser(v, group_parser)
@@ -253,7 +299,7 @@ def init_exp_opts(opt, groups, group_default):
         with open(opt['load_train_opt']) as ifp:
             load_train_opt = json.load(ifp)
     model_opt = ChainMap(groups['model'], load_model_opt, group_default['model'])
-    train_opt = ChainMap(groups['train'], load_model_opt, group_default['train'])
+    train_opt = ChainMap(groups['train'], load_train_opt, group_default['train'])
 
     epath = partial(os.path.join, opt['exp_dir'])
     init_only = opt['command'] == 'init'

@@ -142,10 +142,15 @@ def scan_rnn(cell, inputs, sequence_length, initial_state=None, dtype=tf.float32
     """dynamically unroll cell to max(len(inputs)), and select last relevant state.
     IMPORTANT sequence_length shoule be at least 1, otherwise this function will return
     the first state even thought it is not relevant."""
+
+    def step(acc, x_t):
+        output, state = cell(x_t, acc[1])
+        return output, state
+
     with tf.variable_scope(scope):
         batch_size = tf.shape(inputs)[1]  # time major
         output, states = tf.scan(
-            lambda acc, x_t: cell(x_t, acc[1]), inputs, name='scan_rnn',
+            step, inputs, name='scan_rnn',
             initializer=(tf.zeros((batch_size, cell.output_size),
                                   dtype=dtype, name='scan_rnn_init'),
                          initial_state))
@@ -178,7 +183,7 @@ def create_rnn(cell, inputs, sequence_length=None, initial_state=None,
 def select_nested_rnn(maybe_tuple, time_step):
     """return possibly nested tensor at the time_step (time major)."""
     if isinstance(maybe_tuple, tuple):
-        select = [select_nested_rnn(item, time_step) for item in maybe_tuple]
+        select = tuple([select_nested_rnn(item, time_step) for item in maybe_tuple])
         if hasattr(maybe_tuple, '_make'):
             select = maybe_tuple._make(select)
     else:

@@ -6,6 +6,7 @@ import numpy as np
 
 from _main import sq
 from _main import main
+from _main import decode
 
 if __name__ == '__main__':
     start_time = time.time()
@@ -30,5 +31,19 @@ if __name__ == '__main__':
         batch_iter = partial(sq.word2def_batch_iter, batch_size=opt['batch_size'])
         return data, batch_iter, (enc_vocab, dec_vocab, char_vocab)
 
-    main(opt, model_opt, train_opt, logger, data_fn, sq.Word2DefModel)
+    if opt['command'] == 'decode':
+        eval_file = opt['eval_file']
+        with open(opt['decode_outpath'], 'w') as ofp:
+            for batch, samples, vocabs in decode(opt, model_opt, logger, data_fn,
+                                                 sq.Word2DefModel):
+                words = vocabs[0].i2w(batch.features.words)
+                for b_samples in samples:
+                    for word, sample in zip(words, b_samples.T):
+                        if word == '</s>':
+                            continue
+                        seq_len = np.argmin(sample)
+                        definition = ' '.join(vocabs[1].i2w(sample[0: seq_len]))
+                        ofp.write(f'{word}\t{definition}\n')
+    else:
+        main(opt, model_opt, train_opt, logger, data_fn, sq.Word2DefModel)
     logger.info(f'Total time: {sq.time_span_str(time.time() - start_time)}')
