@@ -12,8 +12,9 @@ from seqmodel import generator as bgt
 from seqmodel import dstruct as ds
 
 
-__all__ = ['_no_run', 'default_training_opt', 'update_learning_rate', 'load_exp',
-           'is_done_training_early', 'save_exp', 'run_epoch', 'train', 'decode_epoch']
+__all__ = ['_no_run', 'default_training_opt', 'update_learning_rate',
+           'is_done_training_early', 'run_epoch', 'train', 'decode_epoch',
+           'default_decoding_opt']
 
 
 def _no_run(*args, **kwargs):
@@ -26,6 +27,10 @@ def default_training_opt():
             'optim:epsilon': 1e-3, 'lr:min_lr': 1e-6, 'lr:start_decay_at': 1,
             'lr:decay_every': 1, 'lr:decay_factor': 1.0, 'lr:imp_ratio_threshold': 0,
             'lr:imp_wait': 2}
+
+
+def default_decoding_opt():
+    return {'decode_greedy': True, 'decode_outpath': 'decode_out.txt', 'num_samples': 1}
 
 
 def update_learning_rate(set_lr_fn, train_state, min_lr=1e-6, start_decay_at=1,
@@ -61,28 +66,6 @@ def update_learning_rate(set_lr_fn, train_state, min_lr=1e-6, start_decay_at=1,
 
 def is_done_training_early(train_state, imp_wait=2):
     return train_state.imp_wait >= imp_wait
-
-
-def save_exp(sess, saver, exp_dir, train_state):
-    epath = partial(os.path.join, exp_dir)
-    util.ensure_dir(epath('checkpoint'), delete=False)
-    saver.save(sess, epath('checkpoint/latest'))
-    if train_state.best_checkpoint_epoch != train_state.best_epoch:
-        saver.save(sess, epath('checkpoint/best'))
-        train_state.best_checkpoint_epoch = train_state.best_epoch
-    with open(epath('train_state.json'), 'w') as ofp:
-        json.dump(vars(train_state), ofp, indent=2, sort_keys=True)
-
-
-def load_exp(sess, saver, exp_dir, latest=False):
-    epath = partial(os.path.join, exp_dir)
-    train_state = None
-    if os.path.exists(epath('train_state.json')):
-        with open(epath('train_state.json')) as ifp:
-            train_state = ds.TrainingState(**json.load(ifp))
-        checkpoint = epath('checkpoint/latest') if latest else epath('checkpoint/best')
-        saver.restore(sess, checkpoint)
-    return train_state
 
 
 def run_epoch(sess, model, batch_iter, train_op=None):

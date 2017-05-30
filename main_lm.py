@@ -5,7 +5,7 @@ from functools import partial
 import numpy as np
 
 from _main import sq
-from _main import main
+from _main import mle
 
 if __name__ == '__main__':
     start_time = time.time()
@@ -16,7 +16,8 @@ if __name__ == '__main__':
     parser.add_argument('--sentence_level', action='store_true', help=' ')
     sq.add_arg_group_defaults(parser, group_default)
     opt, groups = sq.parse_set_args(parser, group_default)
-    opt, model_opt, train_opt, logger = sq.init_exp_opts(opt, groups, group_default)
+    logger, all_opt = sq.init_exp_opts(opt, groups, group_default)
+    opt, model_opt, train_opt = all_opt
 
     def data_fn():
         dpath = partial(os.path.join, opt['data_dir'])
@@ -31,5 +32,8 @@ if __name__ == '__main__':
                              keep_sentence=opt['sentence_level'])
         return data, batch_iter, (vocab, vocab)
 
-    main(opt, model_opt, train_opt, logger, data_fn, sq.SeqModel)
+    if opt['command'] == 'decode':
+        raise NotImplemented
+    else:
+        mle(opt, model_opt, train_opt, logger, data_fn, sq.SeqModel)
     logger.info(f'Total time: {sq.time_span_str(time.time() - start_time)}')

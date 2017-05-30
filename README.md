@@ -31,10 +31,13 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - [ ] Bootstrap last state if not terminal
 
 ### Generator
-- [ ] Reward functions for NLG (i.e. BLEU and token match)
+- [x] Reward functions for NLG (i.e. BLEU and token match)
 
 ### Scripts
-- [ ] Add option to put all data into tf.constant
+- [x] Merge _main.decode function into _main function
+- [x] Decoding option group
+- [ ] BLEU evaluation script
+- [ ] Support multiple evaluation files
 
 ### TensorFlow
 - [ ] Compile my own TensorFlow

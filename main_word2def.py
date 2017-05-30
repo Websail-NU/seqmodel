@@ -5,17 +5,19 @@ from functools import partial
 import numpy as np
 
 from _main import sq
-from _main import main
+from _main import mle
 from _main import decode
 
 if __name__ == '__main__':
     start_time = time.time()
     group_default = {'model': sq.Word2DefModel.default_opt(),
-                     'train': sq.default_training_opt()}
+                     'train': sq.default_training_opt(),
+                     'decode': sq.default_decoding_opt()}
     parser = sq.get_common_argparser('main_word2word.py')
     sq.add_arg_group_defaults(parser, group_default)
     opt, groups = sq.parse_set_args(parser, group_default, dup_replaces=('enc:', 'dec:'))
-    opt, model_opt, train_opt, logger = sq.init_exp_opts(opt, groups, group_default)
+    logger, all_opt = sq.init_exp_opts(opt, groups, group_default)
+    opt, model_opt, train_opt, decode_opt = all_opt
 
     def data_fn():
         dpath = partial(os.path.join, opt['data_dir'])
@@ -31,19 +33,22 @@ if __name__ == '__main__':
         batch_iter = partial(sq.word2def_batch_iter, batch_size=opt['batch_size'])
         return data, batch_iter, (enc_vocab, dec_vocab, char_vocab)
 
+    def decode_batch(ofp, batch, samples, vocabs):
+        words = vocabs[0].i2w(batch.features.words)
+        for b_samples in samples:
+            for word, sample in zip(words, b_samples.T):
+                if word == '</s>':
+                    continue
+                seq_len = np.argmin(sample)
+                definition = ' '.join(vocabs[1].i2w(sample[0: seq_len]))
+                ofp.write(f'{word}\t{definition}\n')
+
     if opt['command'] == 'decode':
         eval_file = opt['eval_file']
-        with open(opt['decode_outpath'], 'w') as ofp:
-            for batch, samples, vocabs in decode(opt, model_opt, logger, data_fn,
-                                                 sq.Word2DefModel):
-                words = vocabs[0].i2w(batch.features.words)
-                for b_samples in samples:
-                    for word, sample in zip(words, b_samples.T):
-                        if word == '</s>':
-                            continue
-                        seq_len = np.argmin(sample)
-                        definition = ' '.join(vocabs[1].i2w(sample[0: seq_len]))
-                        ofp.write(f'{word}\t{definition}\n')
+        with open(decode_opt['decode_outpath'], 'w') as ofp:
+            decode_batch_fn = partial(decode_batch, ofp)
+            decode(opt, model_opt, decode_opt, decode_batch_fn, logger,
+                   data_fn, sq.Word2DefModel)
     else:
-        main(opt, model_opt, train_opt, logger, data_fn, sq.Word2DefModel)
+        mle(opt, model_opt, train_opt, logger, data_fn, sq.Word2DefModel)
     logger.info(f'Total time: {sq.time_span_str(time.time() - start_time)}')

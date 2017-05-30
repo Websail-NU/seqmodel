@@ -10,25 +10,21 @@ sys.path.insert(0, '../')
 import seqmodel as sq  # noqa
 
 
-def main(opt, model_opt, train_opt, logger, data_fn, model_class):
+def _main(opt, model_class, model_opt, data_fn, logger, train_opt=None, decode_opt=None,
+          decode_batch_fn=None):
     is_training = opt['command'] == 'train'
     is_testing = opt['command'] == 'eval'
     is_init_only = opt['command'] == 'init'
+    is_decoding = opt['command'] == 'decode'
+
     logger.info('Loading data...')
     data, batch_iter, vocabs = data_fn()
     if opt['set_vocab_size']:
         model_vocab_opt = model_class.get_vocab_opt(*(v.vocab_size for v in vocabs))
         model_opt = ChainMap(model_vocab_opt, model_opt)
 
-    opt_str = []
-    for d in (opt, model_opt, train_opt):
-        for k, v in sorted(d.items()):
-            opt_str.append(f'    - {k}: {v}')
-    opt_str = '\n'.join(opt_str)
-    logger.debug(f'Options:\n{opt_str}')
-
     logger.info('Loading model...')
-    if opt['command'] == 'train':
+    if is_training:
         train_batch_iter = partial(batch_iter, *data[0])
         valid_batch_iter = partial(batch_iter, *data[1])
         train_model = model_class()
@@ -47,7 +43,7 @@ def main(opt, model_opt, train_opt, logger, data_fn, model_class):
     eval_model = model_class()
     eval_model.build_graph(model_opt, reuse=is_training, no_dropout=True)
 
-    logger.debug('Training Variables:')
+    logger.debug('Trainable Variables:')
     for v in tf.trainable_variables():
         logger.debug(f'{v.name}, {v.get_shape()}')
 
@@ -61,10 +57,10 @@ def main(opt, model_opt, train_opt, logger, data_fn, model_class):
         saver = tf.train.Saver()
         if is_training:
             logger.info('Training...')
-            checkpoint = opt['exp_dir']
-            if opt['load_checkpoint'] is not None:
-                checkpoint = opt['load_checkpoint']
-            train_state = sq.load_exp(sess, saver, checkpoint, latest=True)
+            success, train_state = sq.load_exp(sess, saver, opt['exp_dir'], latest=True,
+                                               checkpoint=opt['load_checkpoint'])
+            if success:
+                logger.info('Loaded model from checkpoint.')
             if train_state is None:
                 logger.info('No experiment to resume.')
             else:
@@ -83,50 +79,31 @@ def main(opt, model_opt, train_opt, logger, data_fn, model_class):
                      train_state=train_state, init_lr=init_lr,
                      valid_run_epoch_fn=valid_fn, begin_epoch_fn=begin_epoch_fn,
                      end_epoch_fn=end_epoch_fn)
-        success = sq.load_exp(sess, saver, opt['exp_dir'], latest=False)
+        checkpoint = None if is_training else opt['load_checkpoint']
+        success, __ = sq.load_exp(sess, saver, opt['exp_dir'], latest=False,
+                                  checkpoint=checkpoint)
         if success is None:
             logger.warn('No model to load from.')
-        logger.info('Evaluating...')
-        info = sq.run_epoch(sess, eval_model, eval_batch_iter)
-        logger.info(info.summary('eval'))
+        if is_decoding:
+            logger.info('Decoding...')
+            for batch, samples in sq.decode_epoch(
+                    sess, eval_model, eval_batch_iter,
+                    greedy=decode_opt['decode_greedy'],
+                    num_samples=decode_opt['num_samples']):
+                decode_batch_fn(batch, samples, vocabs)
+        else:
+            logger.info('Evaluating...')
+            info = sq.run_epoch(sess, eval_model, eval_batch_iter)
+            logger.info(info.summary('eval'))
 
 
-def decode(opt, model_opt, logger, data_fn, model_class):
-    logger.info('Loading data...')
-    data, batch_iter, vocabs = data_fn()
-    if opt['set_vocab_size']:
-        model_vocab_opt = model_class.get_vocab_opt(*(v.vocab_size for v in vocabs))
-        model_opt = ChainMap(model_vocab_opt, model_opt)
+def mle(opt, model_opt, train_opt, logger, data_fn, model_class):
+    _main(opt, model_class, model_opt, data_fn, logger, train_opt=train_opt)
 
-    opt_str = []
-    for d in (opt, model_opt):
-        for k, v in sorted(d.items()):
-            opt_str.append(f'    - {k}: {v}')
-    opt_str = '\n'.join(opt_str)
-    logger.debug(f'Options:\n{opt_str}')
 
-    logger.info('Loading model...')
-    eval_model = model_class()
-    eval_model.build_graph(model_opt, reuse=False, no_dropout=True)
-    eval_batch_iter = partial(batch_iter, *data[-1])
-
-    sess_config = tf.ConfigProto() if opt['gpu'] else tf.ConfigProto(device_count={'GPU': 0})  # noqa
-
-    logger.info('Decoding...')
-    with tf.Session(config=sess_config) as sess:
-        sess.run(tf.global_variables_initializer())
-        saver = tf.train.Saver()
-        checkpoint = os.path.join(opt['exp_dir'], 'checkpoint/best')
-        if opt['load_checkpoint'] is not None:
-            checkpoint = opt['load_checkpoint']
-        saver.restore(sess, checkpoint)
-        # if success is None:
-        #     logger.warn('No model to load from.')
-        for batch, samples in sq.decode_epoch(
-                sess, eval_model, eval_batch_iter, greedy=opt['decode_greedy'],
-                num_samples=1):
-            yield batch, samples, vocabs
-
+def decode(opt, model_opt, decode_opt, decode_batch_fn, logger, data_fn, model_class):
+    _main(opt, model_class, model_opt, data_fn, logger, decode_opt=decode_opt,
+          decode_batch_fn=decode_batch_fn)
 
 if __name__ == '__main__':
     import warnings

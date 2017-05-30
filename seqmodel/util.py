@@ -9,11 +9,13 @@ from nltk.translate import bleu_score
 
 import numpy as np
 
+from seqmodel import dstruct as ds
+
 
 __all__ = ['dict_with_key_startswith', 'dict_with_key_endswith', 'get_with_dot_key',
            'hstack_list', 'masked_full_like', 'get_logger', 'get_common_argparser',
            'parse_set_args', 'add_arg_group_defaults', 'ensure_dir', 'time_span_str',
-           'init_exp_opts']
+           'init_exp_opts', 'save_exp', 'load_exp']
 
 
 def time_span_str(seconds):
@@ -247,8 +249,8 @@ def get_common_argparser(prog, usage=None, description=None):
                         help='A json file specifying training options.')
     parser.add_argument('--batch_size', type=int, default=20,
                         help='batch size to run the model.')
-    parser.add_argument('--decode_greedy', action='store_false', help=' ')
-    parser.add_argument('--decode_outpath', type=str, default='decode.txt', help=' ')
+    # parser.add_argument('--decode_greedy', action='store_false', help=' ')
+    # parser.add_argument('--decode_outpath', type=str, default='decode.txt', help=' ')
     return parser
 
 
@@ -258,7 +260,11 @@ def add_arg_group_defaults(parser, group_default):
             t = type(v)
             if v is None:
                 t = str
-            parser.add_argument(f'--{k}', type=t, default=v, help=' ')
+            if isinstance(v, bool):
+                action = 'store_false' if v else 'store_true'
+                parser.add_argument(f'--{k}', action=action, help=' ')
+            else:
+                parser.add_argument(f'--{k}', type=t, default=v, help=' ')
     for k, v in group_default.items():
         group_parser = parser.add_argument_group(f'{k} options')
         add_dict_to_argparser(v, group_parser)
@@ -300,6 +306,10 @@ def init_exp_opts(opt, groups, group_default):
             load_train_opt = json.load(ifp)
     model_opt = ChainMap(groups['model'], load_model_opt, group_default['model'])
     train_opt = ChainMap(groups['train'], load_train_opt, group_default['train'])
+    all_opt = [opt, model_opt, train_opt]
+    if 'decode' in groups:
+        decode_opt = ChainMap(groups['decode'], group_default['decode'])
+        all_opt.append(decode_opt)
 
     epath = partial(os.path.join, opt['exp_dir'])
     init_only = opt['command'] == 'init'
@@ -314,4 +324,32 @@ def init_exp_opts(opt, groups, group_default):
 
     logger = get_logger(epath(opt['log_file']), 'exp_log', opt['log_level'])
 
-    return opt, model_opt, train_opt, logger
+    return logger, all_opt
+
+
+def save_exp(sess, saver, exp_dir, train_state):
+    epath = partial(os.path.join, exp_dir)
+    ensure_dir(epath('checkpoint'), delete=False)
+    saver.save(sess, epath('checkpoint/latest'))
+    if train_state.best_checkpoint_epoch != train_state.best_epoch:
+        saver.save(sess, epath('checkpoint/best'))
+        train_state.best_checkpoint_epoch = train_state.best_epoch
+    with open(epath('train_state.json'), 'w') as ofp:
+        json.dump(vars(train_state), ofp, indent=2, sort_keys=True)
+
+
+def load_exp(sess, saver, exp_dir, latest=False, checkpoint=None):
+    restore_success = False
+    if checkpoint is not None:
+        saver.restore(sess, checkpoint)
+        restore_success = True
+    epath = partial(os.path.join, exp_dir)
+    train_state = None
+    if os.path.exists(epath('train_state.json')):
+        with open(epath('train_state.json')) as ifp:
+            train_state = ds.TrainingState(**json.load(ifp))
+        checkpoint = epath('checkpoint/latest') if latest else epath('checkpoint/best')
+        if not restore_success:
+            saver.restore(sess, checkpoint)
+            restore_success = True
+    return restore_success, train_state
