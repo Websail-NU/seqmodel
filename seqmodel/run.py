@@ -14,7 +14,7 @@ from seqmodel import dstruct as ds
 
 __all__ = ['_no_run', 'default_training_opt', 'update_learning_rate',
            'is_done_training_early', 'run_epoch', 'train', 'decode_epoch',
-           'default_decoding_opt']
+           'default_decoding_opt', 'run_sampling_epoch', 'policy_gradient_opt']
 
 
 def _no_run(*args, **kwargs):
@@ -29,8 +29,13 @@ def default_training_opt():
             'lr:imp_wait': 2}
 
 
+def policy_gradient_opt():
+    return {'pg:enable': False, 'pg:discount': 0.9}
+
+
 def default_decoding_opt():
-    return {'decode_greedy': True, 'decode_outpath': 'decode_out.txt', 'num_samples': 1}
+    return {'decode:greedy': False, 'decode:outpath': 'decode_out.txt',
+            'decode:num_samples': 1}
 
 
 def update_learning_rate(set_lr_fn, train_state, min_lr=1e-6, start_decay_at=1,
@@ -87,21 +92,22 @@ def run_epoch(sess, model, batch_iter, train_op=None):
     return info
 
 
-def _acc_discounted_rewards(rewards, discount_factor):
+def _acc_discounted_rewards(rewards, discount_factor, baseline=1e-4):
     R = np.zeros_like(rewards)
     r_tplus1 = np.zeros([rewards.shape[1]])
     for i in range(len(rewards) - 1, -1, -1):
         R[i, :] = rewards[i, :] + discount_factor * r_tplus1
         r_tplus1 = R[i, :]
-    return R
+    return R - baseline
 
 
-def run_sampling_epoch(sess, model, batch_iter, reward_fn, greedy=False, train_op=None,
-                       discount_factor=0.9, return_fn=_acc_discounted_rewards,
-                       pack_data_fn=None):
+def run_sampling_epoch(sess, model, batch_iter, train_op=None, reward_fn=None,
+                       greedy=False, discount_factor=0.9, pack_data_fn=None,
+                       return_fn=_acc_discounted_rewards):
     if pack_data_fn is None:
         pack_data_fn = partial(bgt.get_batch_data, input_key='dec_inputs',
                                seq_len_key='dec_seq_len')  # assume seq2seq data
+    assert reward_fn is not None, 'reward_fn must not be None.'
     decode_fn = model.decode_sampling
     if greedy:
         decode_fn = model.decode_greedy

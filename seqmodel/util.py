@@ -15,7 +15,8 @@ from seqmodel import dstruct as ds
 __all__ = ['dict_with_key_startswith', 'dict_with_key_endswith', 'get_with_dot_key',
            'hstack_list', 'masked_full_like', 'get_logger', 'get_common_argparser',
            'parse_set_args', 'add_arg_group_defaults', 'ensure_dir', 'time_span_str',
-           'init_exp_opts', 'save_exp', 'load_exp']
+           'init_exp_opts', 'save_exp', 'load_exp', 'hstack_with_padding',
+           'vstack_with_padding']
 
 
 def time_span_str(seconds):
@@ -125,6 +126,23 @@ def get_nested_dict(d, key_tuple):
 #    ##    ##  #######  ##     ## ##           ##       #
 #########################################################
 # duplicate hstack and vstack to avoid if... else...
+
+
+def hstack_with_padding(x, y, pad_with=0):
+    z = np.full((max(x.shape[0], y.shape[0]), x.shape[1] + y.shape[1]),
+                pad_with, dtype=x.dtype)
+    z[:x.shape[0], :x.shape[1]] = x
+    z[:y.shape[0], x.shape[1]:] = y
+    return z
+
+
+def vstack_with_padding(x, y, pad_with=0):
+    z = np.full((x.shape[0] + y.shape[0], (max(x.shape[1], y.shape[1]))),
+                pad_with, dtype=x.dtype)
+    z[:x.shape[0], :x.shape[1]] = x
+    z[x.shape[0]:, :y.shape[1]] = y
+    return z
+
 
 def vstack_list(data, padding=0, dtype=np.int32):
     lengths = list(map(len, data))
@@ -310,6 +328,9 @@ def init_exp_opts(opt, groups, group_default):
     if 'decode' in groups:
         decode_opt = ChainMap(groups['decode'], group_default['decode'])
         all_opt.append(decode_opt)
+    if 'pg' in groups:
+        pg_opt = ChainMap(groups['pg'], group_default['pg'])
+        all_opt.append(pg_opt)
 
     epath = partial(os.path.join, opt['exp_dir'])
     init_only = opt['command'] == 'init'

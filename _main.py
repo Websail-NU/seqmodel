@@ -10,8 +10,8 @@ sys.path.insert(0, '../')
 import seqmodel as sq  # noqa
 
 
-def _main(opt, model_class, model_opt, data_fn, logger, train_opt=None, decode_opt=None,
-          decode_batch_fn=None):
+def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
+          decode_opt=None, decode_batch_fn=None):
     is_training = opt['command'] == 'train'
     is_testing = opt['command'] == 'eval'
     is_init_only = opt['command'] == 'init'
@@ -65,8 +65,8 @@ def _main(opt, model_class, model_opt, data_fn, logger, train_opt=None, decode_o
                 logger.info('No experiment to resume.')
             else:
                 logger.info('Resume experiment.')
-            train_fn = partial(sq.run_epoch, sess, train_model, train_batch_iter, train_op)  # noqa
-            valid_fn = partial(sq.run_epoch, sess, eval_model, valid_batch_iter)
+            train_fn = partial(run_fn, sess, train_model, train_batch_iter, train_op)  # noqa
+            valid_fn = partial(run_fn, sess, eval_model, valid_batch_iter)
             begin_epoch_fn = partial(
                 sq.update_learning_rate, partial(train_model.set_default_feed, lr),
                 **sq.dict_with_key_startswith(train_opt, 'lr:'))
@@ -82,28 +82,39 @@ def _main(opt, model_class, model_opt, data_fn, logger, train_opt=None, decode_o
         checkpoint = None if is_training else opt['load_checkpoint']
         success, __ = sq.load_exp(sess, saver, opt['exp_dir'], latest=False,
                                   checkpoint=checkpoint)
-        if success is None:
+        if not success:
             logger.warn('No model to load from.')
         if is_decoding:
             logger.info('Decoding...')
             for batch, samples in sq.decode_epoch(
                     sess, eval_model, eval_batch_iter,
-                    greedy=decode_opt['decode_greedy'],
-                    num_samples=decode_opt['num_samples']):
+                    greedy=decode_opt['decode:greedy'],
+                    num_samples=decode_opt['decode:num_samples']):
                 decode_batch_fn(batch, samples, vocabs)
         else:
             logger.info('Evaluating...')
-            info = sq.run_epoch(sess, eval_model, eval_batch_iter)
+            info = run_fn(sess, eval_model, eval_batch_iter)
             logger.info(info.summary('eval'))
 
 
 def mle(opt, model_opt, train_opt, logger, data_fn, model_class):
-    _main(opt, model_class, model_opt, data_fn, logger, train_opt=train_opt)
+    _main(opt, model_class, model_opt, data_fn, sq.run_epoch, logger,
+          train_opt=train_opt)
+
+
+def policy_gradient(opt, model_opt, train_opt, pg_opt, logger, data_fn, model_class,
+                    reward_fn=None, pack_data_fn=None):
+    reward_fn = sq.reward_match_label if reward_fn is None else reward_fn
+    discount_factor = pg_opt['pg:discount']
+    run_fn = partial(sq.run_sampling_epoch, reward_fn=reward_fn,
+                     pack_data_fn=pack_data_fn, discount_factor=discount_factor)
+    _main(opt, model_class, model_opt, data_fn, run_fn, logger,
+          train_opt=train_opt)
 
 
 def decode(opt, model_opt, decode_opt, decode_batch_fn, logger, data_fn, model_class):
-    _main(opt, model_class, model_opt, data_fn, logger, decode_opt=decode_opt,
-          decode_batch_fn=decode_batch_fn)
+    _main(opt, model_class, model_opt, data_fn, sq.run_epoch, logger,
+          decode_opt=decode_opt, decode_batch_fn=decode_batch_fn)
 
 if __name__ == '__main__':
     import warnings

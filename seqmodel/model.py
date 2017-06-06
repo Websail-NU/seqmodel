@@ -602,9 +602,7 @@ class Word2DefModel(Seq2SeqModel):
         return enc_nodes['final_state'], nodes
 
     def _build_attn_logit(self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output,
-                          wbdef=None, wbdef_scope=None, wbdef_nodes=None, full_opt=None,
-                          reuse=False):
-        assert wbdef is not None, 'wbdef is None, did you forget to add kwargs in partial()?'  # noqa
+                          wbdef, wbdef_scope, wbdef_nodes, full_opt, reuse):
         wbdef_nodes = {} if wbdef_nodes is None else wbdef_nodes
         with tfg.maybe_scope(wbdef_scope, reuse):
             _multiples = [tf.shape(cell_output)[0], 1, 1]
@@ -623,7 +621,7 @@ class Word2DefModel(Seq2SeqModel):
             opt, reuse_scope, collect_kwargs, emb_vars, updated_output_)
         return logit_, label_feed, predict_fetch, nodes
 
-    def _build_decode_late_attn(self, cell_output, wbdef=None, wbdef_scope=None):
+    def _build_decode_late_attn(self, cell_output, wbdef, wbdef_scope):
         with tfg.maybe_scope(wbdef_scope, True):
             updated_output, __ = tfg.create_gru_layer(
                 cell_output, wbdef, cell_output)

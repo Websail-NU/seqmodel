@@ -136,14 +136,15 @@ class TestSamplingRun(tf.test.TestCase):
                 # print(train_info.summary())
             reward_fn = generator.reward_match_label
             eval_info = run.run_sampling_epoch(
-                sess, m, batch_iter, reward_fn, greedy=True)
+                sess, m, batch_iter, greedy=True, reward_fn=reward_fn)
             # print(eval_info.summary('eval'))
-            run_fn = partial(run.run_sampling_epoch, sess, m, batch_iter, reward_fn)
+            run_fn = partial(run.run_sampling_epoch, sess, m, batch_iter,
+                             reward_fn=reward_fn)
             for __ in range(4):
                 train_info = run_fn(train_op=train_op)
                 # print(train_info.summary())
             eval_info2 = run.run_sampling_epoch(
-                sess, m, batch_iter, reward_fn, greedy=True)
+                sess, m, batch_iter, greedy=True, reward_fn=reward_fn)
             # print(eval_info2.summary('eval'))
             self.assertLess(eval_info2.eval_loss, eval_info.eval_loss,
                             'after training, eval loss is lower.')
