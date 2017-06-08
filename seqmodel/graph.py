@@ -376,8 +376,9 @@ def get_logit_layer(inputs, logit_w=None, logit_b=None, output_size=None,
         logit_w = create_2d_tensor(output_size, input_dim, trainable, init=init,
                                    name=f'{prefix}_logit_w')
     if add_project:
-        project_size = project_size if project_size > 0 else input_dim
-        proj_w = tf.get_variable(f'{prefix}_logit_proj', shape=(input_dim, project_size),
+        logit_dim = logit_w.get_shape()[-1]
+        project_size = project_size if project_size > 0 else logit_dim
+        proj_w = tf.get_variable(f'{prefix}_logit_proj', shape=(logit_dim, project_size),
                                  dtype=tf.float32)
         logit_w = tf.matmul(logit_w, proj_w)
         if isinstance(project_act, six.string_types):

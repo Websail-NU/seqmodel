@@ -220,8 +220,8 @@ class SeqModel(Model):
                # 'rnn:fn': 'seqmodel.graph.scan_rnn',
                'out:logit': True, 'out:loss': True, 'out:decode': False,
                'logit:output_size': 14, 'logit:use_bias': True, 'logit:trainable': True,
-               'logit:init': None, 'add_project': False, 'project_size': -1,
-               'project_act': 'tensorflow.tanh', 'loss:type': 'xent',
+               'logit:init': None, 'logit:add_project': False, 'logit:project_size': -1,
+               'logit:project_act': 'tensorflow.tanh', 'loss:type': 'xent',
                'decode:add_greedy': True, 'decode:add_sampling': False,
                'share:input_emb_logit': False}
         return opt
