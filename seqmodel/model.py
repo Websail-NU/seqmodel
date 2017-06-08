@@ -220,7 +220,8 @@ class SeqModel(Model):
                # 'rnn:fn': 'seqmodel.graph.scan_rnn',
                'out:logit': True, 'out:loss': True, 'out:decode': False,
                'logit:output_size': 14, 'logit:use_bias': True, 'logit:trainable': True,
-               'logit:init': None, 'loss:type': 'xent',
+               'logit:init': None, 'add_project': False, 'project_size': -1,
+               'project_act': 'tensorflow.tanh', 'loss:type': 'xent',
                'decode:add_greedy': True, 'decode:add_sampling': False,
                'share:input_emb_logit': False}
         return opt
@@ -617,6 +618,7 @@ class Word2DefModel(Seq2SeqModel):
                 updated_output_ = tf.nn.dropout(
                     updated_output_, full_opt['dec:cell:out_keep_prob'])
         wbdef_nodes.update(util.dict_with_key_endswith(locals(), '_'))
+        wbdef_nodes.pop('__class_', None)
         logit_, label_feed, predict_fetch, nodes = super()._build_logit(
             opt, reuse_scope, collect_kwargs, emb_vars, updated_output_)
         return logit_, label_feed, predict_fetch, nodes

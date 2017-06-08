@@ -368,17 +368,26 @@ def create_lookup(inputs, emb_vars=None, onehot=False, vocab_size=None, dim=None
 
 def get_logit_layer(inputs, logit_w=None, logit_b=None, output_size=None,
                     use_bias=True, temperature=None, trainable=True,
-                    init=None, prefix='output', add_to_collection=True,
-                    collect_key='model_inputs'):
+                    init=None, add_project=False, project_size=-1, project_act=tf.tanh,
+                    prefix='output', add_to_collection=True, collect_key='model_inputs'):
     """return logit with temperature layer and variables"""
     if logit_w is None:
         input_dim = int(inputs.get_shape()[-1])
         logit_w = create_2d_tensor(output_size, input_dim, trainable, init=init,
-                                   name=f'logit_w')
+                                   name=f'{prefix}_logit_w')
+    if add_project:
+        project_size = project_size if project_size > 0 else input_dim
+        proj_w = tf.get_variable(f'{prefix}_logit_proj', shape=(input_dim, project_size),
+                                 dtype=tf.float32)
+        logit_w = tf.matmul(logit_w, proj_w)
+        if isinstance(project_act, six.string_types):
+            project_act = locate(project_act)
+        if project_act is not None:
+            logit_w = project_act(logit_w)
     logit = matmul(inputs, logit_w, transpose_b=True)
     if use_bias:
         if logit_b is None:
-            logit_b = tf.get_variable(f'logit_b', [output_size],
+            logit_b = tf.get_variable(f'{prefix}_logit_b', [output_size],
                                       dtype=tf.float32)
         logit = logit + logit_b
     if temperature is None:

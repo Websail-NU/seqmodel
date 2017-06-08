@@ -26,11 +26,12 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - [ ] Value Network
 
 ### Run
-- [ ] Add teacher forcing
+- [x] Add teacher forcing
 - [ ] TD(lambda)
 - [ ] Bootstrap last state if not terminal
 
 ### Generator
+- [ ] Option to randomly select sequences of the same encode input
 - [ ] Reward functions for NLG (i.e. BLEU and token match)
 
 ### Scripts
