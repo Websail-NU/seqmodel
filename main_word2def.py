@@ -12,11 +12,12 @@ from _main import policy_gradient
 
 
 def reward(pg_opt):
-    lm = kenlm.Model('../experiment/dm/n_gram_lm/train.arpa')
-    vocab = sq.Vocabulary.from_vocab_file(
-        'data/common_wordnet_defs/lemma_senses/dec_vocab.txt')
-    reward_fn = partial(sq.reward_ngram_lm, lm=lm, vocab=vocab)
-    return reward_fn
+    # lm = kenlm.Model('../experiment/dm/n_gram_lm/train.arpa')
+    # vocab = sq.Vocabulary.from_vocab_file(
+    #     'data/common_wordnet_defs/lemma_senses/dec_vocab.txt')
+    # reward_fn = partial(sq.reward_ngram_lm, lm=lm, vocab=vocab)
+    # return reward_fn
+    return sq.reward_constant
 
 
 def pack_data(batch, sample, ret):

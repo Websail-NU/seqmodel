@@ -19,7 +19,7 @@ __all__ = ['open_files', 'read_lines', 'read_seq_data', 'read_seq2seq_data',
            'batch_iter', 'seq_batch_iter', 'seq2seq_batch_iter', 'position_batch_iter',
            'get_batch_data', 'reward_match_label', 'read_word2def_data', 'count_ngrams',
            'word2def_batch_iter', 'reward_ngram_lm', 'concat_word2def_batch',
-           'make_ngrams']
+           'make_ngrams', 'reward_constant']
 
 ##################################################
 #    ######## #### ##       ########  ######     #
@@ -295,6 +295,14 @@ def word2def_batch_iter(enc_data, word_data, char_data, dec_data, seq_weight_dat
 #    ##    ##  ##       ##  ##  ## ##     ## ##    ##  ##     ##    #
 #    ##     ## ########  ###  ###  ##     ## ##     ## ########     #
 #####################################################################
+
+
+def reward_constant(sample, batch, constant=-0.05):
+    seq_len = np.argmin(sample, axis=0)
+    mask, __ = util.masked_full_like(
+        sample, 1, num_non_padding=seq_len + 1, dtype=np.int32)
+    mask = mask * (seq_len > 0) * constant
+    return mask, np.mean(seq_len) * constant
 
 
 def reward_match_label(sample, batch, partial_match=False):

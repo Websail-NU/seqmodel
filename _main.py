@@ -80,10 +80,13 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
                      valid_run_epoch_fn=valid_fn, begin_epoch_fn=begin_epoch_fn,
                      end_epoch_fn=end_epoch_fn)
         checkpoint = None if is_training else opt['load_checkpoint']
-        success, __ = sq.load_exp(sess, saver, opt['exp_dir'], latest=False,
+        success, __ = sq.load_exp(sess, saver, opt['exp_dir'], latest=opt['eval_latest'],
                                   checkpoint=checkpoint)
         if not success:
-            logger.warn('No model to load from.')
+            logger.warn('Loading model from checkpoint failed.')
+        else:
+            _m = 'latest' if opt['eval_latest'] else 'best'
+            logger.info(f'Loaded {_m} model.')
         if is_decoding:
             logger.info('Decoding...')
             for batch, samples in sq.decode_epoch(
