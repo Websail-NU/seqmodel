@@ -212,12 +212,13 @@ class SeqModel(Model):
     @classmethod
     def default_opt(cls):
         opt = {'emb:vocab_size': 14, 'emb:dim': 32, 'emb:trainable': True,
-               'emb:init': None, 'cell:num_units': 32, 'cell:num_layers': 1,
+               'emb:init': None, 'emb:add_project': False, 'emb:project_size': -1,
+               'emb:project_act': 'tensorflow.tanh',
+               'cell:num_units': 32, 'cell:num_layers': 1,
                'cell:cell_class': 'tensorflow.contrib.rnn.BasicLSTMCell',
                'cell:in_keep_prob': 1.0, 'cell:out_keep_prob': 1.0,
                'cell:state_keep_prob': 1.0, 'cell:variational': False,
                'rnn:fn': 'tensorflow.nn.dynamic_rnn',
-               # 'rnn:fn': 'seqmodel.graph.scan_rnn',
                'out:logit': True, 'out:loss': True, 'out:decode': False,
                'logit:output_size': 14, 'logit:use_bias': True, 'logit:trainable': True,
                'logit:init': None, 'logit:add_project': False, 'logit:project_size': -1,
@@ -369,14 +370,16 @@ class SeqModel(Model):
             logit_temperature=nodes['temperature'], max_len=decode_max_len_,
             cell_scope=cell_scope, late_attn_fn=late_attn_fn)
         if opt['decode:add_greedy']:
-            decode_greedy_ = decode_fn()
+            decode_greedy_, decode_greedy_len_ = decode_fn()
             output['decode_greedy'] = decode_greedy_
+            output['decode_greedy_len'] = decode_greedy_len_
         if opt['decode:add_sampling']:
             def select_fn(logit):
                 # return tf.multinomial(logit, 1)
                 return tf.squeeze(tf.multinomial(logit, 1), axis=(1, ))
-            decode_sampling_ = decode_fn(select_fn=select_fn)
+            decode_sampling_, decode_sampling_len_ = decode_fn(select_fn=select_fn)
             output['decode_sampling'] = decode_sampling_
+            output['decode_sampling_len'] = decode_sampling_len_
         nodes = util.dict_with_key_endswith(locals(), '_')
         return output, nodes
 
@@ -555,7 +558,7 @@ class Word2DefModel(Seq2SeqModel):
         """
         opt = opt if opt else {}
         opt.update({'enc:out:logit': False, 'enc:out:loss': False,
-                    'enc:out:decode': False, 'dec:cell:drop_out_last_layer': False})
+                    'enc:out:decode': False, 'dec:cell:dropout_last_output': False})
         chain_opt = ChainMap(kwargs, opt, self.default_opt())
         if no_dropout:
             chain_opt = ChainMap(self._all_keep_prob_shall_be_one(chain_opt), chain_opt)

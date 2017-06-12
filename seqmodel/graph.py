@@ -112,17 +112,17 @@ def matmul(mat, mat2d, transpose_b=False):
 
 def create_cells(num_units, num_layers, cell_class=tf.contrib.rnn.BasicLSTMCell,
                  reuse=False, in_keep_prob=1.0, out_keep_prob=1.0, state_keep_prob=1.0,
-                 variational=False, input_size=None, drop_out_last_layer=True):
+                 variational=False, input_size=None, dropout_last_output=True):
     """return an RNN cell with optionally DropoutWrapper and MultiRNNCell."""
     cells = []
     for layer in range(num_layers):
         if isinstance(cell_class, six.string_types):
             cell_class = locate(cell_class)
         cell = cell_class(num_units, reuse=reuse)
+        if layer == num_layers - 1 and not dropout_last_output:
+            out_keep_prob = 1.0
         any_drop = any(kp < 1.0 for kp in [in_keep_prob, out_keep_prob, state_keep_prob])
-        last_layer_drop = ((layer == num_layers - 1 and drop_out_last_layer) or
-                           layer != num_layers - 1)
-        if any_drop and last_layer_drop:
+        if any_drop:
             cell = tf.contrib.rnn.DropoutWrapper(
                 cell, in_keep_prob, out_keep_prob, state_keep_prob, variational,
                 input_size, tf.float32)
@@ -277,12 +277,14 @@ def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial
     if select_fn is None:
         select_fn = partial(tf.argmax, axis=-1)
     gen_ta = tf.TensorArray(dtype=tf.int32, size=min_len, dynamic_size=True)
-    init_values = (tf.constant(0), initial_inputs, initial_state, gen_ta, initial_finish)
+    len_ta = tf.TensorArray(dtype=tf.int32, size=min_len, dynamic_size=True)
+    init_values = (tf.constant(0), initial_inputs, initial_state, gen_ta, len_ta,
+                   initial_finish)
 
-    def cond(t, _inputs, _state, _out_ta, finished):
+    def cond(t, _inputs, _state, _out_ta, _end_ta, finished):
         return tf.logical_and(t < max_len, tf.logical_not(tf.reduce_all(finished)))
 
-    def step(t, inputs, state, out_ta, finished):
+    def step(t, inputs, state, out_ta, end_ta, finished):
         input_emb = tf.nn.embedding_lookup(emb_var, inputs)
         with maybe_scope(cell_scope, reuse=reuse_cell):
             with tf.variable_scope('rnn', reuse=True):
@@ -296,13 +298,14 @@ def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial
             logit = logit / logit_temperature
         next_token = tf.cast(select_fn(logit), tf.int32)
         out_ta = out_ta.write(t, next_token)
+        end_ta = end_ta.write(t, tf.cast(tf.not_equal(next_token, end_id), tf.int32))
         finished = tf.logical_or(finished, tf.equal(next_token, end_id))
-        return t + 1, next_token, new_state, out_ta, finished
+        return t + 1, next_token, new_state, out_ta, end_ta, finished
 
-    _t, _i, _s, result, _f = tf.while_loop(cond, step, init_values, back_prop=back_prop,
-                                           parallel_iterations=10)
+    _t, _i, _s, result, seq_len, _f = tf.while_loop(
+        cond, step, init_values, back_prop=back_prop, parallel_iterations=10)
     # parallel_iterations does not matter much here.
-    return result.stack()
+    return result.stack(), tf.reduce_sum(seq_len.stack(), axis=0) + 1
 
 
 #######################################
@@ -349,8 +352,8 @@ def get_seq_label_placeholders(label_dtype=tf.int32, prefix='decoder',
 
 
 def create_lookup(inputs, emb_vars=None, onehot=False, vocab_size=None, dim=None,
-                  trainable=True, init=None, prefix='input',
-                  emb_name='embedding'):
+                  add_project=False, project_size=-1, project_act=tf.tanh,
+                  trainable=True, init=None, prefix='input', emb_name='embedding'):
     """return lookup, and embedding variable (None if onehot)"""
     if onehot:
         assert vocab_size is not None, 'onehot needs vocab_size to be set.'
@@ -363,6 +366,16 @@ def create_lookup(inputs, emb_vars=None, onehot=False, vocab_size=None, dim=None
             'If emb_vars and init is None, vocab_size and dim must be set.'
         emb_vars = create_2d_tensor(vocab_size, dim, trainable, init, emb_name)
     lookup = tf.nn.embedding_lookup(emb_vars, inputs, name=f'{prefix}_lookup')
+    if add_project:
+        emb_dim = emb_vars.get_shape()[-1]
+        project_size = project_size if project_size > 0 else emb_dim
+        proj_w = tf.get_variable(f'emb_proj', shape=(emb_dim, project_size),
+                                 dtype=tf.float32)
+        lookup = matmul(lookup, proj_w)
+        if isinstance(project_act, six.string_types):
+            project_act = locate(project_act)
+        if project_act is not None:
+            lookup = project_act(lookup)
     return lookup, emb_vars
 
 
@@ -374,11 +387,11 @@ def get_logit_layer(inputs, logit_w=None, logit_b=None, output_size=None,
     if logit_w is None:
         input_dim = int(inputs.get_shape()[-1])
         logit_w = create_2d_tensor(output_size, input_dim, trainable, init=init,
-                                   name=f'{prefix}_logit_w')
+                                   name=f'logit_w')
     if add_project:
         logit_dim = logit_w.get_shape()[-1]
         project_size = project_size if project_size > 0 else logit_dim
-        proj_w = tf.get_variable(f'{prefix}_logit_proj', shape=(logit_dim, project_size),
+        proj_w = tf.get_variable(f'logit_proj', shape=(logit_dim, project_size),
                                  dtype=tf.float32)
         logit_w = tf.matmul(logit_w, proj_w)
         if isinstance(project_act, six.string_types):
@@ -388,7 +401,7 @@ def get_logit_layer(inputs, logit_w=None, logit_b=None, output_size=None,
     logit = matmul(inputs, logit_w, transpose_b=True)
     if use_bias:
         if logit_b is None:
-            logit_b = tf.get_variable(f'{prefix}_logit_b', [output_size],
+            logit_b = tf.get_variable(f'logit_b', [output_size],
                                       dtype=tf.float32)
         logit = logit + logit_b
     if temperature is None:

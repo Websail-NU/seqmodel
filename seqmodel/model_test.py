@@ -383,6 +383,19 @@ class TestWord2DefModel(tf.test.TestCase):
                 if k is not None:
                     self.assertNotEqual(v[0], v[1], 'fetch array is set')
 
+    def test_dropout(self):
+        with self.test_session(config=self.sess_config) as sess:
+            m = model.Word2DefModel(check_feed_dict=False)
+            opt = {'cell:num_layers': 2, 'cell:out_keep_prob': 0.5,
+                   'cell:in_keep_prob': 0.5}
+            opt = {f'{n}:{k}': v for k, v in opt.items() for n in ('enc', 'dec')}
+            opt['wbdef:keep_prob'] = 0.5
+            n = m.build_graph(opt, name='t')
+            self.assertNotEqual(type(n['dec']['cell']._cells[-1]),
+                                tf.contrib.rnn.DropoutWrapper)
+            self.assertTrue('dropout' in n['bridge']['updated_output'].name)
+            self.assertTrue('dropout' in n['bridge']['wbdef'].name)
+
     def test_dynamic_rnn_run(self):
         _run(self, model.Word2DefModel, tf.nn.dynamic_rnn, 'word2def')
 
