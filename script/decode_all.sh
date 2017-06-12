@@ -1,6 +1,6 @@
 #!/bin/bash
 
-EXP_DIR="pg_ngram_token"
+EXP_DIR=$1
 DATA_DIR="data/common_wordnet_defs/lemma_senses"
 MODEL_OPT="../experiment/dm/$EXP_DIR/model_opt.json"
 CHECKPOINT="../experiment/dm/$EXP_DIR/checkpoint/best"
@@ -23,6 +23,7 @@ for MODE in $MODES; do
     fi
     echo $MODE
     for SPLIT in $SPLITS; do
+        echo $SPLIT
         python $MAIN decode $DATA_DIR $LOG_DIR --load_model_opt $MODEL_OPT \
              --load_checkpoint $CHECKPOINT --gpu --batch_size 128 --eval_file $SPLIT.txt \
              --decode:outpath $OUT_DIR/$MODE'_'$SPLIT.txt $M

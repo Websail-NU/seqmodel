@@ -267,7 +267,8 @@ def get_common_argparser(prog, usage=None, description=None):
                         help='A json file specifying training options.')
     parser.add_argument('--batch_size', type=int, default=20,
                         help='batch size to run the model.')
-    # parser.add_argument('--decode_greedy', action='store_false', help=' ')
+    parser.add_argument('--eval_latest', action='store_true',
+                        help='load latest model for eval, rather than best model.')
     # parser.add_argument('--decode_outpath', type=str, default='decode.txt', help=' ')
     return parser
 
