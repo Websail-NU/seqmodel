@@ -275,16 +275,21 @@ def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial
                   cell_scope=None, reuse_cell=True, back_prop=False, select_fn=None,
                   late_attn_fn=None):
     if select_fn is None:
-        select_fn = partial(tf.argmax, axis=-1)
-    gen_ta = tf.TensorArray(dtype=tf.int32, size=min_len, dynamic_size=True)
-    len_ta = tf.TensorArray(dtype=tf.int32, size=min_len, dynamic_size=True)
-    init_values = (tf.constant(0), initial_inputs, initial_state, gen_ta, len_ta,
-                   initial_finish)
+        def select_fn(logit):
+            idx = tf.argmax(logit, axis=-1)
+            score = tf.reduce_max(tf.nn.log_softmax(logit), axis=-1)
+            return tf.cast(idx, tf.int32), score
 
-    def cond(t, _inputs, _state, _out_ta, _end_ta, finished):
+    gen_ta = tf.TensorArray(dtype=tf.int32, size=min_len, dynamic_size=True)
+    logp_ta = tf.TensorArray(dtype=tf.float32, size=min_len, dynamic_size=True)
+    len_ta = tf.TensorArray(dtype=tf.int32, size=min_len, dynamic_size=True)
+    init_values = (tf.constant(0), initial_inputs, initial_state, gen_ta, logp_ta,
+                   len_ta, initial_finish)
+
+    def cond(t, _inputs, _state, _out_ta, _score_ta, _end_ta, finished):
         return tf.logical_and(t < max_len, tf.logical_not(tf.reduce_all(finished)))
 
-    def step(t, inputs, state, out_ta, end_ta, finished):
+    def step(t, inputs, state, out_ta, score_ta, end_ta, finished):
         input_emb = tf.nn.embedding_lookup(emb_var, inputs)
         with maybe_scope(cell_scope, reuse=reuse_cell):
             with tf.variable_scope('rnn', reuse=True):
@@ -296,16 +301,17 @@ def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial
             logit = logit + logit_b
         if logit_temperature is not None:
             logit = logit / logit_temperature
-        next_token = tf.cast(select_fn(logit), tf.int32)
+        next_token, score = select_fn(logit)
         out_ta = out_ta.write(t, next_token)
+        score_ta = score_ta.write(t, score)
         end_ta = end_ta.write(t, tf.cast(tf.not_equal(next_token, end_id), tf.int32))
         finished = tf.logical_or(finished, tf.equal(next_token, end_id))
-        return t + 1, next_token, new_state, out_ta, end_ta, finished
+        return t + 1, next_token, new_state, out_ta, score_ta, end_ta, finished
 
-    _t, _i, _s, result, seq_len, _f = tf.while_loop(
+    _t, _i, _s, result, score, seq_len, _f = tf.while_loop(
         cond, step, init_values, back_prop=back_prop, parallel_iterations=10)
     # parallel_iterations does not matter much here.
-    return result.stack(), tf.reduce_sum(seq_len.stack(), axis=0) + 1
+    return result.stack(), score.stack(), tf.reduce_sum(seq_len.stack(), axis=0) + 1
 
 
 #######################################

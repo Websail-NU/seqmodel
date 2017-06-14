@@ -347,8 +347,7 @@ class SeqModel(Model):
             if opt['loss:add_entropy']:
                 _sum_minus_ent, minus_avg_ent_ = tfg.create_ent_loss(
                     tf.nn.softmax(logit), tf.abs(weight), tf.abs(seq_weight))
-                train_loss_ = train_loss_ + _sum_minus_ent / train_loss_denom_
-
+                train_loss_ = train_loss_ + minus_avg_ent_
             train_fetch = {'train_loss': train_loss_, 'eval_loss': mean_loss_}
             eval_fetch = {'eval_loss': mean_loss_}
 
@@ -376,15 +375,23 @@ class SeqModel(Model):
             logit_temperature=nodes['temperature'], max_len=decode_max_len_,
             cell_scope=cell_scope, late_attn_fn=late_attn_fn)
         if opt['decode:add_greedy']:
-            decode_greedy_, decode_greedy_len_ = decode_fn()
+            decode_greedy_, decode_greedy_score_, decode_greedy_len_ = decode_fn()
             output['decode_greedy'] = decode_greedy_
+            output['decode_greedy_score'] = decode_greedy_score_
             output['decode_greedy_len'] = decode_greedy_len_
         if opt['decode:add_sampling']:
             def select_fn(logit):
-                # return tf.multinomial(logit, 1)
-                return tf.squeeze(tf.multinomial(logit, 1), axis=(1, ))
-            decode_sampling_, decode_sampling_len_ = decode_fn(select_fn=select_fn)
+                idx = tf.cast(tf.multinomial(logit, 1), tf.int32)
+                gather_idx = tf.expand_dims(
+                    tf.range(start=0, limit=tf.shape(idx)[0]), axis=-1)
+                gather_idx = tf.concat([gather_idx, idx], axis=-1)
+                score = tf.gather_nd(tf.nn.log_softmax(logit), gather_idx)
+                idx = tf.squeeze(idx, axis=(1, ))
+                return idx, score
+            decode_sampling_, decode_sampling_score_, decode_sampling_len_ = decode_fn(
+                select_fn=select_fn)
             output['decode_sampling'] = decode_sampling_
+            output['decode_sampling_score'] = decode_greedy_score_
             output['decode_sampling_len'] = decode_sampling_len_
         nodes = util.dict_with_key_endswith(locals(), '_')
         return output, nodes
