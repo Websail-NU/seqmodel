@@ -223,8 +223,8 @@ class SeqModel(Model):
                'logit:output_size': 14, 'logit:use_bias': True, 'logit:trainable': True,
                'logit:init': None, 'logit:add_project': False, 'logit:project_size': -1,
                'logit:project_act': 'tensorflow.tanh', 'loss:type': 'xent',
-               'decode:add_greedy': True, 'decode:add_sampling': False,
-               'share:input_emb_logit': False}
+               'loss:add_entropy': False, 'decode:add_greedy': True,
+               'decode:add_sampling': True, 'share:input_emb_logit': False}
         return opt
 
     @classmethod
@@ -344,8 +344,14 @@ class SeqModel(Model):
                 train_loss_denom_ = get(name, tf.float32, shape=[])
             mean_loss_, train_loss_, loss_ = tfg.create_xent_loss(
                 logit, label, weight, seq_weight, train_loss_denom_)
+            if opt['loss:add_entropy']:
+                _sum_minus_ent, minus_avg_ent_ = tfg.create_ent_loss(
+                    tf.nn.softmax(logit), tf.abs(weight), tf.abs(seq_weight))
+                train_loss_ = train_loss_ + _sum_minus_ent / train_loss_denom_
+
             train_fetch = {'train_loss': train_loss_, 'eval_loss': mean_loss_}
             eval_fetch = {'eval_loss': mean_loss_}
+
         else:
             raise ValueError(f'{opt["loss:type"]} is not supported, use (xent or mse)')
         nodes = util.dict_with_key_endswith(locals(), '_')
@@ -405,6 +411,22 @@ class SeqModel(Model):
         else:
             feed_dict[state_vars] = state_vals
         return feed_dict
+
+    def decode(self, sess, features, greedy=False, extra_fetch=None, **kwargs):
+        if greedy:
+            return self.decode_greedy(sess, features, extra_fetch, **kwargs)
+        else:
+            return self.decode_sampling(sess, features, extra_fetch, **kwargs)
+
+    def decode_greedy(self, sess, features, extra_fetch=None, **kwargs):
+        return self.predict(sess, features,
+                            predict_key='decode_greedy',
+                            extra_fetch=extra_fetch, **kwargs)
+
+    def decode_sampling(self, sess, features, extra_fetch=None, **kwargs):
+        return self.predict(sess, features,
+                            predict_key='decode_sampling',
+                            extra_fetch=extra_fetch, **kwargs)
 
 ###########################################################################
 #     ######  ########  #######   #######   ######  ########  #######     #
@@ -537,7 +559,7 @@ class Word2DefModel(Seq2SeqModel):
         opt = super().default_opt()
         char_emb_opt = {'onehot': True, 'vocab_size': 55, 'dim': 55,
                         'init': None, 'trainable': False}
-        char_tdnn_opt = {'filter_widths': [2, 3, 4, 5], 'num_filters': [20, 20, 30, 30],
+        char_tdnn_opt = {'filter_widths': [2, 3, 4, 5], 'num_filters': [20, 30, 40, 40],
                          'activation_fn': 'tensorflow.nn.relu'}
         opt.update({f'wbdef:char_emb:{k}': v for k, v in char_emb_opt.items()})
         opt.update({f'wbdef:char_tdnn:{k}': v for k, v in char_tdnn_opt.items()})

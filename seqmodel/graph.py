@@ -458,7 +458,9 @@ def create_xent_loss(logit, label, weight, seq_weight=None, loss_denom=None):
         training_loss = _safe_div(sum_loss, loss_denom)
     else:
         training_loss = sum_loss
-    return mean_loss, training_loss, loss
+    batch_loss = tf.reduce_sum(tf.multiply(loss, weight), axis=0)
+    batch_loss = batch_loss / tf.reduce_sum(weight, axis=0)
+    return mean_loss, training_loss, batch_loss
 
 
 def create_ent_loss(distribution, weight, seq_weight=None):
@@ -470,7 +472,7 @@ def create_ent_loss(distribution, weight, seq_weight=None):
     sum_loss = tf.reduce_sum(neg_entropy * weight)
     num_dist = tf.reduce_sum(weight)
     mean_loss = _safe_div(sum_loss, num_dist)
-    return mean_loss
+    return sum_loss, mean_loss
 
 
 def create_slow_feature_loss(feature, weight, delta=1.0):

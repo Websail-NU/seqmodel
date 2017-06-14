@@ -364,12 +364,12 @@ class TestWord2DefModel(tf.test.TestCase):
                              for n in ('enc', 'dec')}
             expected_vars.update({'t/dec/logit_w:0': (2, 10), 't/dec/logit_b:0': (2,)})
             expected_vars.update({'t/wbdef/filter_2:0': (1, 2, 55, 20),
-                                  't/wbdef/filter_3:0': (1, 3, 55, 20),
-                                  't/wbdef/filter_4:0': (1, 4, 55, 30),
-                                  't/wbdef/filter_5:0': (1, 5, 55, 30),
-                                  't/wbdef/gate_zr_w:0': (115, 115),
-                                  't/wbdef/gate_zr_b:0': (115,),
-                                  't/wbdef/h_w:0': (115, 10),
+                                  't/wbdef/filter_3:0': (1, 3, 55, 30),
+                                  't/wbdef/filter_4:0': (1, 4, 55, 40),
+                                  't/wbdef/filter_5:0': (1, 5, 55, 40),
+                                  't/wbdef/gate_zr_w:0': (145, 145),
+                                  't/wbdef/gate_zr_b:0': (145,),
+                                  't/wbdef/h_w:0': (145, 10),
                                   't/wbdef/h_b:0': (10,)})
             n = m.build_graph(opt, name='t')
             self.assertIsInstance(n['dec']['cell'], tf.contrib.rnn.BasicLSTMCell,
