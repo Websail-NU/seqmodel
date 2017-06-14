@@ -203,6 +203,7 @@ class Model(object):
 
 class SeqModel(Model):
 
+    _ENC_FEA_LEN_ = 0
     _STATE_ = 's'
     _RSK_EMB_ = 'emb'
     _RSK_RNN_ = 'rnn'
@@ -377,7 +378,7 @@ class SeqModel(Model):
         if opt['decode:add_greedy']:
             decode_greedy_, decode_greedy_score_, decode_greedy_len_ = decode_fn()
             output['decode_greedy'] = decode_greedy_
-            output['decode_greedy_score'] = decode_greedy_score_
+            output['decode_greedy_score'] = (decode_greedy_, decode_greedy_score_)
             output['decode_greedy_len'] = decode_greedy_len_
         if opt['decode:add_sampling']:
             def select_fn(logit):
@@ -391,7 +392,7 @@ class SeqModel(Model):
             decode_sampling_, decode_sampling_score_, decode_sampling_len_ = decode_fn(
                 select_fn=select_fn)
             output['decode_sampling'] = decode_sampling_
-            output['decode_sampling_score'] = decode_sampling_score_
+            output['decode_sampling_score'] = (decode_sampling_, decode_sampling_score_)
             output['decode_sampling_len'] = decode_sampling_len_
         nodes = util.dict_with_key_endswith(locals(), '_')
         return output, nodes
@@ -426,13 +427,23 @@ class SeqModel(Model):
             return self.decode_sampling(sess, features, extra_fetch, **kwargs)
 
     def decode_greedy(self, sess, features, extra_fetch=None, **kwargs):
-        return self.predict(sess, features,
+        return self.predict(sess, features[0: self._ENC_FEA_LEN_],
                             predict_key='decode_greedy',
                             extra_fetch=extra_fetch, **kwargs)
 
     def decode_sampling(self, sess, features, extra_fetch=None, **kwargs):
-        return self.predict(sess, features,
+        return self.predict(sess, features[0: self._ENC_FEA_LEN_],
                             predict_key='decode_sampling',
+                            extra_fetch=extra_fetch, **kwargs)
+
+    def decode_greedy_w_score(self, sess, features, extra_fetch=None, **kwargs):
+        return self.predict(sess, features[0: self._ENC_FEA_LEN_],
+                            predict_key='decode_greedy_score',
+                            extra_fetch=extra_fetch, **kwargs)
+
+    def decode_sampling_w_score(self, sess, features, extra_fetch=None, **kwargs):
+        return self.predict(sess, features[0: self._ENC_FEA_LEN_],
+                            predict_key='decode_sampling_score',
                             extra_fetch=extra_fetch, **kwargs)
 
 ###########################################################################
@@ -528,23 +539,6 @@ class Seq2SeqModel(SeqModel):
             self.set_default_feed('dec.temperature', 1.0)
         if 'decode_max_len' in self._nodes['dec']:
             self.set_default_feed('dec.decode_max_len', 40)
-
-    def decode(self, sess, features, greedy=False, extra_fetch=None, **kwargs):
-        if greedy:
-            return self.decode_greedy(sess, features, extra_fetch, **kwargs)
-        else:
-            return self.decode_sampling(sess, features, extra_fetch, **kwargs)
-
-    def decode_greedy(self, sess, features, extra_fetch=None, **kwargs):
-        return self.predict(sess, features[0: self._ENC_FEA_LEN_],
-                            predict_key='decode_greedy',
-                            extra_fetch=extra_fetch, **kwargs)
-
-    def decode_sampling(self, sess, features, extra_fetch=None, **kwargs):
-        return self.predict(sess, features[0: self._ENC_FEA_LEN_],
-                            predict_key='decode_sampling',
-                            extra_fetch=extra_fetch, **kwargs)
-
 
 #############################
 #    ########  ##     ##    #

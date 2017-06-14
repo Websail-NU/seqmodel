@@ -301,7 +301,7 @@ def _format_word2def(x, w, c, y, sw):
 #####################################################################
 
 
-def reward_constant(sample, batch, constant=-0.05):
+def reward_constant(sample, batch, constant=-0.05, sample_score=None):
     seq_len = np.argmin(sample, axis=0)
     mask, __ = util.masked_full_like(
         sample, 1, num_non_padding=seq_len + 1, dtype=np.int32)
@@ -309,7 +309,7 @@ def reward_constant(sample, batch, constant=-0.05):
     return mask, np.mean(seq_len) * constant
 
 
-def reward_match_label(sample, batch, partial_match=False):
+def reward_match_label(sample, batch, partial_match=False, sample_score=None):
     seq_len = np.argmin(sample, axis=0)
     mask, __ = util.masked_full_like(
         sample, 1, num_non_padding=seq_len + 1, dtype=np.int32)
@@ -342,7 +342,7 @@ def reward_match_label(sample, batch, partial_match=False):
 
 # XXX: Below are experimental functions
 
-def reward_ngram_lm(sample, batch, lm, vocab, token_score=True):
+def reward_ngram_lm(sample, batch, lm, vocab, token_score=True, sample_score=None):
     # XXX: This is incredibly inefficient. We need a better way to get sequence
     # likelihood from LM using a list of word ids.
     seq_len = np.argmin(sample, axis=0)
@@ -390,7 +390,7 @@ def count_ngrams(tokenized_lines, n, token_vocab=None, left_pad='<s>', right_pad
 
 
 def reward_global_ngram_stat(sample, batch, global_count, current_count, update_fn,
-                             ngram_fn):
+                             ngram_fn, sample_score=None):
     seq_len = np.argmin(sample, axis=0)
     scores = np.zeros_like(sample, dtype=np.float32)
     batch_ngrams = []

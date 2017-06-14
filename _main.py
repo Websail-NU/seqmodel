@@ -116,7 +116,7 @@ def policy_gradient(opt, model_opt, train_opt, pg_opt, logger, data_fn, model_cl
                     reward_fn=None, pack_data_fn=None):
     reward_fn = sq.reward_match_label if reward_fn is None else reward_fn
     discount_factor = pg_opt['pg:discount']
-    run_fn = partial(sq.run_sampling_epoch, reward_fn=reward_fn,
+    run_fn = partial(sq.run_sampling_epoch, reward_fn=reward_fn, with_score=True,
                      pack_data_fn=pack_data_fn, discount_factor=discount_factor)
     _main(opt, model_class, model_opt, data_fn, run_fn, logger,
           train_opt=train_opt)
