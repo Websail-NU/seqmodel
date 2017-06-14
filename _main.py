@@ -11,11 +11,14 @@ import seqmodel as sq  # noqa
 
 
 def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
-          decode_opt=None, decode_batch_fn=None):
+          decode_opt=None, decode_batch_fn=None, eval_run_fn=None):
     is_training = opt['command'] == 'train'
     is_testing = opt['command'] == 'eval'
     is_init_only = opt['command'] == 'init'
     is_decoding = opt['command'] == 'decode'
+
+    if eval_run_fn is None:
+        eval_run_fn = run_fn
 
     logger.info('Loading data...')
     data, batch_iter, vocabs = data_fn()
@@ -23,7 +26,7 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
         model_vocab_opt = model_class.get_vocab_opt(*(v.vocab_size for v in vocabs))
         model_opt = ChainMap(model_vocab_opt, model_opt)
 
-    logger.info('Loading model...')
+    logger.info('Building graph...')
     if is_training:
         train_batch_iter = partial(batch_iter, *data[0])
         valid_batch_iter = partial(batch_iter, *data[1])
@@ -79,14 +82,18 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
                      train_state=train_state, init_lr=init_lr,
                      valid_run_epoch_fn=valid_fn, begin_epoch_fn=begin_epoch_fn,
                      end_epoch_fn=end_epoch_fn)
+
         checkpoint = None if is_training else opt['load_checkpoint']
+        if checkpoint is not None:
+            logger.info(f'Loading parameters from `{checkpoint}` ...')
+        else:
+            _m = 'latest' if opt['eval_latest'] else 'best'
+            logger.info(f'Loading parameters from {_m} checkpoint...')
         success, __ = sq.load_exp(sess, saver, opt['exp_dir'], latest=opt['eval_latest'],
                                   checkpoint=checkpoint)
         if not success:
             logger.warn('Loading model from checkpoint failed.')
-        else:
-            _m = 'latest' if opt['eval_latest'] else 'best'
-            logger.info(f'Loaded {_m} model.')
+
         if is_decoding:
             logger.info('Decoding...')
             for batch, samples in sq.decode_epoch(
@@ -96,13 +103,13 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
                 decode_batch_fn(batch, samples, vocabs)
         else:
             logger.info('Evaluating...')
-            info = run_fn(sess, eval_model, eval_batch_iter)
+            info = eval_run_fn(sess, eval_model, eval_batch_iter)
             logger.info(info.summary('eval'))
 
 
-def mle(opt, model_opt, train_opt, logger, data_fn, model_class):
+def mle(opt, model_opt, train_opt, logger, data_fn, model_class, eval_run_fn=None):
     _main(opt, model_class, model_opt, data_fn, sq.run_epoch, logger,
-          train_opt=train_opt)
+          train_opt=train_opt, eval_run_fn=eval_run_fn)
 
 
 def policy_gradient(opt, model_opt, train_opt, pg_opt, logger, data_fn, model_class,
