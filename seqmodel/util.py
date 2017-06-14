@@ -16,7 +16,7 @@ __all__ = ['dict_with_key_startswith', 'dict_with_key_endswith', 'get_with_dot_k
            'hstack_list', 'masked_full_like', 'get_logger', 'get_common_argparser',
            'parse_set_args', 'add_arg_group_defaults', 'ensure_dir', 'time_span_str',
            'init_exp_opts', 'save_exp', 'load_exp', 'hstack_with_padding',
-           'vstack_with_padding']
+           'vstack_with_padding', 'group_data']
 
 
 def time_span_str(seconds):
@@ -114,6 +114,18 @@ def get_nested_dict(d, key_tuple):
     for k in key_tuple:
         cur_d = cur_d[k]
     return cur_d
+
+
+def group_data(data_iter, key=None, first_entry=None):
+    defualt = [] if first_entry is None else [first_entry]
+    if key is None:
+        def key(e):
+            return tuple(e[0])
+    group = {}
+    for e in data_iter:
+        entries = group.setdefault(key(e), list(defualt))
+        entries.append(e)
+    return group
 
 
 #########################################################

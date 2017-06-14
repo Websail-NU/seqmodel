@@ -269,21 +269,25 @@ def word2def_batch_iter(enc_data, word_data, char_data, dec_data, seq_weight_dat
     for x, w, c, y, sw in batch_iter(batch_size, shuffle, enc_data, word_data,
                                      char_data, dec_data, seq_weight_data,
                                      pad=[[], 0, [], [], 0]):
-        enc, enc_len = util.hstack_list(x)
-        dec, dec_len = util.hstack_list(y)
-        word = np.array(w, dtype=np.int32)
-        char, char_len = util.vstack_list(c)
-        in_dec = dec[:-1, :]
-        out_dec = dec[1:, :]
-        seq_weight = np.array(sw, dtype=np.float32)
-        dec_len -= np.where(dec_len > 0, 1, 0)
-        token_weight, num_tokens = util.masked_full_like(
-            out_dec, 1, num_non_padding=dec_len)
-        seq_weight = seq_weight.astype(np.float32)
-        features = ds.Word2DefFeatureTuple(enc, enc_len, word, char, char_len,
-                                           in_dec, dec_len)
-        labels = ds.SeqLabelTuple(out_dec, token_weight, seq_weight)
-        yield ds.BatchTuple(features, labels, num_tokens, False)
+        yield _format_word2def(x, w, c, y, sw)
+
+
+def _format_word2def(x, w, c, y, sw):
+    enc, enc_len = util.hstack_list(x)
+    dec, dec_len = util.hstack_list(y)
+    word = np.array(w, dtype=np.int32)
+    char, char_len = util.vstack_list(c)
+    in_dec = dec[:-1, :]
+    out_dec = dec[1:, :]
+    seq_weight = np.array(sw, dtype=np.float32)
+    dec_len -= np.where(dec_len > 0, 1, 0)
+    token_weight, num_tokens = util.masked_full_like(
+        out_dec, 1, num_non_padding=dec_len)
+    seq_weight = seq_weight.astype(np.float32)
+    features = ds.Word2DefFeatureTuple(enc, enc_len, word, char, char_len,
+                                       in_dec, dec_len)
+    labels = ds.SeqLabelTuple(out_dec, token_weight, seq_weight)
+    return ds.BatchTuple(features, labels, num_tokens, False)
 
 
 #####################################################################
@@ -336,6 +340,7 @@ def reward_match_label(sample, batch, partial_match=False):
 
 #     util.sentence_bleu(references, candidate)
 
+# XXX: Below are experimental functions
 
 def reward_ngram_lm(sample, batch, lm, vocab, token_score=True):
     # XXX: This is incredibly inefficient. We need a better way to get sequence

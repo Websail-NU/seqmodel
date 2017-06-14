@@ -5,6 +5,11 @@ DATA_DIR="data/common_wordnet_defs/lemma_senses"
 MODEL_OPT="../experiment/dm/$EXP_DIR/model_opt.json"
 CHECKPOINT="../experiment/dm/$EXP_DIR/checkpoint/best"
 OUT_DIR="../experiment/dm/$EXP_DIR/decode"
+# DATA_DIR="data/wn_lemma_senses"
+# MODEL_OPT="../experiment/dm2/$EXP_DIR/model_opt.json"
+# CHECKPOINT="../experiment/dm2/$EXP_DIR/checkpoint/best"
+# OUT_DIR="../experiment/dm2/$EXP_DIR/decode"
+
 
 MAIN="main_word2def.py"
 LOG_DIR="tmp"
