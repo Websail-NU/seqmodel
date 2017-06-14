@@ -391,7 +391,7 @@ class SeqModel(Model):
             decode_sampling_, decode_sampling_score_, decode_sampling_len_ = decode_fn(
                 select_fn=select_fn)
             output['decode_sampling'] = decode_sampling_
-            output['decode_sampling_score'] = decode_greedy_score_
+            output['decode_sampling_score'] = decode_sampling_score_
             output['decode_sampling_len'] = decode_sampling_len_
         nodes = util.dict_with_key_endswith(locals(), '_')
         return output, nodes
