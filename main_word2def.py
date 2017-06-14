@@ -72,5 +72,18 @@ if __name__ == '__main__':
                             sq.Word2DefModel, reward_fn=reward_fn,
                             pack_data_fn=pack_data)
         else:
-            mle(opt, model_opt, train_opt, logger, data_fn, sq.Word2DefModel)
+            # mle(opt, model_opt, train_opt, logger, data_fn, sq.Word2DefModel)
+            with open('tmp.txt', 'w') as ofp:
+                def write_score(batch, collect):
+                    enc = batch.features.enc_inputs
+                    dec = batch.features.dec_inputs
+                    score = collect[0]
+                    for i in range(len(score)):
+                        _e = enc[0, i]
+                        _d = ' '.join([str(_x) for _x in dec[:, i]])
+                        ofp.write(f'{_e}\t{_d}\t{score[i]}\n')
+                eval_fn = partial(sq.run_collecting_epoch, collect_keys=['dec.loss'],
+                                  collect_fn=write_score)
+                mle(opt, model_opt, train_opt, logger, data_fn, sq.Word2DefModel,
+                    eval_run_fn=eval_fn)
     logger.info(f'Total time: {sq.time_span_str(time.time() - start_time)}')

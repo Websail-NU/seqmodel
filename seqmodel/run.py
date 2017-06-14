@@ -14,7 +14,8 @@ from seqmodel import dstruct as ds
 
 __all__ = ['_no_run', 'default_training_opt', 'update_learning_rate',
            'is_done_training_early', 'run_epoch', 'train', 'decode_epoch',
-           'default_decoding_opt', 'run_sampling_epoch', 'policy_gradient_opt']
+           'default_decoding_opt', 'run_sampling_epoch', 'policy_gradient_opt',
+           'run_collecting_epoch']
 
 
 def _no_run(*args, **kwargs):
@@ -25,7 +26,7 @@ def default_training_opt():
     return {'train:max_epoch': 10, 'train:init_lr': 0.001, 'train:clip_gradients': 10.0,
             'train:optim_class': 'tensorflow.train.AdamOptimizer',
             'optim:epsilon': 1e-3, 'lr:min_lr': 1e-6, 'lr:start_decay_at': 1,
-            'lr:decay_every': 1, 'lr:decay_factor': 1.0, 'lr:imp_ratio_threshold': 0,
+            'lr:decay_every': 1, 'lr:decay_factor': 1.0, 'lr:imp_ratio_threshold': 0.0,
             'lr:imp_wait': 2}
 
 
@@ -83,6 +84,27 @@ def run_epoch(sess, model, batch_iter, train_op=None):
     for batch in batch_iter():
         result, __ = run_fn(batch.features, batch.labels, state=state,
                             fetch_state=batch.keep_state)
+        if batch.keep_state:
+            result, state = result  # ds.OutputStateTuple
+        else:
+            state = None
+        info.update_step(result, batch.num_tokens)
+    info.end()
+    return info
+
+
+def run_collecting_epoch(sess, model, batch_iter, collect_keys, collect_fn,
+                         train_op=None):
+    info = ds.RunningInfo()
+    if train_op:
+        run_fn = partial(model.train, sess, train_op=train_op, extra_fetch=collect_keys)
+    else:
+        run_fn = partial(model.evaluate, sess, extra_fetch=collect_keys)
+    state = None
+    for batch in batch_iter():
+        result, collect = run_fn(batch.features, batch.labels, state=state,
+                                 fetch_state=batch.keep_state)
+        collect_fn(batch, collect)
         if batch.keep_state:
             result, state = result  # ds.OutputStateTuple
         else:
