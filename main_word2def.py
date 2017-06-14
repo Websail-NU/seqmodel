@@ -1,22 +1,42 @@
 import time
-import sys
 import os
 from functools import partial
 
+import kenlm
 import numpy as np
-import tensorflow as tf
 
 from _main import sq
-from _main import main
+from _main import mle
+from _main import decode
+from _main import policy_gradient
+
+
+def reward(pg_opt):
+    # lm = kenlm.Model('../experiment/dm/n_gram_lm/train.arpa')
+    # vocab = sq.Vocabulary.from_vocab_file(
+    #     'data/common_wordnet_defs/lemma_senses/dec_vocab.txt')
+    # reward_fn = partial(sq.reward_ngram_lm, lm=lm, vocab=vocab)
+    # return reward_fn
+    return sq.reward_constant
+
+
+def pack_data(batch, sample, ret):
+    pg_batch = sq.get_batch_data(batch, sample, ret, input_key='dec_inputs',
+                                 seq_len_key='dec_seq_len')
+    return sq.concat_word2def_batch(batch, pg_batch)
+
 
 if __name__ == '__main__':
     start_time = time.time()
     group_default = {'model': sq.Word2DefModel.default_opt(),
-                     'train': sq.default_training_opt()}
+                     'train': sq.default_training_opt(),
+                     'pg': sq.policy_gradient_opt(),
+                     'decode': sq.default_decoding_opt()}
     parser = sq.get_common_argparser('main_word2word.py')
     sq.add_arg_group_defaults(parser, group_default)
     opt, groups = sq.parse_set_args(parser, group_default, dup_replaces=('enc:', 'dec:'))
-    opt, model_opt, train_opt, logger = sq.init_exp_opts(opt, groups, group_default)
+    logger, all_opt = sq.init_exp_opts(opt, groups, group_default)
+    opt, model_opt, train_opt, decode_opt, pg_opt = all_opt
 
     def data_fn():
         dpath = partial(os.path.join, opt['data_dir'])
@@ -32,5 +52,38 @@ if __name__ == '__main__':
         batch_iter = partial(sq.word2def_batch_iter, batch_size=opt['batch_size'])
         return data, batch_iter, (enc_vocab, dec_vocab, char_vocab)
 
-    main(opt, model_opt, train_opt, logger, data_fn, sq.Word2DefModel)
+    if opt['command'] == 'decode':
+        with open(decode_opt['decode:outpath'], 'w') as ofp:
+            def decode_batch(batch, samples, vocabs):
+                words = vocabs[0].i2w(batch.features.words)
+                for b_samples in samples:
+                    for word, sample in zip(words, b_samples.T):
+                        if word == '</s>':
+                            continue
+                        seq_len = np.argmin(sample)
+                        definition = ' '.join(vocabs[1].i2w(sample[0: seq_len]))
+                        ofp.write(f'{word}\t{definition}\n')
+            decode(opt, model_opt, decode_opt, decode_batch, logger,
+                   data_fn, sq.Word2DefModel)
+    else:
+        if pg_opt['pg:enable']:
+            reward_fn = reward(pg_opt)
+            policy_gradient(opt, model_opt, train_opt, pg_opt, logger, data_fn,
+                            sq.Word2DefModel, reward_fn=reward_fn,
+                            pack_data_fn=pack_data)
+        else:
+            # mle(opt, model_opt, train_opt, logger, data_fn, sq.Word2DefModel)
+            with open('tmp.txt', 'w') as ofp:
+                def write_score(batch, collect):
+                    enc = batch.features.enc_inputs
+                    dec = batch.features.dec_inputs
+                    score = collect[0]
+                    for i in range(len(score)):
+                        _e = enc[0, i]
+                        _d = ' '.join([str(_x) for _x in dec[:, i]])
+                        ofp.write(f'{_e}\t{_d}\t{score[i]}\n')
+                eval_fn = partial(sq.run_collecting_epoch, collect_keys=['dec.loss'],
+                                  collect_fn=write_score)
+                mle(opt, model_opt, train_opt, logger, data_fn, sq.Word2DefModel,
+                    eval_run_fn=eval_fn)
     logger.info(f'Total time: {sq.time_span_str(time.time() - start_time)}')

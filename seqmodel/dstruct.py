@@ -259,6 +259,8 @@ class RunSamplingInfo(RunningInfo):
         self._eval_loss += avg_reward
         self._num_tokens += num_tokens
         self._step += 1
+        # if self._step % 100 == 0:
+        #     print(self.summary())
 
     def __str__(self):
         return f'{self.__class__.__name__}: {vars(self)}'

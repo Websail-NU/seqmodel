@@ -8,6 +8,7 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - python 3.6
 - tensorflow 1.1
 - numpy 1.12
+- nltk 3.2.4
 - six 1.10
 
 ## Overview
@@ -21,18 +22,23 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 ## TODO
 
 ### Model
+- [ ] Decode with option to return likelihood
 - [ ] Value Network
 
 ### Run
-- [ ] Add teacher forcing
+- [x] Add teacher forcing
 - [ ] TD(lambda)
 - [ ] Bootstrap last state if not terminal
 
 ### Generator
+- [ ] Option to randomly select sequences of the same encode input
 - [ ] Reward functions for NLG (i.e. BLEU and token match)
 
 ### Scripts
-- [ ] Add option to put all data into tf.constant
+- [x] Merge _main.decode function into _main function
+- [x] Decoding option group
+- [ ] BLEU evaluation script
+- [ ] Option to select reward function from CLI
 
 ### TensorFlow
 - [ ] Compile my own TensorFlow

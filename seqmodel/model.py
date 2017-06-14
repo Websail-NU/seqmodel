@@ -212,17 +212,19 @@ class SeqModel(Model):
     @classmethod
     def default_opt(cls):
         opt = {'emb:vocab_size': 14, 'emb:dim': 32, 'emb:trainable': True,
-               'emb:init': None, 'cell:num_units': 32, 'cell:num_layers': 1,
+               'emb:init': None, 'emb:add_project': False, 'emb:project_size': -1,
+               'emb:project_act': 'tensorflow.tanh',
+               'cell:num_units': 32, 'cell:num_layers': 1,
                'cell:cell_class': 'tensorflow.contrib.rnn.BasicLSTMCell',
                'cell:in_keep_prob': 1.0, 'cell:out_keep_prob': 1.0,
                'cell:state_keep_prob': 1.0, 'cell:variational': False,
                'rnn:fn': 'tensorflow.nn.dynamic_rnn',
-               # 'rnn:fn': 'seqmodel.graph.scan_rnn',
                'out:logit': True, 'out:loss': True, 'out:decode': False,
                'logit:output_size': 14, 'logit:use_bias': True, 'logit:trainable': True,
-               'logit:init': None, 'loss:type': 'xent',
-               'decode:add_greedy': True, 'decode:add_sampling': False,
-               'share:input_emb_logit': False}
+               'logit:init': None, 'logit:add_project': False, 'logit:project_size': -1,
+               'logit:project_act': 'tensorflow.tanh', 'loss:type': 'xent',
+               'loss:add_entropy': False, 'decode:add_greedy': True,
+               'decode:add_sampling': True, 'share:input_emb_logit': False}
         return opt
 
     @classmethod
@@ -342,8 +344,13 @@ class SeqModel(Model):
                 train_loss_denom_ = get(name, tf.float32, shape=[])
             mean_loss_, train_loss_, loss_ = tfg.create_xent_loss(
                 logit, label, weight, seq_weight, train_loss_denom_)
+            if opt['loss:add_entropy']:
+                _sum_minus_ent, minus_avg_ent_ = tfg.create_ent_loss(
+                    tf.nn.softmax(logit), tf.abs(weight), tf.abs(seq_weight))
+                train_loss_ = train_loss_ + minus_avg_ent_
             train_fetch = {'train_loss': train_loss_, 'eval_loss': mean_loss_}
             eval_fetch = {'eval_loss': mean_loss_}
+
         else:
             raise ValueError(f'{opt["loss:type"]} is not supported, use (xent or mse)')
         nodes = util.dict_with_key_endswith(locals(), '_')
@@ -368,14 +375,24 @@ class SeqModel(Model):
             logit_temperature=nodes['temperature'], max_len=decode_max_len_,
             cell_scope=cell_scope, late_attn_fn=late_attn_fn)
         if opt['decode:add_greedy']:
-            decode_greedy_ = decode_fn()
+            decode_greedy_, decode_greedy_score_, decode_greedy_len_ = decode_fn()
             output['decode_greedy'] = decode_greedy_
+            output['decode_greedy_score'] = decode_greedy_score_
+            output['decode_greedy_len'] = decode_greedy_len_
         if opt['decode:add_sampling']:
             def select_fn(logit):
-                # return tf.multinomial(logit, 1)
-                return tf.squeeze(tf.multinomial(logit, 1), axis=(1, ))
-            decode_sampling_ = decode_fn(select_fn=select_fn)
+                idx = tf.cast(tf.multinomial(logit, 1), tf.int32)
+                gather_idx = tf.expand_dims(
+                    tf.range(start=0, limit=tf.shape(idx)[0]), axis=-1)
+                gather_idx = tf.concat([gather_idx, idx], axis=-1)
+                score = tf.gather_nd(tf.nn.log_softmax(logit), gather_idx)
+                idx = tf.squeeze(idx, axis=(1, ))
+                return idx, score
+            decode_sampling_, decode_sampling_score_, decode_sampling_len_ = decode_fn(
+                select_fn=select_fn)
             output['decode_sampling'] = decode_sampling_
+            output['decode_sampling_score'] = decode_sampling_score_
+            output['decode_sampling_len'] = decode_sampling_len_
         nodes = util.dict_with_key_endswith(locals(), '_')
         return output, nodes
 
@@ -401,6 +418,22 @@ class SeqModel(Model):
         else:
             feed_dict[state_vars] = state_vals
         return feed_dict
+
+    def decode(self, sess, features, greedy=False, extra_fetch=None, **kwargs):
+        if greedy:
+            return self.decode_greedy(sess, features, extra_fetch, **kwargs)
+        else:
+            return self.decode_sampling(sess, features, extra_fetch, **kwargs)
+
+    def decode_greedy(self, sess, features, extra_fetch=None, **kwargs):
+        return self.predict(sess, features,
+                            predict_key='decode_greedy',
+                            extra_fetch=extra_fetch, **kwargs)
+
+    def decode_sampling(self, sess, features, extra_fetch=None, **kwargs):
+        return self.predict(sess, features,
+                            predict_key='decode_sampling',
+                            extra_fetch=extra_fetch, **kwargs)
 
 ###########################################################################
 #     ######  ########  #######   #######   ######  ########  #######     #
@@ -533,7 +566,7 @@ class Word2DefModel(Seq2SeqModel):
         opt = super().default_opt()
         char_emb_opt = {'onehot': True, 'vocab_size': 55, 'dim': 55,
                         'init': None, 'trainable': False}
-        char_tdnn_opt = {'filter_widths': [2, 3, 4, 5], 'num_filters': [20, 20, 30, 30],
+        char_tdnn_opt = {'filter_widths': [2, 3, 4, 5], 'num_filters': [20, 30, 40, 40],
                          'activation_fn': 'tensorflow.nn.relu'}
         opt.update({f'wbdef:char_emb:{k}': v for k, v in char_emb_opt.items()})
         opt.update({f'wbdef:char_tdnn:{k}': v for k, v in char_tdnn_opt.items()})
@@ -554,7 +587,7 @@ class Word2DefModel(Seq2SeqModel):
         """
         opt = opt if opt else {}
         opt.update({'enc:out:logit': False, 'enc:out:loss': False,
-                    'enc:out:decode': False, 'dec:cell:drop_out_last_layer': False})
+                    'enc:out:decode': False, 'dec:cell:dropout_last_output': False})
         chain_opt = ChainMap(kwargs, opt, self.default_opt())
         if no_dropout:
             chain_opt = ChainMap(self._all_keep_prob_shall_be_one(chain_opt), chain_opt)
@@ -602,9 +635,7 @@ class Word2DefModel(Seq2SeqModel):
         return enc_nodes['final_state'], nodes
 
     def _build_attn_logit(self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output,
-                          wbdef=None, wbdef_scope=None, wbdef_nodes=None, full_opt=None,
-                          reuse=False):
-        assert wbdef is not None, 'wbdef is None, did you forget to add kwargs in partial()?'  # noqa
+                          wbdef, wbdef_scope, wbdef_nodes, full_opt, reuse):
         wbdef_nodes = {} if wbdef_nodes is None else wbdef_nodes
         with tfg.maybe_scope(wbdef_scope, reuse):
             _multiples = [tf.shape(cell_output)[0], 1, 1]
@@ -619,11 +650,12 @@ class Word2DefModel(Seq2SeqModel):
                 updated_output_ = tf.nn.dropout(
                     updated_output_, full_opt['dec:cell:out_keep_prob'])
         wbdef_nodes.update(util.dict_with_key_endswith(locals(), '_'))
+        wbdef_nodes.pop('__class_', None)
         logit_, label_feed, predict_fetch, nodes = super()._build_logit(
             opt, reuse_scope, collect_kwargs, emb_vars, updated_output_)
         return logit_, label_feed, predict_fetch, nodes
 
-    def _build_decode_late_attn(self, cell_output, wbdef=None, wbdef_scope=None):
+    def _build_decode_late_attn(self, cell_output, wbdef, wbdef_scope):
         with tfg.maybe_scope(wbdef_scope, True):
             updated_output, __ = tfg.create_gru_layer(
                 cell_output, wbdef, cell_output)

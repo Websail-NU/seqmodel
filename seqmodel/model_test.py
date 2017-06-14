@@ -364,12 +364,12 @@ class TestWord2DefModel(tf.test.TestCase):
                              for n in ('enc', 'dec')}
             expected_vars.update({'t/dec/logit_w:0': (2, 10), 't/dec/logit_b:0': (2,)})
             expected_vars.update({'t/wbdef/filter_2:0': (1, 2, 55, 20),
-                                  't/wbdef/filter_3:0': (1, 3, 55, 20),
-                                  't/wbdef/filter_4:0': (1, 4, 55, 30),
-                                  't/wbdef/filter_5:0': (1, 5, 55, 30),
-                                  't/wbdef/gate_zr_w:0': (115, 115),
-                                  't/wbdef/gate_zr_b:0': (115,),
-                                  't/wbdef/h_w:0': (115, 10),
+                                  't/wbdef/filter_3:0': (1, 3, 55, 30),
+                                  't/wbdef/filter_4:0': (1, 4, 55, 40),
+                                  't/wbdef/filter_5:0': (1, 5, 55, 40),
+                                  't/wbdef/gate_zr_w:0': (145, 145),
+                                  't/wbdef/gate_zr_b:0': (145,),
+                                  't/wbdef/h_w:0': (145, 10),
                                   't/wbdef/h_b:0': (10,)})
             n = m.build_graph(opt, name='t')
             self.assertIsInstance(n['dec']['cell'], tf.contrib.rnn.BasicLSTMCell,
@@ -382,6 +382,19 @@ class TestWord2DefModel(tf.test.TestCase):
             for k, v in m._fetches.items():
                 if k is not None:
                     self.assertNotEqual(v[0], v[1], 'fetch array is set')
+
+    def test_dropout(self):
+        with self.test_session(config=self.sess_config) as sess:
+            m = model.Word2DefModel(check_feed_dict=False)
+            opt = {'cell:num_layers': 2, 'cell:out_keep_prob': 0.5,
+                   'cell:in_keep_prob': 0.5}
+            opt = {f'{n}:{k}': v for k, v in opt.items() for n in ('enc', 'dec')}
+            opt['wbdef:keep_prob'] = 0.5
+            n = m.build_graph(opt, name='t')
+            self.assertNotEqual(type(n['dec']['cell']._cells[-1]),
+                                tf.contrib.rnn.DropoutWrapper)
+            self.assertTrue('dropout' in n['bridge']['updated_output'].name)
+            self.assertTrue('dropout' in n['bridge']['wbdef'].name)
 
     def test_dynamic_rnn_run(self):
         _run(self, model.Word2DefModel, tf.nn.dynamic_rnn, 'word2def')

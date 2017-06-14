@@ -1,22 +1,23 @@
 import time
-import sys
 import os
 from functools import partial
 
 import numpy as np
-import tensorflow as tf
 
 from _main import sq
-from _main import main
+from _main import mle
+from _main import policy_gradient
 
 if __name__ == '__main__':
     start_time = time.time()
     group_default = {'model': sq.Seq2SeqModel.default_opt(),
-                     'train': sq.default_training_opt()}
+                     'train': sq.default_training_opt(),
+                     'pg': sq.policy_gradient_opt()}
     parser = sq.get_common_argparser('main_seq2seq.py')
     sq.add_arg_group_defaults(parser, group_default)
     opt, groups = sq.parse_set_args(parser, group_default, dup_replaces=('enc:', 'dec:'))
-    opt, model_opt, train_opt, logger = sq.init_exp_opts(opt, groups, group_default)
+    logger, all_opt = sq.init_exp_opts(opt, groups, group_default)
+    opt, model_opt, train_opt, pg_opt = all_opt
 
     def data_fn():
         dpath = partial(os.path.join, opt['data_dir'])
@@ -30,5 +31,12 @@ if __name__ == '__main__':
         batch_iter = partial(sq.seq2seq_batch_iter, batch_size=opt['batch_size'])
         return data, batch_iter, (enc_vocab, dec_vocab)
 
-    main(opt, model_opt, train_opt, logger, data_fn, sq.Seq2SeqModel)
+    if opt['command'] == 'decode':
+        raise NotImplemented
+    else:
+        if pg_opt['pg:enable']:
+            policy_gradient(opt, model_opt, train_opt, pg_opt, logger, data_fn,
+                            sq.Seq2SeqModel)
+        else:
+            mle(opt, model_opt, train_opt, logger, data_fn, sq.Seq2SeqModel)
     logger.info(f'Total time: {sq.time_span_str(time.time() - start_time)}')
