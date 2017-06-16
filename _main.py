@@ -11,7 +11,7 @@ import seqmodel as sq  # noqa
 
 
 def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
-          decode_opt=None, decode_batch_fn=None, eval_run_fn=None):
+          decode_opt=None, decode_batch_fn=None, eval_run_fn=None, pg=False):
     is_training = opt['command'] == 'train'
     is_testing = opt['command'] == 'eval'
     is_init_only = opt['command'] == 'init'
@@ -38,9 +38,16 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
         else:
             train_model.set_default_feed('dec.train_loss_denom', opt['batch_size'])
         lr = tf.placeholder(tf.float32, shape=[], name='learning_rate')
-        train_op = sq.create_train_op(
-            train_model.training_loss, optim_class=train_opt['train:optim_class'],
-            learning_rate=lr, clip_gradients=train_opt['train:clip_gradients'])
+        if pg:
+            return_ph = tf.placeholder(tf.float32, shape=(None, None), name='return')
+            train_op = sq.create_pg_train_op(
+                train_model._nodes['dec']['nll'], return_ph,
+                optim_class=train_opt['train:optim_class'],
+                learning_rate=lr, clip_gradients=train_opt['train:clip_gradients'])
+        else:
+            train_op = sq.create_train_op(
+                train_model.training_loss, optim_class=train_opt['train:optim_class'],
+                learning_rate=lr, clip_gradients=train_opt['train:clip_gradients'])
 
     eval_batch_iter = partial(batch_iter, *data[-1])
     eval_model = model_class()
@@ -68,7 +75,12 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
                 logger.info('No experiment to resume.')
             else:
                 logger.info('Resume experiment.')
-            train_fn = partial(run_fn, sess, train_model, train_batch_iter, train_op)  # noqa
+            if pg:
+                return_feed_fn = partial(train_model.set_default_feed, return_ph)
+                train_fn = partial(run_fn, sess, train_model, train_batch_iter, train_op,
+                                   return_feed_fn=return_feed_fn)
+            else:
+                train_fn = partial(run_fn, sess, train_model, train_batch_iter, train_op)
             valid_fn = partial(run_fn, sess, eval_model, valid_batch_iter)
             begin_epoch_fn = partial(
                 sq.update_learning_rate, partial(train_model.set_default_feed, lr),
@@ -116,10 +128,11 @@ def policy_gradient(opt, model_opt, train_opt, pg_opt, logger, data_fn, model_cl
                     reward_fn=None, pack_data_fn=None):
     reward_fn = sq.reward_match_label if reward_fn is None else reward_fn
     discount_factor = pg_opt['pg:discount']
-    run_fn = partial(sq.run_sampling_epoch, reward_fn=reward_fn, with_score=True,
-                     pack_data_fn=pack_data_fn, discount_factor=discount_factor)
+    run_fn = partial(sq.run_sampling_epoch, reward_fn=reward_fn,
+                     with_score=pg_opt['pg:sample_logprob'], pack_data_fn=pack_data_fn,
+                     discount_factor=discount_factor)
     _main(opt, model_class, model_opt, data_fn, run_fn, logger,
-          train_opt=train_opt)
+          train_opt=train_opt, pg=True)
 
 
 def decode(opt, model_opt, decode_opt, decode_batch_fn, logger, data_fn, model_class):

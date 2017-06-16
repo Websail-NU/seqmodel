@@ -12,7 +12,7 @@ from _main import policy_gradient
 
 
 def reward(pg_opt):
-    # lm = kenlm.Model('../experiment/dm/n_gram_lm/train.arpa')
+    # lm = kenlm.Model('../experiment/dm/ngram_lm/train_no_wbdef.arpa')
     # vocab = sq.Vocabulary.from_vocab_file(
     #     'data/common_wordnet_defs/lemma_senses/dec_vocab.txt')
     # reward_fn = partial(sq.reward_ngram_lm, lm=lm, vocab=vocab)
@@ -21,9 +21,12 @@ def reward(pg_opt):
 
 
 def pack_data(batch, sample, ret):
-    pg_batch = sq.get_batch_data(batch, sample, ret, input_key='dec_inputs',
+    pg_batch = sq.get_batch_data(batch, sample, input_key='dec_inputs',
                                  seq_len_key='dec_seq_len')
-    return sq.concat_word2def_batch(batch, pg_batch)
+    full_batch = sq.concat_word2def_batch(pg_batch, batch)
+    full_ret = np.copy(full_batch.labels.label_weight)
+    full_ret[:ret.shape[0], :ret.shape[1]] = ret
+    return full_batch, full_ret
 
 
 if __name__ == '__main__':
@@ -72,18 +75,19 @@ if __name__ == '__main__':
                             sq.Word2DefModel, reward_fn=reward_fn,
                             pack_data_fn=pack_data)
         else:
-            # mle(opt, model_opt, train_opt, logger, data_fn, sq.Word2DefModel)
-            with open('tmp.txt', 'w') as ofp:
-                def write_score(batch, collect):
-                    enc = batch.features.enc_inputs
-                    dec = batch.features.dec_inputs
-                    score = collect[0]
-                    for i in range(len(score)):
-                        _e = enc[0, i]
-                        _d = ' '.join([str(_x) for _x in dec[:, i]])
-                        ofp.write(f'{_e}\t{_d}\t{score[i]}\n')
-                eval_fn = partial(sq.run_collecting_epoch, collect_keys=['dec.loss'],
-                                  collect_fn=write_score)
-                mle(opt, model_opt, train_opt, logger, data_fn, sq.Word2DefModel,
-                    eval_run_fn=eval_fn)
+            mle(opt, model_opt, train_opt, logger, data_fn, sq.Word2DefModel)
+            # with open('tmp.txt', 'w') as ofp:
+            #     def write_score(batch, collect):
+            #         enc = batch.features.enc_inputs
+            #         dec = batch.features.dec_inputs
+            #         score = collect[0]
+            #         for i in range(len(score)):
+            #             _e = enc[0, i]
+            #             _d = ' '.join([str(_x) for _x in dec[:, i]])
+            #             ofp.write(f'{_e}\t{_d}\t{score[i]}\n')
+            #     eval_fn = partial(sq.run_collecting_epoch,
+            #                       collect_keys=['dec.batch_loss'],
+            #                       collect_fn=write_score)
+            #     mle(opt, model_opt, train_opt, logger, data_fn, sq.Word2DefModel,
+            #         eval_run_fn=eval_fn)
     logger.info(f'Total time: {sq.time_span_str(time.time() - start_time)}')

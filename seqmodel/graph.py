@@ -16,7 +16,8 @@ __all__ = ['_safe_div', 'tfph_collection', 'create_2d_tensor', 'matmul', 'create
            'get_seq_label_placeholders', 'create_lookup', 'get_logit_layer',
            'select_from_logit', 'create_xent_loss', 'create_ent_loss',
            'create_slow_feature_loss', 'create_l2_loss', 'create_train_op',
-           'empty_tfph_collection', 'scan_rnn_no_mask', 'create_decode']
+           'empty_tfph_collection', 'scan_rnn_no_mask', 'create_decode',
+           'create_pg_train_op']
 
 
 _global_collections = {}
@@ -458,7 +459,14 @@ def create_xent_loss(logit, label, weight, seq_weight=None, loss_denom=None):
         logits=logit, labels=label)
     if seq_weight is not None:
         weight = tf.multiply(weight, seq_weight)
-    sum_loss = tf.reduce_sum(tf.multiply(loss, weight))
+
+    # XXX: standardization
+    # mean = tf.reduce_mean(weight)
+    # variance = tf.reduce_mean(tf.square(weight - mean))
+    # std_dev = tf.sqrt(variance)
+    # weight = (weight - mean) / std_dev
+    nll = tf.multiply(loss, weight)
+    sum_loss = tf.reduce_sum(nll)
     mean_loss = _safe_div(sum_loss, tf.reduce_sum(weight))
     if loss_denom is not None:
         training_loss = _safe_div(sum_loss, loss_denom)
@@ -466,7 +474,8 @@ def create_xent_loss(logit, label, weight, seq_weight=None, loss_denom=None):
         training_loss = sum_loss
     batch_loss = tf.reduce_sum(tf.multiply(loss, weight), axis=0)
     batch_loss = batch_loss / tf.reduce_sum(weight, axis=0)
-    return mean_loss, training_loss, batch_loss
+    # return mean_loss, mean_loss, batch_loss
+    return mean_loss, training_loss, batch_loss, nll
 
 
 def create_ent_loss(distribution, weight, seq_weight=None):
@@ -528,4 +537,17 @@ def create_train_op(loss, optim_class=tf.train.AdamOptimizer, learning_rate=0.00
         grads.append(g)
     clipped_grads, _norm = tf.clip_by_global_norm(grads, clip_gradients)
     train_op = optim.apply_gradients(zip(clipped_grads, tvars))
+    return train_op
+
+
+def create_pg_train_op(nll, return_ph, optim_class=tf.train.AdamOptimizer,
+                       learning_rate=0.001, clip_gradients=5.0, **optim_kwarg):
+    """return train operation graph"""
+    if isinstance(optim_class, six.string_types):
+        optim_class = locate(optim_class)
+    variables = tf.trainable_variables()
+    grads = tf.gradients(nll, variables, grad_ys=return_ph)
+    optim = optim_class(learning_rate=learning_rate, **optim_kwarg)
+    clipped_grads, _norm = tf.clip_by_global_norm(grads, clip_gradients)
+    train_op = optim.apply_gradients(zip(clipped_grads, variables))
     return train_op

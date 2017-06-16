@@ -343,7 +343,7 @@ class SeqModel(Model):
             with tfg.tfph_collection(collect_key, add_to_collection) as get:
                 name = 'train_loss_denom'
                 train_loss_denom_ = get(name, tf.float32, shape=[])
-            mean_loss_, train_loss_, loss_ = tfg.create_xent_loss(
+            mean_loss_, train_loss_, batch_loss_, nll_ = tfg.create_xent_loss(
                 logit, label, weight, seq_weight, train_loss_denom_)
             if opt['loss:add_entropy']:
                 _sum_minus_ent, minus_avg_ent_ = tfg.create_ent_loss(

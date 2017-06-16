@@ -302,18 +302,19 @@ def _format_word2def(x, w, c, y, sw):
 
 
 def reward_constant(sample, batch, constant=-0.05, sample_score=None):
+    # return batch.labels.label_weight, np.mean(batch.labels.label_weight)
     seq_len = np.argmin(sample, axis=0)
     mask, __ = util.masked_full_like(
         sample, 1, num_non_padding=seq_len + 1, dtype=np.int32)
-    mask = mask * (seq_len > 0) * constant
-    return mask, np.mean(seq_len) * constant
+    # mask = mask * (seq_len > 0) * constant
+    return mask * constant, np.mean(seq_len) * constant
 
 
 def reward_match_label(sample, batch, partial_match=False, sample_score=None):
     seq_len = np.argmin(sample, axis=0)
     mask, __ = util.masked_full_like(
         sample, 1, num_non_padding=seq_len + 1, dtype=np.int32)
-    mask = mask * (seq_len > 0)
+    # mask = mask * (seq_len > 0)
     sample, _sample = sample * mask, sample
     label = _label = batch.labels.label
     pad_width = abs(len(sample) - len(label))
@@ -345,28 +346,37 @@ def reward_match_label(sample, batch, partial_match=False, sample_score=None):
 def reward_ngram_lm(sample, batch, lm, vocab, token_score=True, sample_score=None):
     # XXX: This is incredibly inefficient. We need a better way to get sequence
     # likelihood from LM using a list of word ids.
+
+    if sample_score is None:
+        def score(s):
+            return np.power(10, s)
+    else:
+        def score(s):
+            score = (s / np.log10(np.e)) - sample_score[it, ib]
+            return score
+
     seq_len = np.argmin(sample, axis=0)
     mask, __ = util.masked_full_like(
         sample, 1, num_non_padding=seq_len + 1, dtype=np.int32)
-    mask = mask * (seq_len > 0)
-    # sample, _sample = sample * mask, sample
+    sample, _sample = sample * mask, sample
     scores = np.zeros_like(sample, dtype=np.float32)
     words = vocab.i2w(sample)
     for ib in range(sample.shape[1]):
-        # state1, state2 = kenlm.State(), kenlm.State()
-        # lm.BeginSentenceWrite(state1)
-        sentence = []
+        state1, state2 = kenlm.State(), kenlm.State()
+        lm.BeginSentenceWrite(state1)
+        # sentence = []
         for it in range(sample.shape[0]):
-            # scores[it, ib] = lm.BaseScore(state1, words[it][ib], state2)
-            # state1, state2 = state2, state1
+            s = lm.BaseScore(state1, words[it][ib], state2)
+            scores[it, ib] = score(s)
+            state1, state2 = state2, state1
             if words[it][ib] == '</s>':
-                scores[it, ib] = 1 / (1 + lm.perplexity(' '.join(sentence)))
+                # scores[it, ib] = 1 / (1 + lm.perplexity(' '.join(sentence)))
                 break
-            sentence.append(words[it][ib])
-    # scores = np.power(10, scores) * mask
+            # sentence.append(words[it][ib])
+    # scores = scores * mask
     # scores = (1 / (1 - scores)) * mask
-    # return scores, np.sum(scores) / np.sum(mask)
-    return scores, np.sum(scores) / len(seq_len)
+    return scores, np.sum(scores) / np.sum(mask)
+    # return scores, np.sum(scores) / len(seq_len)
 
 
 def make_ngrams(sequence, n, left_pad, right_pad):

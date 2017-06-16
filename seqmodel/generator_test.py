@@ -212,6 +212,7 @@ class TestReward(unittest.TestCase):
         sample = np.arange(1, 13).reshape((4, 3))
         sample[-1, :] = 0
         scores, avg_score = generator.reward_ngram_lm(sample, None, lm, vocab)
+        # np.random.randn(*sample.shape))
         np.testing.assert_array_less(scores, 1, err_msg='scores less than 1')
         np.testing.assert_array_less(-1 * scores, 0.0001,
                                      err_msg='scores more than 0')
