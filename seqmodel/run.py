@@ -25,7 +25,7 @@ def _no_run(*args, **kwargs):
 def default_training_opt():
     return {'train:max_epoch': 10, 'train:init_lr': 0.001, 'train:clip_gradients': 10.0,
             'train:optim_class': 'tensorflow.train.AdamOptimizer',
-            'optim:epsilon': 1e-3, 'lr:min_lr': 1e-6, 'lr:start_decay_at': 1,
+            'optim:epsilon': 1e-4, 'lr:min_lr': 1e-6, 'lr:start_decay_at': 1,
             'lr:decay_every': 1, 'lr:decay_factor': 1.0, 'lr:imp_ratio_threshold': 0.0,
             'lr:imp_wait': 2}
 

@@ -79,9 +79,12 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
                 return_feed_fn = partial(train_model.set_default_feed, return_ph)
                 train_fn = partial(run_fn, sess, train_model, train_batch_iter, train_op,
                                    return_feed_fn=return_feed_fn)
+                valid_fn = partial(run_fn, sess, eval_model, valid_batch_iter,
+                                   greedy=True)
+                eval_run_fn = partial(eval_run_fn, greedy=True)
             else:
                 train_fn = partial(run_fn, sess, train_model, train_batch_iter, train_op)
-            valid_fn = partial(run_fn, sess, eval_model, valid_batch_iter)
+                valid_fn = partial(run_fn, sess, eval_model, valid_batch_iter)
             begin_epoch_fn = partial(
                 sq.update_learning_rate, partial(train_model.set_default_feed, lr),
                 **sq.dict_with_key_startswith(train_opt, 'lr:'))
@@ -126,7 +129,7 @@ def mle(opt, model_opt, train_opt, logger, data_fn, model_class, eval_run_fn=Non
 
 def policy_gradient(opt, model_opt, train_opt, pg_opt, logger, data_fn, model_class,
                     reward_fn=None, pack_data_fn=None):
-    reward_fn = sq.reward_progressive_match_label if reward_fn is None else reward_fn
+    reward_fn = sq.reward_match_label if reward_fn is None else reward_fn
     discount_factor = pg_opt['pg:discount']
     run_fn = partial(sq.run_sampling_epoch, reward_fn=reward_fn,
                      with_score=pg_opt['pg:sample_logprob'], pack_data_fn=pack_data_fn,
