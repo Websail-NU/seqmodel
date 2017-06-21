@@ -41,11 +41,11 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - [ ] Option to select reward function from CLI
 
 ### TensorFlow
-- [ ] Compile my own TensorFlow
-- [ ] Upgrade to TensorFlow v1.2 (Pending for its release)
-- [ ] Take advantage of tf.Session.make_callable (Pending for its release)
+- [ ] Upgrade to TensorFlow v1.2
+- [ ] Take advantage of tf.Session.make_callable
 
 ### Bucket list
+- [ ] Compile my own TensorFlow
 - [ ] Use tf.summary for tensorboard.
 - [ ] Wrap manual attention in definition model to RNNCell
 - [ ] It would be nice if we do not need to fecth state and feed it back in when

@@ -126,7 +126,7 @@ def mle(opt, model_opt, train_opt, logger, data_fn, model_class, eval_run_fn=Non
 
 def policy_gradient(opt, model_opt, train_opt, pg_opt, logger, data_fn, model_class,
                     reward_fn=None, pack_data_fn=None):
-    reward_fn = sq.reward_match_label if reward_fn is None else reward_fn
+    reward_fn = sq.reward_progressive_match_label if reward_fn is None else reward_fn
     discount_factor = pg_opt['pg:discount']
     run_fn = partial(sq.run_sampling_epoch, reward_fn=reward_fn,
                      with_score=pg_opt['pg:sample_logprob'], pack_data_fn=pack_data_fn,

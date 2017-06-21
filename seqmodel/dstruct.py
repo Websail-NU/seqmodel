@@ -228,7 +228,7 @@ class RunningInfo(object):
     def summary(self, mode='train'):
         exp_loss = math.exp(self.eval_loss)
         if mode == 'train':
-            return (f'(T) eval_loss: {self.eval_loss:.5f} ({exp_loss:.5f}), ',
+            return (f'(T) eval_loss: {self.eval_loss:.5f} ({exp_loss:.5f}), '
                     f'tr_loss: {self.train_loss:.5f}, '
                     f'wps: {self.wps:.1f}, {self._step} steps in '
                     f'{self.elapse_time:.2f}s')

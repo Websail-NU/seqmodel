@@ -19,7 +19,7 @@ __all__ = ['open_files', 'read_lines', 'read_seq_data', 'read_seq2seq_data',
            'batch_iter', 'seq_batch_iter', 'seq2seq_batch_iter', 'position_batch_iter',
            'get_batch_data', 'reward_match_label', 'read_word2def_data', 'count_ngrams',
            'word2def_batch_iter', 'reward_ngram_lm', 'concat_word2def_batch',
-           'make_ngrams', 'reward_constant']
+           'make_ngrams', 'reward_constant', 'reward_progressive_match_label']
 
 ##################################################
 #    ######## #### ##       ########  ######     #
@@ -342,6 +342,38 @@ def reward_match_label(sample, batch, partial_match=False, sample_score=None):
 #     util.sentence_bleu(references, candidate)
 
 # XXX: Below are experimental functions
+
+
+def reward_progressive_match_label(sample, batch, sample_score=None):
+    seq_len = util.find_first_min_zero(sample)
+    mask, __ = util.masked_full_like(
+        sample, 1, num_non_padding=seq_len + 1, dtype=np.int32)
+    # mask = mask * (seq_len > 0)
+    sample, _sample = sample * mask, sample
+    label = _label = batch.labels.label
+    pad_width = abs(len(sample) - len(label))
+    pad_width = ((0, pad_width), (0, 0))
+    if len(label) < len(sample):
+        label = np.pad(label, pad_width, 'constant', constant_values=0)
+    elif len(sample) < len(label):
+        sample = np.pad(sample, pad_width, 'constant', constant_values=0)
+    diff = np.abs(sample - label)
+    match = (diff == 0).astype(np.float32)  # / batch.features.dec_seq_len
+    if len(_label) < len(_sample):
+        match[len(_label) - 1:, :] = 0
+    elif len(_sample) < len(_label):
+        match = match[:len(_sample), :]
+    summatch = np.sum(match, axis=0)
+    mismatch = np.argmin(match, axis=0)
+    mismatch_mask, __ = util.masked_full_like(match, 1, num_non_padding=mismatch)
+    match = match * mismatch_mask
+    avgmatch = np.sum(match) / np.sum(mask)
+    for ib in range(sample.shape[1]):
+        if summatch[ib] > 0 and mismatch[ib] == 0:
+            continue
+        match[mismatch[ib], ib] = -0.5
+    return match, avgmatch
+
 
 def reward_ngram_lm(sample, batch, lm, vocab, token_score=True, sample_score=None):
     # XXX: This is incredibly inefficient. We need a better way to get sequence
