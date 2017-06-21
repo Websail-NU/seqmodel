@@ -41,7 +41,7 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
         if pg:
             return_ph = tf.placeholder(tf.float32, shape=(None, None), name='return')
             train_op = sq.create_pg_train_op(
-                train_model._nodes['dec']['nll'], return_ph,
+                train_model.nll, return_ph,
                 optim_class=train_opt['train:optim_class'],
                 learning_rate=lr, clip_gradients=train_opt['train:clip_gradients'])
         else:

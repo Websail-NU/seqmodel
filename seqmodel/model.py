@@ -58,6 +58,15 @@ class Model(object):
     def training_loss(self):
         if hasattr(self, '_training_loss'):
             return self._training_loss
+        else:
+            raise AttributeError('training loss has not been set.')
+
+    @property
+    def nll(self):
+        if hasattr(self, '_nll'):
+            return self._nll
+        else:
+            raise AttributeError('negative log-likelihood (nll) has not been set.')
 
     @property
     def check_feed_dict(self):
@@ -264,6 +273,8 @@ class SeqModel(Model):
             self.set_default_feed('temperature', 1.0)
         if 'decode_max_len' in node_dict:
             self.set_default_feed('decode_max_len', 40)
+        if 'nll' in node_dict:
+            self._nll = node_dict['nll']
 
     def _build(self, opt, reuse_scope, initial_state=None, reuse=False,
                collect_key='seq_model', prefix='lm', **kwargs):
@@ -539,6 +550,8 @@ class Seq2SeqModel(SeqModel):
             self.set_default_feed('dec.temperature', 1.0)
         if 'decode_max_len' in self._nodes['dec']:
             self.set_default_feed('dec.decode_max_len', 40)
+        if 'nll' in self._nodes['dec']:
+            self._nll = self._nodes['dec']['nll']
 
 #############################
 #    ########  ##     ##    #

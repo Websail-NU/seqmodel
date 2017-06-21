@@ -303,18 +303,18 @@ def _format_word2def(x, w, c, y, sw):
 
 def reward_constant(sample, batch, constant=-0.05, sample_score=None):
     # return batch.labels.label_weight, np.mean(batch.labels.label_weight)
-    seq_len = np.argmin(sample, axis=0)
+    seq_len = util.find_first_min_zero(sample)
     mask, __ = util.masked_full_like(
         sample, 1, num_non_padding=seq_len + 1, dtype=np.int32)
-    # mask = mask * (seq_len > 0) * constant
-    return mask * constant, np.mean(seq_len) * constant
+    mask = mask * (seq_len > 0) * constant
+    return mask * constant, np.mean(seq_len + 1) * constant
 
 
-def reward_match_label(sample, batch, partial_match=False, sample_score=None):
-    seq_len = np.argmin(sample, axis=0)
+def reward_match_label(sample, batch, partial_match=True, sample_score=None):
+    seq_len = util.find_first_min_zero(sample)
     mask, __ = util.masked_full_like(
         sample, 1, num_non_padding=seq_len + 1, dtype=np.int32)
-    # mask = mask * (seq_len > 0)
+    mask = mask * (seq_len > 0)
     sample, _sample = sample * mask, sample
     label = _label = batch.labels.label
     pad_width = abs(len(sample) - len(label))
@@ -331,10 +331,14 @@ def reward_match_label(sample, batch, partial_match=False, sample_score=None):
         elif len(_sample) < len(_label):
             match = match[:len(_sample), :]
     else:
-        match = (np.sum(diff, axis=0) == 0).astype(np.float32)
-        match = np.tile(match, (len(_sample), 1))
+        sumdiff = np.sum(diff, axis=0)
+        match = np.zeros_like(sample, dtype=np.float32)
+        for ib in range(seq_len.shape[0]):
+            if sumdiff[ib] == 0:
+                match[seq_len[ib], ib] = 1
     match = match * mask
-    return match, np.sum(match) / np.sum(mask)
+    avgmatch = np.sum(match) / np.sum(seq_len > 0)
+    return match, avgmatch
 
 
 # def reward_bleu(sample, batch, ref_fn):
@@ -348,7 +352,7 @@ def reward_progressive_match_label(sample, batch, sample_score=None):
     seq_len = util.find_first_min_zero(sample)
     mask, __ = util.masked_full_like(
         sample, 1, num_non_padding=seq_len + 1, dtype=np.int32)
-    # mask = mask * (seq_len > 0)
+    mask = mask * (seq_len > 0)
     sample, _sample = sample * mask, sample
     label = _label = batch.labels.label
     pad_width = abs(len(sample) - len(label))
@@ -363,15 +367,15 @@ def reward_progressive_match_label(sample, batch, sample_score=None):
         match[len(_label) - 1:, :] = 0
     elif len(_sample) < len(_label):
         match = match[:len(_sample), :]
+    avgmatch = np.sum(match * mask) / np.sum(mask)
     summatch = np.sum(match, axis=0)
     mismatch = np.argmin(match, axis=0)
     mismatch_mask, __ = util.masked_full_like(match, 1, num_non_padding=mismatch)
     match = match * mismatch_mask
-    avgmatch = np.sum(match) / np.sum(mask)
     for ib in range(sample.shape[1]):
         if summatch[ib] > 0 and mismatch[ib] == 0:
             continue
-        match[mismatch[ib], ib] = -0.5
+        match[mismatch[ib], ib] = -0.1
     return match, avgmatch
 
 
@@ -433,7 +437,7 @@ def count_ngrams(tokenized_lines, n, token_vocab=None, left_pad='<s>', right_pad
 
 def reward_global_ngram_stat(sample, batch, global_count, current_count, update_fn,
                              ngram_fn, sample_score=None):
-    seq_len = np.argmin(sample, axis=0)
+    seq_len = util.find_first_min_zero(sample)
     scores = np.zeros_like(sample, dtype=np.float32)
     batch_ngrams = []
     for ib in range(sample.shape[1]):
