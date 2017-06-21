@@ -17,7 +17,7 @@ __all__ = ['_safe_div', 'tfph_collection', 'create_2d_tensor', 'matmul', 'create
            'select_from_logit', 'create_xent_loss', 'create_ent_loss',
            'create_slow_feature_loss', 'create_l2_loss', 'create_train_op',
            'empty_tfph_collection', 'scan_rnn_no_mask', 'create_decode',
-           'create_pg_train_op']
+           'create_pg_train_op', 'NGramCell']
 
 
 _global_collections = {}
@@ -109,6 +109,33 @@ def matmul(mat, mat2d, transpose_b=False):
 #     ######  ########  ##### ##    #
 #####################################
 # Most of below functions assume time major input and output, unless specified
+
+
+class NGramCell(tf.nn.rnn_cell.RNNCell):
+    def __init__(self, num_units, input_size=None, order=4, reuse=None):
+        super(NGramCell, self).__init__(_reuse=reuse)
+        self._num_units = num_units
+        self._input_size = num_units if input_size is None else input_size
+        self._order = order
+        self._reuse = reuse
+
+    @property
+    def state_size(self):
+        return (self._input_size, ) * self._order
+
+    @property
+    def output_size(self):
+        return self._num_units
+
+    def call(self, inputs, state):
+        state = (*state[1:], inputs)
+        prob = 0.75
+        if self._reuse:
+            prob = 1.0
+        h = tf.nn.dropout(tf.concat(state, axis=-1), prob)
+        output = tf.layers.dense(h, self._num_units, activation=tf.tanh, use_bias=True,
+                                 reuse=self._reuse)
+        return output, state
 
 
 def create_cells(num_units, num_layers, cell_class=tf.nn.rnn_cell.BasicLSTMCell,

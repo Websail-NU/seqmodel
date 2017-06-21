@@ -22,7 +22,7 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 ## TODO
 
 ### Model
-- [ ] Decode with option to return likelihood
+- [x] Decode with option to return likelihood
 - [ ] Value Network
 
 ### Run
@@ -41,8 +41,8 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - [ ] Option to select reward function from CLI
 
 ### TensorFlow
-- [ ] Upgrade to TensorFlow v1.2
-- [ ] Take advantage of tf.Session.make_callable
+- [x] Upgrade to TensorFlow v1.2
+- [ ] Take advantage of tf.Session.make_callable (need benchmark)
 
 ### Bucket list
 - [ ] Compile my own TensorFlow
