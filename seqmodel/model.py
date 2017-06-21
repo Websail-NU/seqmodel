@@ -198,6 +198,7 @@ class Model(object):
     def _all_keep_prob_shall_be_one(cls, opt):
         return {k: 1.0 for k, _v in opt.items() if 'keep_prob' in k}
 
+
 #####################################
 #     ######  ########  #######     #
 #    ##    ## ##       ##     ##    #
@@ -225,7 +226,7 @@ class SeqModel(Model):
                'emb:init': None, 'emb:add_project': False, 'emb:project_size': -1,
                'emb:project_act': 'tensorflow.tanh',
                'cell:num_units': 32, 'cell:num_layers': 1,
-               'cell:cell_class': 'tensorflow.contrib.rnn.BasicLSTMCell',
+               'cell:cell_class': 'tensorflow.nn.rnn_cell.BasicLSTMCell',
                'cell:in_keep_prob': 1.0, 'cell:out_keep_prob': 1.0,
                'cell:state_keep_prob': 1.0, 'cell:variational': False,
                'rnn:fn': 'tensorflow.nn.dynamic_rnn',

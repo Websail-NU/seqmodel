@@ -111,7 +111,7 @@ def matmul(mat, mat2d, transpose_b=False):
 # Most of below functions assume time major input and output, unless specified
 
 
-def create_cells(num_units, num_layers, cell_class=tf.contrib.rnn.BasicLSTMCell,
+def create_cells(num_units, num_layers, cell_class=tf.nn.rnn_cell.BasicLSTMCell,
                  reuse=False, in_keep_prob=1.0, out_keep_prob=1.0, state_keep_prob=1.0,
                  variational=False, input_size=None, dropout_last_output=True):
     """return an RNN cell with optionally DropoutWrapper and MultiRNNCell."""
@@ -124,7 +124,7 @@ def create_cells(num_units, num_layers, cell_class=tf.contrib.rnn.BasicLSTMCell,
             out_keep_prob = 1.0
         any_drop = any(kp < 1.0 for kp in [in_keep_prob, out_keep_prob, state_keep_prob])
         if any_drop:
-            cell = tf.contrib.rnn.DropoutWrapper(
+            cell = tf.nn.rnn_cell.DropoutWrapper(
                 cell, in_keep_prob, out_keep_prob, state_keep_prob, variational,
                 input_size, tf.float32)
         input_size = cell.output_size
@@ -134,7 +134,7 @@ def create_cells(num_units, num_layers, cell_class=tf.contrib.rnn.BasicLSTMCell,
     if num_layers == 1:
         final_cell = cells[0]
     else:
-        final_cell = tf.contrib.rnn.MultiRNNCell(cells)
+        final_cell = tf.nn.rnn_cell.MultiRNNCell(cells)
     return final_cell
 
 
