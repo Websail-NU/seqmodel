@@ -4,6 +4,30 @@ import tensorflow as tf
 from seqmodel import util
 
 
+class NGramCell(tf.nn.rnn_cell.RNNCell):
+    def __init__(self, num_units, input_size=None, order=4, reuse=None):
+        super(NGramCell, self).__init__(_reuse=reuse)
+        self._num_units = num_units
+        self._input_size = num_units if input_size is None else input_size
+        self._order = order
+        self._reuse = reuse
+
+    @property
+    def state_size(self):
+        return (self._input_size, ) * self._order
+
+    @property
+    def output_size(self):
+        return self._num_units
+
+    def call(self, inputs, state):
+        state = (*state[1:], inputs)
+        h = tf.concat(state, axis=-1)
+        output = tf.layers.dense(h, self._num_units, activation=tf.tanh, use_bias=True,
+                                 reuse=self._reuse)
+        return output, state
+
+
 def create_seq_data_graph(in_data, out_data, prefix='decoder'):
     x_arr, x_len = util.hstack_list(in_data, padding=0, dtype=np.int32)
     y_arr, y_len = util.hstack_list(out_data, padding=0, dtype=np.int32)

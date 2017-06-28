@@ -111,30 +111,6 @@ def matmul(mat, mat2d, transpose_b=False):
 # Most of below functions assume time major input and output, unless specified
 
 
-class NGramCell(tf.nn.rnn_cell.RNNCell):
-    def __init__(self, num_units, input_size=None, order=4, reuse=None):
-        super(NGramCell, self).__init__(_reuse=reuse)
-        self._num_units = num_units
-        self._input_size = num_units if input_size is None else input_size
-        self._order = order
-        self._reuse = reuse
-
-    @property
-    def state_size(self):
-        return (self._input_size, ) * self._order
-
-    @property
-    def output_size(self):
-        return self._num_units
-
-    def call(self, inputs, state):
-        state = (*state[1:], inputs)
-        h = tf.concat(state, axis=-1)
-        output = tf.layers.dense(h, self._num_units, activation=tf.tanh, use_bias=True,
-                                 reuse=self._reuse)
-        return output, state
-
-
 def create_cells(num_units, num_layers, cell_class=tf.nn.rnn_cell.BasicLSTMCell,
                  reuse=False, in_keep_prob=1.0, out_keep_prob=1.0, state_keep_prob=1.0,
                  variational=False, input_size=None, dropout_last_output=True,
