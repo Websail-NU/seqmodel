@@ -19,7 +19,8 @@ __all__ = ['open_files', 'read_lines', 'read_seq_data', 'read_seq2seq_data',
            'batch_iter', 'seq_batch_iter', 'seq2seq_batch_iter', 'position_batch_iter',
            'get_batch_data', 'reward_match_label', 'read_word2def_data', 'count_ngrams',
            'word2def_batch_iter', 'reward_ngram_lm', 'concat_word2def_batch',
-           'make_ngrams', 'reward_constant', 'reward_progressive_match_label']
+           'make_ngrams', 'reward_constant', 'reward_progressive_match_label',
+           'reward_bleu']
 
 ##################################################
 #    ######## #### ##       ########  ######     #
@@ -107,7 +108,7 @@ def read_seq2seq_data(tokenized_lines, in_vocab, out_vocab):
 
 
 def read_word2def_data(tokenized_lines, in_vocab, out_vocab, char_vocab,
-                       freq_down_weight=False):
+                       freq_down_weight=False, init_seq_weight=1.0):
     """this is a copy of read_seq2seq_data with character data"""
 
     def tokens2chars(tokens):
@@ -135,9 +136,9 @@ def read_word2def_data(tokenized_lines, in_vocab, out_vocab, char_vocab,
         char_data.append(char_)
         word_data.append(word_)
     if freq_down_weight:
-        seq_weight_data = [1 / freq[w] for w in word_data]
+        seq_weight_data = [init_seq_weight / freq[w] for w in word_data]
     else:
-        seq_weight_data = [1 for __ in range(len(enc_data))]
+        seq_weight_data = [init_seq_weight for __ in range(len(enc_data))]
     return enc_data, word_data, char_data, dec_data, seq_weight_data
 
 
@@ -301,7 +302,7 @@ def _format_word2def(x, w, c, y, sw):
 #####################################################################
 
 
-def reward_constant(sample, batch, constant=-0.05, sample_score=None):
+def reward_constant(sample, batch, constant=-0.1, sample_score=None):
     # return batch.labels.label_weight, np.mean(batch.labels.label_weight)
     seq_len = util.find_first_min_zero(sample)
     mask, __ = util.masked_full_like(
@@ -341,9 +342,22 @@ def reward_match_label(sample, batch, partial_match=True, sample_score=None):
     return match, avgmatch
 
 
-# def reward_bleu(sample, batch, ref_fn):
-
-#     util.sentence_bleu(references, candidate)
+def reward_bleu(sample, batch, ref_fn, reward_incomplete=False, sample_score=None):
+    seq_len = util.find_first_min_zero(sample) + 1
+    scores = np.zeros_like(sample, dtype=np.float32)
+    b_refs = ref_fn(batch)
+    c = 0
+    for ib in range(len(seq_len)):
+        step = seq_len[ib]
+        refs = b_refs[ib]
+        completed = step <= sample.shape[0]
+        if refs is not None:
+            c += 1
+        if refs is not None and (completed or reward_incomplete):
+            if not completed:
+                step = sample.shape[0]
+            scores[step - 1, ib] = util.sentence_bleu(refs, sample[:step, ib])
+    return scores, np.sum(scores) / c
 
 # XXX: Below are experimental functions
 

@@ -116,15 +116,18 @@ def get_nested_dict(d, key_tuple):
     return cur_d
 
 
-def group_data(data_iter, key=None, first_entry=None):
+def group_data(data_iter, key=None, entry=None, first_entry=None):
     defualt = [] if first_entry is None else [first_entry]
     if key is None:
         def key(e):
             return tuple(e[0])
+    if entry is None:
+        def entry(e):
+            return e
     group = {}
     for e in data_iter:
         entries = group.setdefault(key(e), list(defualt))
-        entries.append(e)
+        entries.append(entry(e))
     return group
 
 

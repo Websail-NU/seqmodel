@@ -206,6 +206,22 @@ class TestReward(unittest.TestCase):
         self.assertEqual(avg, np.sum(parti_match / _sample_len) / np.sum(sample_len > 0),
                          'average correct')
 
+    def test_reward_bleu(self):
+        def ref_fn(__):
+            return [[[1, 2, 3, 4, 0], [3, 4, 5, 6, 7, 0]],
+                    [[1, 1, 1, 1, 0]],
+                    None,
+                    [[1, 3, 4, 7, 0]]]
+        sample = np.array([[1, 2, 3, 4, 0], [0, 0, 0, 0, 0],
+                           [1, 2, 4, 7, 9], [1, 2, 4, 7, 9]]).T
+        scores = np.zeros_like(sample, dtype=np.float32)
+        scores[-1, 0] = 1.0
+        scores[0, 1] = 0.010890544041151608
+        bleu, avg_bleu = generator.reward_bleu(sample, None, ref_fn)
+        np.testing.assert_array_equal(bleu, scores, 'BLEU score is correct.')
+        self.assertEqual(avg_bleu, (scores[-1, 0] + scores[0, 1]) / 3,
+                         'Average score is correct.')
+
     def test_reward_ngram_lm(self):
         lm = kenlm.Model('test_data/tiny_single/train.arpa')
         vocab = dstruct.Vocabulary.from_vocab_file('test_data/tiny_single/vocab.txt')
