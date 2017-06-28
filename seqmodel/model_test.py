@@ -168,11 +168,11 @@ class TestSeqModel(tf.test.TestCase):
         with self.test_session(config=self.sess_config) as sess:
             m = model.SeqModel(check_feed_dict=False)
             opt = {'emb:vocab_size': 20, 'emb:dim': 5, 'cell:num_units': 10,
-                   'cell:cell_class': 'tensorflow.contrib.rnn.BasicLSTMCell',
+                   'cell:cell_class': 'tensorflow.nn.rnn_cell.BasicLSTMCell',
                    'logit:output_size': 2}
             expected_vars = {'t/embedding:0': (20, 5),
-                             't/rnn/basic_lstm_cell/weights:0': (10 + 5, 10 * 4),
-                             't/rnn/basic_lstm_cell/biases:0': (10 * 4,),
+                             't/rnn/basic_lstm_cell/kernel:0': (10 + 5, 10 * 4),
+                             't/rnn/basic_lstm_cell/bias:0': (10 * 4,),
                              't/logit_w:0': (2, 10),
                              't/logit_b:0': (2,)}
             n = m.build_graph(opt, name='t')
@@ -216,10 +216,10 @@ class TestSeqModel(tf.test.TestCase):
             n = m.build_graph(opt)
             self.assertEqual(n['emb_vars'].get_shape()[0], 20,
                              'overwrite default options')
-            self.assertEqual(type(n['cell']), tf.contrib.rnn.DropoutWrapper,
+            self.assertEqual(type(n['cell']), tf.nn.rnn_cell.DropoutWrapper,
                              'overwrite default options')
             n = m.build_graph(opt, reuse=True, **{'cell:in_keep_prob': 1.0})
-            self.assertEqual(type(n['cell']), tf.contrib.rnn.BasicLSTMCell,
+            self.assertEqual(type(n['cell']), tf.nn.rnn_cell.BasicLSTMCell,
                              'overwrite default options with kwargs')
 
     def test_build_reuse(self):
@@ -228,7 +228,7 @@ class TestSeqModel(tf.test.TestCase):
             n = m.build_graph()
             num_vars = len(tf.global_variables())
             n = m.build_graph(reuse=True, no_dropout=True)
-            self.assertEqual(type(n['cell']), tf.contrib.rnn.BasicLSTMCell,
+            self.assertEqual(type(n['cell']), tf.nn.rnn_cell.BasicLSTMCell,
                              'overwrite default options with kwargs')
             num_vars_ = len(tf.global_variables())
             self.assertEqual(num_vars, num_vars, 'no new variables when reuse is True')
@@ -252,12 +252,12 @@ class TestSeq2SeqModel(tf.test.TestCase):
         with self.test_session(config=self.sess_config) as sess:
             m = model.Seq2SeqModel(check_feed_dict=False)
             opt = {'emb:vocab_size': 20, 'emb:dim': 5, 'cell:num_units': 10,
-                   'cell:cell_class': 'tensorflow.contrib.rnn.BasicLSTMCell'}
+                   'cell:cell_class': 'tensorflow.nn.rnn_cell.BasicLSTMCell'}
             opt = {f'{n}:{k}': v for k, v in opt.items() for n in ('enc', 'dec')}
             opt['dec:logit:output_size'] = 2
             expected_vars = {'embedding:0': (20, 5),
-                             'rnn/basic_lstm_cell/weights:0': (10 + 5, 10 * 4),
-                             'rnn/basic_lstm_cell/biases:0': (10 * 4,)}
+                             'rnn/basic_lstm_cell/kernel:0': (10 + 5, 10 * 4),
+                             'rnn/basic_lstm_cell/bias:0': (10 * 4,)}
             expected_vars = {f't/{n}/{k}': v for k, v in expected_vars.items()
                              for n in ('enc', 'dec')}
             expected_vars.update({'t/dec/logit_w:0': (2, 10), 't/dec/logit_b:0': (2,)})
@@ -273,7 +273,7 @@ class TestSeq2SeqModel(tf.test.TestCase):
         with self.test_session(config=self.sess_config) as sess:
             m = model.Seq2SeqModel(check_feed_dict=False)
             opt = {'emb:vocab_size': 20, 'emb:dim': 5, 'cell:num_units': 10,
-                   'cell:cell_class': 'tensorflow.contrib.rnn.BasicLSTMCell'}
+                   'cell:cell_class': 'tensorflow.nn.rnn_cell.BasicLSTMCell'}
             opt = {f'{n}:{k}': v for k, v in opt.items() for n in ('enc', 'dec')}
             opt['dec:logit:output_size'] = 2
             n = m.build_graph(opt, name='t', **{'share:enc_dec_emb': True})
@@ -288,17 +288,17 @@ class TestSeq2SeqModel(tf.test.TestCase):
         with self.test_session(config=self.sess_config) as sess:
             m = model.Seq2SeqModel(check_feed_dict=False)
             opt = {'emb:vocab_size': 20, 'emb:dim': 5, 'cell:num_units': 10,
-                   'cell:cell_class': 'tensorflow.contrib.rnn.BasicLSTMCell'}
+                   'cell:cell_class': 'tensorflow.nn.rnn_cell.BasicLSTMCell'}
             opt = {f'{n}:{k}': v for k, v in opt.items() for n in ('enc', 'dec')}
             opt['dec:logit:output_size'] = 2
             c = 0
             n = m.build_graph(opt=opt, name='q', **{'share:enc_dec_rnn': True})
             for v in tf.global_variables():
-                self.assertNotEqual(v.name, 'q/dec/rnn/basic_lstm_cell/weights:0',
+                self.assertNotEqual(v.name, 'q/dec/rnn/basic_lstm_cell/kernel:0',
                                     'no decoder rnn')
-                self.assertNotEqual(v.name, 'q/dec/rnn/basic_lstm_cell/biases:0',
+                self.assertNotEqual(v.name, 'q/dec/rnn/basic_lstm_cell/bias:0',
                                     'no decoder rnn')
-                if 'rnn/basic_lstm_cell/weights:0' in v.name:
+                if 'rnn/basic_lstm_cell/kernel:0' in v.name:
                     c += 1
             self.assertEqual(c, 1, 'only one cell')
 
@@ -306,7 +306,7 @@ class TestSeq2SeqModel(tf.test.TestCase):
         with self.test_session(config=self.sess_config) as sess:
             m = model.Seq2SeqModel(check_feed_dict=False)
             opt = {'emb:vocab_size': 20, 'emb:dim': 5, 'cell:num_units': 10,
-                   'cell:cell_class': 'tensorflow.contrib.rnn.BasicLSTMCell'}
+                   'cell:cell_class': 'tensorflow.nn.rnn_cell.BasicLSTMCell'}
             opt = {f'{n}:{k}': v for k, v in opt.items() for n in ('enc', 'dec')}
             opt['dec:logit:output_size'] = 2
             c_rnn = 0
@@ -315,11 +315,11 @@ class TestSeq2SeqModel(tf.test.TestCase):
                 opt=opt, name='q',
                 **{'share:enc_dec_emb': True, 'share:enc_dec_rnn': True})
             for v in tf.global_variables():
-                self.assertNotEqual(v.name, 'q/dec/rnn/basic_lstm_cell/weights:0',
+                self.assertNotEqual(v.name, 'q/dec/rnn/basic_lstm_cell/kernel:0',
                                     'no decoder rnn')
-                self.assertNotEqual(v.name, 'q/dec/rnn/basic_lstm_cell/biases:0',
+                self.assertNotEqual(v.name, 'q/dec/rnn/basic_lstm_cell/bias:0',
                                     'no decoder rnn')
-                if 'rnn/basic_lstm_cell/weights:0' in v.name:
+                if 'rnn/basic_lstm_cell/kernel:0' in v.name:
                     c_rnn += 1
                 self.assertNotEqual(v.name, 't/dec/embedding:0', 'no decoder emb')
                 if '/embedding:0' in v.name:
@@ -352,14 +352,14 @@ class TestWord2DefModel(tf.test.TestCase):
         with self.test_session(config=self.sess_config) as sess:
             m = model.Word2DefModel(check_feed_dict=False)
             opt = {'emb:vocab_size': 20, 'emb:dim': 5, 'cell:num_units': 10,
-                   'cell:cell_class': 'tensorflow.contrib.rnn.BasicLSTMCell',
+                   'cell:cell_class': 'tensorflow.nn.rnn_cell.BasicLSTMCell',
                    'cell:out_keep_prob': 0.5}
             opt = {f'{n}:{k}': v for k, v in opt.items() for n in ('enc', 'dec')}
             opt['dec:logit:output_size'] = 2
             opt['wbdef:keep_prob'] = 0.5
             expected_vars = {'embedding:0': (20, 5),
-                             'rnn/basic_lstm_cell/weights:0': (10 + 5, 10 * 4),
-                             'rnn/basic_lstm_cell/biases:0': (10 * 4,)}
+                             'rnn/basic_lstm_cell/kernel:0': (10 + 5, 10 * 4),
+                             'rnn/basic_lstm_cell/bias:0': (10 * 4,)}
             expected_vars = {f't/{n}/{k}': v for k, v in expected_vars.items()
                              for n in ('enc', 'dec')}
             expected_vars.update({'t/dec/logit_w:0': (2, 10), 't/dec/logit_b:0': (2,)})
@@ -372,7 +372,7 @@ class TestWord2DefModel(tf.test.TestCase):
                                   't/wbdef/h_w:0': (145, 10),
                                   't/wbdef/h_b:0': (10,)})
             n = m.build_graph(opt, name='t')
-            self.assertIsInstance(n['dec']['cell'], tf.contrib.rnn.BasicLSTMCell,
+            self.assertIsInstance(n['dec']['cell'], tf.nn.rnn_cell.BasicLSTMCell,
                                   'no dropout at the final cell (1-layer)')
             for name in ('wbdef', 'updated_output'):
                 self.assertTrue('dropout' in n['bridge'][name].name, 'dropout')
@@ -392,7 +392,7 @@ class TestWord2DefModel(tf.test.TestCase):
             opt['wbdef:keep_prob'] = 0.5
             n = m.build_graph(opt, name='t')
             self.assertNotEqual(type(n['dec']['cell']._cells[-1]),
-                                tf.contrib.rnn.DropoutWrapper)
+                                tf.nn.rnn_cell.DropoutWrapper)
             self.assertTrue('dropout' in n['bridge']['updated_output'].name)
             self.assertTrue('dropout' in n['bridge']['wbdef'].name)
 

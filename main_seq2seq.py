@@ -7,17 +7,19 @@ import numpy as np
 from _main import sq
 from _main import mle
 from _main import policy_gradient
+from _main import decode
 
 if __name__ == '__main__':
     start_time = time.time()
     group_default = {'model': sq.Seq2SeqModel.default_opt(),
                      'train': sq.default_training_opt(),
-                     'pg': sq.policy_gradient_opt()}
+                     'pg': sq.policy_gradient_opt(),
+                     'decode': sq.default_decoding_opt()}
     parser = sq.get_common_argparser('main_seq2seq.py')
     sq.add_arg_group_defaults(parser, group_default)
     opt, groups = sq.parse_set_args(parser, group_default, dup_replaces=('enc:', 'dec:'))
     logger, all_opt = sq.init_exp_opts(opt, groups, group_default)
-    opt, model_opt, train_opt, pg_opt = all_opt
+    opt, model_opt, train_opt, decode_opt, pg_opt = all_opt
 
     def data_fn():
         dpath = partial(os.path.join, opt['data_dir'])
@@ -32,7 +34,21 @@ if __name__ == '__main__':
         return data, batch_iter, (enc_vocab, dec_vocab)
 
     if opt['command'] == 'decode':
-        raise NotImplemented
+        with open(decode_opt['decode:outpath'], 'w') as ofp:
+            def decode_batch(batch, samples, vocabs):
+                b_enc = vocabs[0].i2w(batch.features.enc_inputs.T)
+                b_enc_len = batch.features.enc_seq_len
+                for b_samples in samples:
+                    b_seq_len = sq.find_first_min_zero(b_samples)
+                    for enc, enc_len, dec, dec_len in zip(
+                            b_enc, b_enc_len, b_samples.T, b_seq_len):
+                        if enc[0] == '</s>':
+                            continue
+                        enc_text = ' '.join(enc[:enc_len - 1])
+                        dec_text = ' '.join(vocabs[1].i2w(dec[:dec_len]))
+                        ofp.write(f'{enc_text}\t{dec_text}\n')
+            decode(opt, model_opt, decode_opt, decode_batch, logger,
+                   data_fn, sq.Seq2SeqModel)
     else:
         if pg_opt['pg:enable']:
             policy_gradient(opt, model_opt, train_opt, pg_opt, logger, data_fn,

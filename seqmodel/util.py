@@ -16,7 +16,7 @@ __all__ = ['dict_with_key_startswith', 'dict_with_key_endswith', 'get_with_dot_k
            'hstack_list', 'masked_full_like', 'get_logger', 'get_common_argparser',
            'parse_set_args', 'add_arg_group_defaults', 'ensure_dir', 'time_span_str',
            'init_exp_opts', 'save_exp', 'load_exp', 'hstack_with_padding',
-           'vstack_with_padding', 'group_data']
+           'vstack_with_padding', 'group_data', 'find_first_min_zero']
 
 
 def time_span_str(seconds):
@@ -116,15 +116,18 @@ def get_nested_dict(d, key_tuple):
     return cur_d
 
 
-def group_data(data_iter, key=None, first_entry=None):
+def group_data(data_iter, key=None, entry=None, first_entry=None):
     defualt = [] if first_entry is None else [first_entry]
     if key is None:
         def key(e):
             return tuple(e[0])
+    if entry is None:
+        def entry(e):
+            return e
     group = {}
     for e in data_iter:
         entries = group.setdefault(key(e), list(defualt))
-        entries.append(e)
+        entries.append(entry(e))
     return group
 
 
@@ -183,6 +186,11 @@ def masked_full_like(np_data, value, num_non_padding=None, padding=0, dtype=np.f
             arr[last:, i] = 0
     return arr, total_non_pad
 
+
+def find_first_min_zero(arr):
+    return np.max(np.vstack(
+        [np.apply_along_axis(np.argmax, 0, arr == 0),
+         np.full(arr.shape[1], arr.shape[0]) * (np.min(arr, axis=0) != 0)]), axis=0)
 
 # Not faster
 # def masked_full_like(np_data, value, num_non_padding=None, padding=0,

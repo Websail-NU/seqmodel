@@ -25,13 +25,13 @@ def _no_run(*args, **kwargs):
 def default_training_opt():
     return {'train:max_epoch': 10, 'train:init_lr': 0.001, 'train:clip_gradients': 10.0,
             'train:optim_class': 'tensorflow.train.AdamOptimizer',
-            'optim:epsilon': 1e-3, 'lr:min_lr': 1e-6, 'lr:start_decay_at': 1,
+            'optim:epsilon': 1e-4, 'lr:min_lr': 1e-6, 'lr:start_decay_at': 1,
             'lr:decay_every': 1, 'lr:decay_factor': 1.0, 'lr:imp_ratio_threshold': 0.0,
             'lr:imp_wait': 2}
 
 
 def policy_gradient_opt():
-    return {'pg:enable': False, 'pg:discount': 0.9}
+    return {'pg:enable': False, 'pg:discount': 0.9, 'pg:sample_logprob': False}
 
 
 def default_decoding_opt():
@@ -125,23 +125,34 @@ def _acc_discounted_rewards(rewards, discount_factor, baseline=1e-4):
 
 def run_sampling_epoch(sess, model, batch_iter, train_op=None, reward_fn=None,
                        greedy=False, discount_factor=0.9, pack_data_fn=None,
-                       return_fn=_acc_discounted_rewards):
+                       return_fn=_acc_discounted_rewards, with_score=False,
+                       return_feed_fn=None):
     if pack_data_fn is None:
-        pack_data_fn = partial(bgt.get_batch_data, input_key='dec_inputs',
-                               seq_len_key='dec_seq_len')  # assume seq2seq data
+        def pack_data_fn(batch, sample, ret):
+            # assume seq2seq data
+            pg_batch = bgt.get_batch_data(batch, sample, input_key='dec_inputs',
+                                          seq_len_key='dec_seq_len')
+            return pg_batch, ret
     assert reward_fn is not None, 'reward_fn must not be None.'
     decode_fn = model.decode_sampling
-    if greedy:
+    if greedy and with_score:
+        decode_fn = model.decode_greedy_w_score
+    elif greedy:
         decode_fn = model.decode_greedy
-    train_result = None
+    elif with_score:
+        decode_fn = model.decode_sampling_w_score
+    train_result, score = None, None
     info = ds.RunSamplingInfo()
     for batch in batch_iter():
         sample, __ = decode_fn(sess, batch.features)
-        reward, avg_reward = reward_fn(sample, batch)
+        if with_score:
+            sample, score = sample
+        reward, avg_reward = reward_fn(sample, batch, sample_score=score)
         num_tokens = batch.num_tokens
         if train_op is not None:
             ret = return_fn(reward, discount_factor)
-            train_batch = pack_data_fn(batch, sample, ret)
+            train_batch, ret = pack_data_fn(batch, sample, ret)
+            return_feed_fn(ret)
             train_result, __ = model.train(
                 sess, train_batch.features, train_batch.labels, train_op=train_op)
             num_tokens = train_batch.num_tokens

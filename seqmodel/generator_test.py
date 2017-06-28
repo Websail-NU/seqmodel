@@ -188,23 +188,39 @@ class TestReward(unittest.TestCase):
         sample = np.array([[12, 10, 10, 0], [12, 8, 7, 0], [11, 4, 11, 0], [8, 13, 9, 0],
                            [7, 5, 11, 0], [0, 12, 12, 0], [0, 1, 0, 0], [0, 1, 0, 0],
                            [0, 0, 0, 0]])
-        exact_match = np.array([[0, 0, 1, 0], [0, 0, 1, 0], [0, 0, 1, 0], [0, 0, 1, 0],
-                                [0, 0, 1, 0], [0, 0, 1, 0], [0, 0, 1, 0], [0, 0, 0, 0],
+        exact_match = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0],
+                                [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 0],
                                 [0, 0, 0, 0]])
         parti_match = np.array([[1, 1, 1, 0], [1, 1, 1, 0], [0, 1, 1, 0], [1, 1, 1, 0],
                                 [1, 1, 1, 0], [1, 1, 1, 0], [0, 0, 1, 0], [0, 0, 0, 0],
                                 [0, 0, 0, 0]])
         sample_len = np.array([6., 9., 7., 0.])
         _sample_len = np.array([6., 9., 7., 1.])  # for division
-        m, avg = generator.reward_match_label(sample, batch)
+        m, avg = generator.reward_match_label(sample, batch, partial_match=False)
         np.testing.assert_array_equal(m, exact_match, 'label exact match reward')
-        self.assertEqual(avg, np.sum(exact_match) / np.sum(sample_len),
+        self.assertEqual(avg, 1 / 3,
                          'average correct')
         m, avg = generator.reward_match_label(sample, batch, partial_match=True)
         np.testing.assert_array_equal(m, parti_match / _sample_len,
                                       'label match reward')
-        self.assertEqual(avg, np.sum(parti_match / _sample_len) / np.sum(sample_len),
+        self.assertEqual(avg, np.sum(parti_match / _sample_len) / np.sum(sample_len > 0),
                          'average correct')
+
+    def test_reward_bleu(self):
+        def ref_fn(__):
+            return [[[1, 2, 3, 4, 0], [3, 4, 5, 6, 7, 0]],
+                    [[1, 1, 1, 1, 0]],
+                    None,
+                    [[1, 3, 4, 7, 0]]]
+        sample = np.array([[1, 2, 3, 4, 0], [0, 0, 0, 0, 0],
+                           [1, 2, 4, 7, 9], [1, 2, 4, 7, 9]]).T
+        scores = np.zeros_like(sample, dtype=np.float32)
+        scores[-1, 0] = 1.0
+        scores[0, 1] = 0.010890544041151608
+        bleu, avg_bleu = generator.reward_bleu(sample, None, ref_fn)
+        np.testing.assert_array_equal(bleu, scores, 'BLEU score is correct.')
+        self.assertEqual(avg_bleu, (scores[-1, 0] + scores[0, 1]) / 3,
+                         'Average score is correct.')
 
     def test_reward_ngram_lm(self):
         lm = kenlm.Model('test_data/tiny_single/train.arpa')
@@ -212,6 +228,7 @@ class TestReward(unittest.TestCase):
         sample = np.arange(1, 13).reshape((4, 3))
         sample[-1, :] = 0
         scores, avg_score = generator.reward_ngram_lm(sample, None, lm, vocab)
+        # np.random.randn(*sample.shape))
         np.testing.assert_array_less(scores, 1, err_msg='scores less than 1')
         np.testing.assert_array_less(-1 * scores, 0.0001,
                                      err_msg='scores more than 0')

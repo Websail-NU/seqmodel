@@ -11,6 +11,7 @@ vocab_path = sys.argv[2]
 data_path = sys.argv[3]
 num_iters = int(sys.argv[4])
 out_path = sys.argv[5]
+greedy = sys.argv[6] == 'True'
 
 lm = kenlm.Model(lm_path)
 vocab = sq.Vocabulary.from_vocab_file(vocab_path)
@@ -29,6 +30,7 @@ with open(out_path, 'w') as ofp:
             state1, state2 = kenlm.State(), kenlm.State()
             lm.BeginSentenceWrite(state1)
             sentence = [wbdef, '<def>']
+            senprob = []
             lm.BaseScore(state1, wbdef, state2)
             state1, state2 = state2, state1
             lm.BaseScore(state1, '<def>', state2)
@@ -39,11 +41,18 @@ with open(out_path, 'w') as ofp:
                     prob[i] = lm.BaseScore(state1, vocab.i2w(i), state2)
                 prob = np.power(10, prob)
                 prob = prob / prob.sum()
-                word = vocab.i2w(np.random.choice(choices, p=prob))
+                if greedy:
+                    wid = np.argmax(prob)
+                else:
+                    wid = np.random.choice(choices, p=prob)
+                p = prob[wid]
+                word = vocab.i2w(wid)
                 sentence.append(word)
+                senprob.append(p)
                 if len(sentence) > 42:
                     break
                 lm.BaseScore(state1, word, state2)
                 state1, state2 = state2, state1
             sentence = ' '.join(sentence[:-1])
-            ofp.write(f'{sentence}\n')
+            senprob = ' '.join((str(np.log(p)) for p in senprob))
+            ofp.write(f'{sentence}\t{senprob}\n')

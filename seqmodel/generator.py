@@ -19,7 +19,8 @@ __all__ = ['open_files', 'read_lines', 'read_seq_data', 'read_seq2seq_data',
            'batch_iter', 'seq_batch_iter', 'seq2seq_batch_iter', 'position_batch_iter',
            'get_batch_data', 'reward_match_label', 'read_word2def_data', 'count_ngrams',
            'word2def_batch_iter', 'reward_ngram_lm', 'concat_word2def_batch',
-           'make_ngrams', 'reward_constant']
+           'make_ngrams', 'reward_constant', 'reward_progressive_match_label',
+           'reward_bleu']
 
 ##################################################
 #    ######## #### ##       ########  ######     #
@@ -107,7 +108,7 @@ def read_seq2seq_data(tokenized_lines, in_vocab, out_vocab):
 
 
 def read_word2def_data(tokenized_lines, in_vocab, out_vocab, char_vocab,
-                       freq_down_weight=False):
+                       freq_down_weight=False, init_seq_weight=1.0):
     """this is a copy of read_seq2seq_data with character data"""
 
     def tokens2chars(tokens):
@@ -135,9 +136,9 @@ def read_word2def_data(tokenized_lines, in_vocab, out_vocab, char_vocab,
         char_data.append(char_)
         word_data.append(word_)
     if freq_down_weight:
-        seq_weight_data = [1 / freq[w] for w in word_data]
+        seq_weight_data = [init_seq_weight / freq[w] for w in word_data]
     else:
-        seq_weight_data = [1 for __ in range(len(enc_data))]
+        seq_weight_data = [init_seq_weight for __ in range(len(enc_data))]
     return enc_data, word_data, char_data, dec_data, seq_weight_data
 
 
@@ -301,16 +302,17 @@ def _format_word2def(x, w, c, y, sw):
 #####################################################################
 
 
-def reward_constant(sample, batch, constant=-0.05):
-    seq_len = np.argmin(sample, axis=0)
+def reward_constant(sample, batch, constant=-0.1, sample_score=None):
+    # return batch.labels.label_weight, np.mean(batch.labels.label_weight)
+    seq_len = util.find_first_min_zero(sample)
     mask, __ = util.masked_full_like(
         sample, 1, num_non_padding=seq_len + 1, dtype=np.int32)
     mask = mask * (seq_len > 0) * constant
-    return mask, np.mean(seq_len) * constant
+    return mask * constant, np.mean(seq_len + 1) * constant
 
 
-def reward_match_label(sample, batch, partial_match=False):
-    seq_len = np.argmin(sample, axis=0)
+def reward_match_label(sample, batch, partial_match=True, sample_score=None):
+    seq_len = util.find_first_min_zero(sample)
     mask, __ = util.masked_full_like(
         sample, 1, num_non_padding=seq_len + 1, dtype=np.int32)
     mask = mask * (seq_len > 0)
@@ -330,43 +332,101 @@ def reward_match_label(sample, batch, partial_match=False):
         elif len(_sample) < len(_label):
             match = match[:len(_sample), :]
     else:
-        match = (np.sum(diff, axis=0) == 0).astype(np.float32)
-        match = np.tile(match, (len(_sample), 1))
+        sumdiff = np.sum(diff, axis=0)
+        match = np.zeros_like(sample, dtype=np.float32)
+        for ib in range(seq_len.shape[0]):
+            if sumdiff[ib] == 0:
+                match[seq_len[ib], ib] = 1
     match = match * mask
-    return match, np.sum(match) / np.sum(mask)
+    avgmatch = np.sum(match) / np.sum(seq_len > 0)
+    return match, avgmatch
 
 
-# def reward_bleu(sample, batch, ref_fn):
-
-#     util.sentence_bleu(references, candidate)
+def reward_bleu(sample, batch, ref_fn, reward_incomplete=False, sample_score=None):
+    seq_len = util.find_first_min_zero(sample) + 1
+    scores = np.zeros_like(sample, dtype=np.float32)
+    b_refs = ref_fn(batch)
+    c = 0
+    for ib in range(len(seq_len)):
+        step = seq_len[ib]
+        refs = b_refs[ib]
+        completed = step <= sample.shape[0]
+        if refs is not None:
+            c += 1
+        if refs is not None and (completed or reward_incomplete):
+            if not completed:
+                step = sample.shape[0]
+            scores[step - 1, ib] = util.sentence_bleu(refs, sample[:step, ib])
+    return scores, np.sum(scores) / c
 
 # XXX: Below are experimental functions
 
-def reward_ngram_lm(sample, batch, lm, vocab, token_score=True):
-    # XXX: This is incredibly inefficient. We need a better way to get sequence
-    # likelihood from LM using a list of word ids.
-    seq_len = np.argmin(sample, axis=0)
+
+def reward_progressive_match_label(sample, batch, sample_score=None):
+    seq_len = util.find_first_min_zero(sample)
     mask, __ = util.masked_full_like(
         sample, 1, num_non_padding=seq_len + 1, dtype=np.int32)
     mask = mask * (seq_len > 0)
-    # sample, _sample = sample * mask, sample
+    sample, _sample = sample * mask, sample
+    label = _label = batch.labels.label
+    pad_width = abs(len(sample) - len(label))
+    pad_width = ((0, pad_width), (0, 0))
+    if len(label) < len(sample):
+        label = np.pad(label, pad_width, 'constant', constant_values=0)
+    elif len(sample) < len(label):
+        sample = np.pad(sample, pad_width, 'constant', constant_values=0)
+    diff = np.abs(sample - label)
+    match = (diff == 0).astype(np.float32)  # / batch.features.dec_seq_len
+    if len(_label) < len(_sample):
+        match[len(_label) - 1:, :] = 0
+    elif len(_sample) < len(_label):
+        match = match[:len(_sample), :]
+    avgmatch = np.sum(match * mask) / np.sum(mask)
+    summatch = np.sum(match, axis=0)
+    mismatch = np.argmin(match, axis=0)
+    mismatch_mask, __ = util.masked_full_like(match, 1, num_non_padding=mismatch)
+    match = match * mismatch_mask
+    for ib in range(sample.shape[1]):
+        if summatch[ib] > 0 and mismatch[ib] == 0:
+            continue
+        match[mismatch[ib], ib] = -0.1
+    return match, avgmatch
+
+
+def reward_ngram_lm(sample, batch, lm, vocab, token_score=True, sample_score=None):
+    # XXX: This is incredibly inefficient. We need a better way to get sequence
+    # likelihood from LM using a list of word ids.
+
+    if sample_score is None:
+        def score(s):
+            return np.power(10, s)
+    else:
+        def score(s):
+            score = (s / np.log10(np.e)) - sample_score[it, ib]
+            return score
+
+    seq_len = np.argmin(sample, axis=0)
+    mask, __ = util.masked_full_like(
+        sample, 1, num_non_padding=seq_len + 1, dtype=np.int32)
+    sample, _sample = sample * mask, sample
     scores = np.zeros_like(sample, dtype=np.float32)
     words = vocab.i2w(sample)
     for ib in range(sample.shape[1]):
-        # state1, state2 = kenlm.State(), kenlm.State()
-        # lm.BeginSentenceWrite(state1)
-        sentence = []
+        state1, state2 = kenlm.State(), kenlm.State()
+        lm.BeginSentenceWrite(state1)
+        # sentence = []
         for it in range(sample.shape[0]):
-            # scores[it, ib] = lm.BaseScore(state1, words[it][ib], state2)
-            # state1, state2 = state2, state1
+            s = lm.BaseScore(state1, words[it][ib], state2)
+            scores[it, ib] = score(s)
+            state1, state2 = state2, state1
             if words[it][ib] == '</s>':
-                scores[it, ib] = 1 / (1 + lm.perplexity(' '.join(sentence)))
+                # scores[it, ib] = 1 / (1 + lm.perplexity(' '.join(sentence)))
                 break
-            sentence.append(words[it][ib])
-    # scores = np.power(10, scores) * mask
+            # sentence.append(words[it][ib])
+    # scores = scores * mask
     # scores = (1 / (1 - scores)) * mask
-    # return scores, np.sum(scores) / np.sum(mask)
-    return scores, np.sum(scores) / len(seq_len)
+    return scores, np.sum(scores) / np.sum(mask)
+    # return scores, np.sum(scores) / len(seq_len)
 
 
 def make_ngrams(sequence, n, left_pad, right_pad):
@@ -390,8 +450,8 @@ def count_ngrams(tokenized_lines, n, token_vocab=None, left_pad='<s>', right_pad
 
 
 def reward_global_ngram_stat(sample, batch, global_count, current_count, update_fn,
-                             ngram_fn):
-    seq_len = np.argmin(sample, axis=0)
+                             ngram_fn, sample_score=None):
+    seq_len = util.find_first_min_zero(sample)
     scores = np.zeros_like(sample, dtype=np.float32)
     batch_ngrams = []
     for ib in range(sample.shape[1]):
