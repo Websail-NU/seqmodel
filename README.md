@@ -22,32 +22,24 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 ## TODO
 
 ### Model
-- [x] Decode with option to return likelihood
-- [ ] Value Network
+- [ ] Value Network and A2C
 
 ### Run
-- [x] Add teacher forcing
 - [ ] TD(lambda)
 - [ ] Bootstrap last state if not terminal
 
 ### Generator
 - [ ] Option to randomly select sequences of the same encode input
-- [ ] Reward functions for NLG (i.e. BLEU and token match)
 
 ### Scripts
-- [x] Merge _main.decode function into _main function
-- [x] Decoding option group
-- [ ] BLEU evaluation script
 - [ ] Option to select reward function from CLI
 
 ### TensorFlow
-- [x] Upgrade to TensorFlow v1.2
 - [ ] Take advantage of tf.Session.make_callable (need benchmark)
 
 ### Bucket list
 - [ ] Compile my own TensorFlow
 - [ ] Use tf.summary for tensorboard.
-- [ ] Wrap manual attention in definition model to RNNCell
 - [ ] It would be nice if we do not need to fecth state and feed it back in when
       training a langauge model (sentence dependent).
 - [ ] Ensure the indices of `</s>` and `<s>` are 0 and 1,
