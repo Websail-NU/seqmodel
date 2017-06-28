@@ -13,7 +13,7 @@ special_symbols = Vocabulary.special_symbols
 def write_vocab(path, vocab, opt):
     opt = vars(opt)
     with codecs.open(path, 'w', 'utf-8') as ofp:
-        if not opt.char_level:
+        if not opt['char_level']:
             for k in special_symbols:
                 if opt[k]:
                     ofp.write('{}\n'.format(special_symbols[k]))

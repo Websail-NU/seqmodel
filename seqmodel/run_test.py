@@ -127,23 +127,26 @@ class TestSamplingRun(tf.test.TestCase):
             m = tfm.Seq2SeqModel()
             n = m.build_graph()
             m.set_default_feed('dec.train_loss_denom', 20)
-            optimizer = tf.train.AdamOptimizer(0.005, epsilon=1e-3)
-            train_op = optimizer.minimize(m.training_loss)
+            return_ph = tf.placeholder(tf.float32, shape=(None, None), name='return')
+            train_op = graph.create_train_op(m.training_loss, epsilon=1e-5)
+            train_pg_op = graph.create_pg_train_op(m.nll, return_ph, epsilon=1e-5)
+            return_feed_fn = partial(m.set_default_feed, return_ph)
             sess.run(tf.global_variables_initializer())
             run_fn = partial(run.run_epoch, sess, m, batch_iter)
-            for __ in range(10):  # do some pre-train
+            for __ in range(5):  # do some pre-train
                 train_info = run_fn(train_op=train_op)
                 # print(train_info.summary())
             reward_fn = generator.reward_match_label
             eval_info = run.run_sampling_epoch(
-                sess, m, batch_iter, reward_fn, greedy=True)
+                sess, m, batch_iter, greedy=True, reward_fn=reward_fn)
             # print(eval_info.summary('eval'))
-            run_fn = partial(run.run_sampling_epoch, sess, m, batch_iter, reward_fn)
-            for __ in range(4):
-                train_info = run_fn(train_op=train_op)
+            run_fn = partial(run.run_sampling_epoch, sess, m, batch_iter,
+                             reward_fn=reward_fn)
+            for __ in range(10):
+                train_info = run_fn(train_op=train_pg_op, return_feed_fn=return_feed_fn)
                 # print(train_info.summary())
             eval_info2 = run.run_sampling_epoch(
-                sess, m, batch_iter, reward_fn, greedy=True)
+                sess, m, batch_iter, greedy=True, reward_fn=reward_fn)
             # print(eval_info2.summary('eval'))
             self.assertLess(eval_info2.eval_loss, eval_info.eval_loss,
                             'after training, eval loss is lower.')

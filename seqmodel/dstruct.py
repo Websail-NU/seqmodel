@@ -205,10 +205,14 @@ class RunningInfo(object):
 
     @property
     def wps(self):
+        return self._num_tokens / self.elapse_time
+
+    @property
+    def elapse_time(self):
         end_time = self._end_time
         if end_time is None:
             end_time = time.time()
-        return self._num_tokens / (end_time - self._start_time)
+        return end_time - self._start_time
 
     def update_step(self, result, num_tokens):
         if 'train_loss' in result:
@@ -224,12 +228,14 @@ class RunningInfo(object):
     def summary(self, mode='train'):
         exp_loss = math.exp(self.eval_loss)
         if mode == 'train':
-            return (f'@{self._step} tr_loss: {self.train_loss:.5f}, '
-                    f'eval_loss: {self.eval_loss:.5f} ({exp_loss:.5f}), '
-                    f'wps: {self.wps:.1f}')
+            return (f'(T) eval_loss: {self.eval_loss:.5f} ({exp_loss:.5f}), '
+                    f'tr_loss: {self.train_loss:.5f}, '
+                    f'wps: {self.wps:.1f}, {self._step} steps in '
+                    f'{self.elapse_time:.2f}s')
         else:
-            return (f'@{self._step} eval_loss: {self.eval_loss:.5f} ({exp_loss:.5f}), '
-                    f'wps: {self.wps:.1f}')
+            return (f'(E) eval_loss: {self.eval_loss:.5f} ({exp_loss:.5f}), '
+                    f'wps: {self.wps:.1f}, {self._step} steps in '
+                    f'{self.elapse_time:.2f}s')
 
     def __str__(self):
         return f'{self.__class__.__name__}: {vars(self)}'
@@ -244,21 +250,23 @@ class RunSamplingInfo(RunningInfo):
     def summary(self, mode='train'):
         exp_loss = math.exp(self.eval_loss)
         if mode == 'train':
-            return (f'@{self._step} tr_loss: {self.train_loss:.5f}, '
-                    f'avg_reward: {-1 * self.eval_loss:.5f}, '
-                    f'wps: {self.wps:.1f}')
+            return (f'(T) avg_reward: {-1 * self.eval_loss:.5f}, '
+                    f'tr_loss: {self.train_loss:.5f}, '
+                    f'wps: {self.wps:.1f}, {self._step} steps in '
+                    f'{self.elapse_time:.2f}s')
         else:
-            return (f'@{self._step} avg_reward: {-1 * self.eval_loss:.5f}, '
-                    f'wps: {self.wps:.1f}')
+            return (f'(E) avg_reward: {-1 * self.eval_loss:.5f}, '
+                    f'wps: {self.wps:.1f}, {self._step} steps in '
+                    f'{self.elapse_time:.2f}s')
 
     def update_step(self, avg_reward, num_tokens, train_result=None):
         if train_result is not None and 'train_loss' in train_result:
             self._train_loss += train_result['train_loss']
-        # if 'eval_loss' in result:
-        #     self._eval_loss += result['eval_loss'] * num_tokens
         self._eval_loss += avg_reward
         self._num_tokens += num_tokens
         self._step += 1
+        # if self._step % 100 == 0:
+        #     print(self.summary())
 
     def __str__(self):
         return f'{self.__class__.__name__}: {vars(self)}'

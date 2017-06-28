@@ -16,7 +16,8 @@ __all__ = ['_safe_div', 'tfph_collection', 'create_2d_tensor', 'matmul', 'create
            'get_seq_label_placeholders', 'create_lookup', 'get_logit_layer',
            'select_from_logit', 'create_xent_loss', 'create_ent_loss',
            'create_slow_feature_loss', 'create_l2_loss', 'create_train_op',
-           'empty_tfph_collection', 'scan_rnn_no_mask', 'create_decode']
+           'empty_tfph_collection', 'scan_rnn_no_mask', 'create_decode',
+           'create_pg_train_op', 'NGramCell']
 
 
 _global_collections = {}
@@ -110,20 +111,45 @@ def matmul(mat, mat2d, transpose_b=False):
 # Most of below functions assume time major input and output, unless specified
 
 
-def create_cells(num_units, num_layers, cell_class=tf.contrib.rnn.BasicLSTMCell,
+class NGramCell(tf.nn.rnn_cell.RNNCell):
+    def __init__(self, num_units, input_size=None, order=4, reuse=None):
+        super(NGramCell, self).__init__(_reuse=reuse)
+        self._num_units = num_units
+        self._input_size = num_units if input_size is None else input_size
+        self._order = order
+        self._reuse = reuse
+
+    @property
+    def state_size(self):
+        return (self._input_size, ) * self._order
+
+    @property
+    def output_size(self):
+        return self._num_units
+
+    def call(self, inputs, state):
+        state = (*state[1:], inputs)
+        h = tf.concat(state, axis=-1)
+        output = tf.layers.dense(h, self._num_units, activation=tf.tanh, use_bias=True,
+                                 reuse=self._reuse)
+        return output, state
+
+
+def create_cells(num_units, num_layers, cell_class=tf.nn.rnn_cell.BasicLSTMCell,
                  reuse=False, in_keep_prob=1.0, out_keep_prob=1.0, state_keep_prob=1.0,
-                 variational=False, input_size=None, drop_out_last_layer=True):
+                 variational=False, input_size=None, dropout_last_output=True,
+                 **cell_kwargs):
     """return an RNN cell with optionally DropoutWrapper and MultiRNNCell."""
     cells = []
     for layer in range(num_layers):
         if isinstance(cell_class, six.string_types):
             cell_class = locate(cell_class)
-        cell = cell_class(num_units, reuse=reuse)
+        cell = cell_class(num_units, reuse=reuse, **cell_kwargs)
+        if layer == num_layers - 1 and not dropout_last_output:
+            out_keep_prob = 1.0
         any_drop = any(kp < 1.0 for kp in [in_keep_prob, out_keep_prob, state_keep_prob])
-        last_layer_drop = ((layer == num_layers - 1 and drop_out_last_layer) or
-                           layer != num_layers - 1)
-        if any_drop and last_layer_drop:
-            cell = tf.contrib.rnn.DropoutWrapper(
+        if any_drop:
+            cell = tf.nn.rnn_cell.DropoutWrapper(
                 cell, in_keep_prob, out_keep_prob, state_keep_prob, variational,
                 input_size, tf.float32)
         input_size = cell.output_size
@@ -133,7 +159,7 @@ def create_cells(num_units, num_layers, cell_class=tf.contrib.rnn.BasicLSTMCell,
     if num_layers == 1:
         final_cell = cells[0]
     else:
-        final_cell = tf.contrib.rnn.MultiRNNCell(cells)
+        final_cell = tf.nn.rnn_cell.MultiRNNCell(cells)
     return final_cell
 
 
@@ -142,10 +168,15 @@ def scan_rnn(cell, inputs, sequence_length, initial_state=None, dtype=tf.float32
     """dynamically unroll cell to max(len(inputs)), and select last relevant state.
     IMPORTANT sequence_length shoule be at least 1, otherwise this function will return
     the first state even thought it is not relevant."""
+
+    def step(acc, x_t):
+        output, state = cell(x_t, acc[1])
+        return output, state
+
     with tf.variable_scope(scope):
         batch_size = tf.shape(inputs)[1]  # time major
         output, states = tf.scan(
-            lambda acc, x_t: cell(x_t, acc[1]), inputs, name='scan_rnn',
+            step, inputs, name='scan_rnn',
             initializer=(tf.zeros((batch_size, cell.output_size),
                                   dtype=dtype, name='scan_rnn_init'),
                          initial_state))
@@ -178,7 +209,7 @@ def create_rnn(cell, inputs, sequence_length=None, initial_state=None,
 def select_nested_rnn(maybe_tuple, time_step):
     """return possibly nested tensor at the time_step (time major)."""
     if isinstance(maybe_tuple, tuple):
-        select = [select_nested_rnn(item, time_step) for item in maybe_tuple]
+        select = tuple([select_nested_rnn(item, time_step) for item in maybe_tuple])
         if hasattr(maybe_tuple, '_make'):
             select = maybe_tuple._make(select)
     else:
@@ -270,14 +301,21 @@ def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial
                   cell_scope=None, reuse_cell=True, back_prop=False, select_fn=None,
                   late_attn_fn=None):
     if select_fn is None:
-        select_fn = partial(tf.argmax, axis=-1)
-    gen_ta = tf.TensorArray(dtype=tf.int32, size=min_len, dynamic_size=True)
-    init_values = (tf.constant(0), initial_inputs, initial_state, gen_ta, initial_finish)
+        def select_fn(logit):
+            idx = tf.argmax(logit, axis=-1)
+            score = tf.reduce_max(tf.nn.log_softmax(logit), axis=-1)
+            return tf.cast(idx, tf.int32), score
 
-    def cond(t, _inputs, _state, _out_ta, finished):
+    gen_ta = tf.TensorArray(dtype=tf.int32, size=min_len, dynamic_size=True)
+    logp_ta = tf.TensorArray(dtype=tf.float32, size=min_len, dynamic_size=True)
+    len_ta = tf.TensorArray(dtype=tf.int32, size=min_len, dynamic_size=True)
+    init_values = (tf.constant(0), initial_inputs, initial_state, gen_ta, logp_ta,
+                   len_ta, initial_finish)
+
+    def cond(t, _inputs, _state, _out_ta, _score_ta, _end_ta, finished):
         return tf.logical_and(t < max_len, tf.logical_not(tf.reduce_all(finished)))
 
-    def step(t, inputs, state, out_ta, finished):
+    def step(t, inputs, state, out_ta, score_ta, end_ta, finished):
         input_emb = tf.nn.embedding_lookup(emb_var, inputs)
         with maybe_scope(cell_scope, reuse=reuse_cell):
             with tf.variable_scope('rnn', reuse=True):
@@ -289,15 +327,17 @@ def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial
             logit = logit + logit_b
         if logit_temperature is not None:
             logit = logit / logit_temperature
-        next_token = tf.cast(select_fn(logit), tf.int32)
+        next_token, score = select_fn(logit)
         out_ta = out_ta.write(t, next_token)
+        score_ta = score_ta.write(t, score)
+        end_ta = end_ta.write(t, tf.cast(tf.not_equal(next_token, end_id), tf.int32))
         finished = tf.logical_or(finished, tf.equal(next_token, end_id))
-        return t + 1, next_token, new_state, out_ta, finished
+        return t + 1, next_token, new_state, out_ta, score_ta, end_ta, finished
 
-    _t, _i, _s, result, _f = tf.while_loop(cond, step, init_values, back_prop=back_prop,
-                                           parallel_iterations=10)
+    _t, _i, _s, result, score, seq_len, _f = tf.while_loop(
+        cond, step, init_values, back_prop=back_prop, parallel_iterations=10)
     # parallel_iterations does not matter much here.
-    return result.stack()
+    return result.stack(), score.stack(), tf.reduce_sum(seq_len.stack(), axis=0) + 1
 
 
 #######################################
@@ -344,8 +384,8 @@ def get_seq_label_placeholders(label_dtype=tf.int32, prefix='decoder',
 
 
 def create_lookup(inputs, emb_vars=None, onehot=False, vocab_size=None, dim=None,
-                  trainable=True, init=None, prefix='input',
-                  emb_name='embedding'):
+                  add_project=False, project_size=-1, project_act=tf.tanh,
+                  trainable=True, init=None, prefix='input', emb_name='embedding'):
     """return lookup, and embedding variable (None if onehot)"""
     if onehot:
         assert vocab_size is not None, 'onehot needs vocab_size to be set.'
@@ -358,18 +398,38 @@ def create_lookup(inputs, emb_vars=None, onehot=False, vocab_size=None, dim=None
             'If emb_vars and init is None, vocab_size and dim must be set.'
         emb_vars = create_2d_tensor(vocab_size, dim, trainable, init, emb_name)
     lookup = tf.nn.embedding_lookup(emb_vars, inputs, name=f'{prefix}_lookup')
+    if add_project:
+        emb_dim = emb_vars.get_shape()[-1]
+        project_size = project_size if project_size > 0 else emb_dim
+        proj_w = tf.get_variable(f'emb_proj', shape=(emb_dim, project_size),
+                                 dtype=tf.float32)
+        lookup = matmul(lookup, proj_w)
+        if isinstance(project_act, six.string_types):
+            project_act = locate(project_act)
+        if project_act is not None:
+            lookup = project_act(lookup)
     return lookup, emb_vars
 
 
 def get_logit_layer(inputs, logit_w=None, logit_b=None, output_size=None,
                     use_bias=True, temperature=None, trainable=True,
-                    init=None, prefix='output', add_to_collection=True,
-                    collect_key='model_inputs'):
+                    init=None, add_project=False, project_size=-1, project_act=tf.tanh,
+                    prefix='output', add_to_collection=True, collect_key='model_inputs'):
     """return logit with temperature layer and variables"""
     if logit_w is None:
         input_dim = int(inputs.get_shape()[-1])
         logit_w = create_2d_tensor(output_size, input_dim, trainable, init=init,
                                    name=f'logit_w')
+    if add_project:
+        logit_dim = logit_w.get_shape()[-1]
+        project_size = project_size if project_size > 0 else logit_dim
+        proj_w = tf.get_variable(f'logit_proj', shape=(logit_dim, project_size),
+                                 dtype=tf.float32)
+        logit_w = tf.matmul(logit_w, proj_w)
+        if isinstance(project_act, six.string_types):
+            project_act = locate(project_act)
+        if project_act is not None:
+            logit_w = project_act(logit_w)
     logit = matmul(inputs, logit_w, transpose_b=True)
     if use_bias:
         if logit_b is None:
@@ -424,13 +484,23 @@ def create_xent_loss(logit, label, weight, seq_weight=None, loss_denom=None):
         logits=logit, labels=label)
     if seq_weight is not None:
         weight = tf.multiply(weight, seq_weight)
-    sum_loss = tf.reduce_sum(tf.multiply(loss, weight))
+
+    # XXX: standardization
+    # mean = tf.reduce_mean(weight)
+    # variance = tf.reduce_mean(tf.square(weight - mean))
+    # std_dev = tf.sqrt(variance)
+    # weight = (weight - mean) / std_dev
+    nll = tf.multiply(loss, weight)
+    sum_loss = tf.reduce_sum(nll)
     mean_loss = _safe_div(sum_loss, tf.reduce_sum(weight))
     if loss_denom is not None:
         training_loss = _safe_div(sum_loss, loss_denom)
     else:
         training_loss = sum_loss
-    return mean_loss, training_loss, loss
+    batch_loss = tf.reduce_sum(tf.multiply(loss, weight), axis=0)
+    batch_loss = batch_loss / tf.reduce_sum(weight, axis=0)
+    # return mean_loss, mean_loss, batch_loss
+    return mean_loss, training_loss, batch_loss, nll
 
 
 def create_ent_loss(distribution, weight, seq_weight=None):
@@ -442,7 +512,7 @@ def create_ent_loss(distribution, weight, seq_weight=None):
     sum_loss = tf.reduce_sum(neg_entropy * weight)
     num_dist = tf.reduce_sum(weight)
     mean_loss = _safe_div(sum_loss, num_dist)
-    return mean_loss
+    return sum_loss, mean_loss
 
 
 def create_slow_feature_loss(feature, weight, delta=1.0):
@@ -492,4 +562,17 @@ def create_train_op(loss, optim_class=tf.train.AdamOptimizer, learning_rate=0.00
         grads.append(g)
     clipped_grads, _norm = tf.clip_by_global_norm(grads, clip_gradients)
     train_op = optim.apply_gradients(zip(clipped_grads, tvars))
+    return train_op
+
+
+def create_pg_train_op(nll, return_ph, optim_class=tf.train.AdamOptimizer,
+                       learning_rate=0.001, clip_gradients=5.0, **optim_kwarg):
+    """return train operation graph"""
+    if isinstance(optim_class, six.string_types):
+        optim_class = locate(optim_class)
+    variables = tf.trainable_variables()
+    grads = tf.gradients(nll, variables, grad_ys=return_ph)
+    optim = optim_class(learning_rate=learning_rate, **optim_kwarg)
+    clipped_grads, _norm = tf.clip_by_global_norm(grads, clip_gradients)
+    train_op = optim.apply_gradients(zip(clipped_grads, variables))
     return train_op

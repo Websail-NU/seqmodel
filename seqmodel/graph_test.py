@@ -26,9 +26,9 @@ class TestGraph(tf.test.TestCase):
         with self.test_session(config=self.sess_config) as sess:
             seq_len = tf.constant(self.seq_len, dtype=tf.int32)
             cell = graph.create_cells(self.dim, self.num_layers, in_keep_prob=0.5)
-            self.assertTrue(isinstance(cell._cells[0], tf.contrib.rnn.DropoutWrapper),
+            self.assertTrue(isinstance(cell._cells[0], tf.nn.rnn_cell.DropoutWrapper),
                             'input dropout at first layer')
-            self.assertTrue(isinstance(cell._cells[-1], tf.contrib.rnn.BasicLSTMCell),
+            self.assertTrue(isinstance(cell._cells[-1], tf.nn.rnn_cell.BasicLSTMCell),
                             'no input dropout after first layer')
             o, i, f = graph.create_rnn(cell, tf.constant(
                 np.random.randn(self.max_seq_len, self.batch_size, self.dim),

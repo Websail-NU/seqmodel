@@ -8,6 +8,7 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - python 3.6
 - tensorflow 1.1
 - numpy 1.12
+- nltk 3.2.4
 - six 1.10
 
 ## Overview
@@ -21,27 +22,24 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 ## TODO
 
 ### Model
-- [ ] Value Network
+- [ ] Value Network and A2C
 
 ### Run
-- [ ] Add teacher forcing
 - [ ] TD(lambda)
 - [ ] Bootstrap last state if not terminal
 
 ### Generator
-- [ ] Reward functions for NLG (i.e. BLEU and token match)
+- [ ] Option to randomly select sequences of the same encode input
 
 ### Scripts
-- [ ] Add option to put all data into tf.constant
+- [ ] Option to select reward function from CLI
 
 ### TensorFlow
-- [ ] Compile my own TensorFlow
-- [ ] Upgrade to TensorFlow v1.2 (Pending for its release)
-- [ ] Take advantage of tf.Session.make_callable (Pending for its release)
+- [ ] Take advantage of tf.Session.make_callable (need benchmark)
 
 ### Bucket list
+- [ ] Compile my own TensorFlow
 - [ ] Use tf.summary for tensorboard.
-- [ ] Wrap manual attention in definition model to RNNCell
 - [ ] It would be nice if we do not need to fecth state and feed it back in when
       training a langauge model (sentence dependent).
 - [ ] Ensure the indices of `</s>` and `<s>` are 0 and 1,
