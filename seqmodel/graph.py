@@ -129,10 +129,7 @@ class NGramCell(tf.nn.rnn_cell.RNNCell):
 
     def call(self, inputs, state):
         state = (*state[1:], inputs)
-        prob = 0.75
-        if self._reuse:
-            prob = 1.0
-        h = tf.nn.dropout(tf.concat(state, axis=-1), prob)
+        h = tf.concat(state, axis=-1)
         output = tf.layers.dense(h, self._num_units, activation=tf.tanh, use_bias=True,
                                  reuse=self._reuse)
         return output, state
@@ -140,13 +137,14 @@ class NGramCell(tf.nn.rnn_cell.RNNCell):
 
 def create_cells(num_units, num_layers, cell_class=tf.nn.rnn_cell.BasicLSTMCell,
                  reuse=False, in_keep_prob=1.0, out_keep_prob=1.0, state_keep_prob=1.0,
-                 variational=False, input_size=None, dropout_last_output=True):
+                 variational=False, input_size=None, dropout_last_output=True,
+                 **cell_kwargs):
     """return an RNN cell with optionally DropoutWrapper and MultiRNNCell."""
     cells = []
     for layer in range(num_layers):
         if isinstance(cell_class, six.string_types):
             cell_class = locate(cell_class)
-        cell = cell_class(num_units, reuse=reuse)
+        cell = cell_class(num_units, reuse=reuse, **cell_kwargs)
         if layer == num_layers - 1 and not dropout_last_output:
             out_keep_prob = 1.0
         any_drop = any(kp < 1.0 for kp in [in_keep_prob, out_keep_prob, state_keep_prob])
