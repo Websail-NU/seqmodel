@@ -21,8 +21,12 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 
 ## TODO
 
+- [ ] Clean up experimental code (XXX: SoXC)
+
 ### Model
-- [x] scan rnn with tuple input and output
+- [x] Fix scan_rnn to support tuple input and output
+- [x] Implement dot attention
+- [ ] Implement Bahdanau attention
 - [ ] Beam search decoding
 - [ ] Decode with initial state
 - [ ] Value Network and A2C
