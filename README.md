@@ -6,8 +6,8 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 
 ## Requirements:
 - python 3.6
-- tensorflow 1.1
-- numpy 1.12
+- tensorflow 1.2
+- numpy 1.13
 - nltk 3.2.4
 - six 1.10
 
@@ -22,6 +22,9 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 ## TODO
 
 ### Model
+- [x] scan rnn with tuple input and output
+- [ ] Beam search decoding
+- [ ] Decode with initial state
 - [ ] Value Network and A2C
 
 ### Run

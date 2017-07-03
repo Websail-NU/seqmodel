@@ -6,7 +6,7 @@ import numpy as np
 
 from _main import sq
 from _main import mle
-from _main import decode
+from _decode import decode_lm
 
 if __name__ == '__main__':
     start_time = time.time()
@@ -36,14 +36,27 @@ if __name__ == '__main__':
 
     if opt['command'] == 'decode':
         with open(decode_opt['decode:outpath'], 'w') as ofp:
-            def decode_batch(batch, samples, vocabs):
-                for b_samples in samples:
-                    for sample in b_samples:
-                        seq_len = np.argmin(sample)
-                        sen = ' '.join(vocabs[1].i2w(sample[0: seq_len]))
-                        ofp.write(f'{sen}\n')
-            decode(opt, model_opt, decode_opt, decode_batch, logger,
-                   data_fn, sq.SeqModel)
+            _b = opt['batch_size']
+            seed_in = np.array([[0]] * _b, dtype=np.int32)
+            seed_len = np.array([1] * _b, dtype=np.int32)
+            features = sq.SeqFeatureTuple(seed_in, seed_len)
+            seed = sq.BatchTuple(features, None, _b, not opt['sentence_level'])
+            n_tokens = 0
+            for b_samples, vocabs in decode_lm(
+                    opt, sq.SeqModel, model_opt, data_fn, logger, decode_opt, seed):
+                b_seq_len = sq.find_first_min_zero(b_samples)
+                print(b_seq_len)
+                for ib, sample in enumerate(b_samples.T):
+                    tokens = vocabs[1].i2w(sample[:b_seq_len[ib]])
+                    sen = ' '.join(tokens)
+                    # print(sen)
+                    ofp.write(f'{sen}')
+                    if len(tokens) < 40:
+                        ofp.write('\n')
+                    n_tokens += len(tokens)
+                if n_tokens >= 887521:
+                    break
+
     else:
         mle(opt, model_opt, train_opt, logger, data_fn, sq.SeqModel)
     logger.info(f'Total time: {sq.time_span_str(time.time() - start_time)}')

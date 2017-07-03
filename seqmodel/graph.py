@@ -17,7 +17,7 @@ __all__ = ['_safe_div', 'tfph_collection', 'create_2d_tensor', 'matmul', 'create
            'select_from_logit', 'create_xent_loss', 'create_ent_loss',
            'create_slow_feature_loss', 'create_l2_loss', 'create_train_op',
            'empty_tfph_collection', 'scan_rnn_no_mask', 'create_decode',
-           'create_pg_train_op', 'NGramCell']
+           'create_pg_train_op']
 
 
 _global_collections = {}
@@ -111,6 +111,14 @@ def matmul(mat, mat2d, transpose_b=False):
 # Most of below functions assume time major input and output, unless specified
 
 
+def _tf_shape_of_tensor_or_tuple(inputs, dim=1):
+    if isinstance(inputs, tuple):
+        batch_size = tf.shape(inputs[0])[dim]  # time major
+    else:
+        batch_size = tf.shape(inputs)[dim]  # time major
+    return batch_size
+
+
 def create_cells(num_units, num_layers, cell_class=tf.nn.rnn_cell.BasicLSTMCell,
                  reuse=False, in_keep_prob=1.0, out_keep_prob=1.0, state_keep_prob=1.0,
                  variational=False, input_size=None, dropout_last_output=True,
@@ -150,15 +158,25 @@ def scan_rnn(cell, inputs, sequence_length, initial_state=None, dtype=tf.float32
         return output, state
 
     with tf.variable_scope(scope):
-        batch_size = tf.shape(inputs)[1]  # time major
+
+        batch_size = _tf_shape_of_tensor_or_tuple(inputs)
+        if isinstance(cell.output_size, tuple):
+            # XXX: does not support nested structure
+            output_init = []
+            for size in cell.output_size:
+                output_init.append(tf.zeros((batch_size, size),
+                                            dtype=dtype, name='scan_rnn_init'))
+            init = (tuple(output_init), initial_state)
+        else:
+            init = (tf.zeros((batch_size, cell.output_size),
+                             dtype=dtype, name='scan_rnn_init'),
+                    initial_state)
         output, states = tf.scan(
             step, inputs, name='scan_rnn',
-            initializer=(tf.zeros((batch_size, cell.output_size),
-                                  dtype=dtype, name='scan_rnn_init'),
-                         initial_state))
+            initializer=init)
         final_state = select_nested_rnn(states, tf.nn.relu(sequence_length - 1))
         if mask_output:
-            max_len = tf.shape(inputs)[0]
+            max_len = _tf_shape_of_tensor_or_tuple(inputs, dim=0)
             mask = tf.expand_dims(
                 tf.sequence_mask(sequence_length, max_len, tf.float32), -1)
             output = tf.multiply(output, tf.transpose(mask, (1, 0, 2)))
@@ -174,7 +192,7 @@ def create_rnn(cell, inputs, sequence_length=None, initial_state=None,
     if isinstance(rnn_fn, six.string_types):
         rnn_fn = locate(rnn_fn)
     if initial_state is None:
-        batch_size = tf.shape(inputs)[1]  # time major
+        batch_size = _tf_shape_of_tensor_or_tuple(inputs)
         initial_state = cell.zero_state(batch_size, tf.float32)
     cell_output, final_state = rnn_fn(
         cell=cell, inputs=inputs, sequence_length=sequence_length,
@@ -301,6 +319,13 @@ def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial
         logit = tf.matmul(output, logit_w, transpose_b=True)
         if logit_b is not None:
             logit = logit + logit_b
+
+        # XXX: SoXC
+        # mask = np.zeros((10000, ), dtype=np.float32)
+        # mask[2] = 1e5
+        # logit = logit - tf.constant(mask, dtype=tf.float32)
+        # XX: EoXC
+
         if logit_temperature is not None:
             logit = logit / logit_temperature
         next_token, score = select_fn(logit)
@@ -314,6 +339,39 @@ def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial
         cond, step, init_values, back_prop=back_prop, parallel_iterations=10)
     # parallel_iterations does not matter much here.
     return result.stack(), score.stack(), tf.reduce_sum(seq_len.stack(), axis=0) + 1
+
+
+##############################################
+#       ###    ######## ######## ##    ##    #
+#      ## ##      ##       ##    ###   ##    #
+#     ##   ##     ##       ##    ####  ##    #
+#    ##     ##    ##       ##    ## ## ##    #
+#    #########    ##       ##    ##  ####    #
+#    ##     ##    ##       ##    ##   ###    #
+#    ##     ##    ##       ##    ##    ##    #
+##############################################
+
+
+def attn_dot(q, k, v, time_major=True):
+    q_is_2d = len(q.get_shape()) == 2
+    with tf.variable_scope('dot_product_attn'):
+        if time_major:
+            k = tf.transpose(k, [1, 0, 2])
+            v = tf.transpose(v, [1, 0, 2])
+            if len(q.get_shape()) == 3:
+                q = tf.transpose(q, [1, 0, 2])
+        if q_is_2d:
+            q = tf.expand_dims(q, axis=1)
+        logits = tf.matmul(q, k, transpose_b=True)
+        scores = tf.nn.softmax(logits)
+        attn_context = tf.matmul(scores, v)
+        if time_major and q_is_2d:
+            attn_context = tf.squeeze(attn_context, axis=1)
+        elif not time_major and q_is_2d:
+            attn_context = tf.squeeze(attn_context, axis=0)
+        elif time_major:
+            attn_context = tf.transpose(attn_context, [1, 0, 2])
+        return attn_context, scores
 
 
 #######################################

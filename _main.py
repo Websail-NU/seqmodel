@@ -93,6 +93,13 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
                 sq.save_exp(sess, saver, opt['exp_dir'], train_state)
                 return sq.is_done_training_early(train_state, train_opt['lr:imp_wait'])
 
+            # import numpy as np
+            # for v in tf.trainable_variables():
+            #     if 'AC_e' in v.name:
+            #         np.save('tmp.npy', sess.run(v))
+
+            # return
+
             sq.train(train_fn, logger, max_epoch=train_opt['train:max_epoch'],
                      train_state=train_state, init_lr=init_lr,
                      valid_run_epoch_fn=valid_fn, begin_epoch_fn=begin_epoch_fn,

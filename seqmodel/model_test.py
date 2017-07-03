@@ -8,7 +8,7 @@ from seqmodel import model
 from seqmodel import graph
 
 
-def _run(obj, model_class, rnn_fn, mode='seq'):
+def _run(obj, model_class, rnn_fn, mode='seq', build_opt={}):
     with obj.test_session(config=obj.sess_config) as sess:
         seq, seq_len = np.ones((4, 3)), np.array([2, 3, 0], dtype=np.int32)
         pk, pkn = 'dec:', 'dec.'
@@ -20,7 +20,8 @@ def _run(obj, model_class, rnn_fn, mode='seq'):
             features = (seq, seq_len)
             pk, pkn = '', ''
         m = model_class(check_feed_dict=False)
-        n = m.build_graph({'rnn:fn': rnn_fn, f'{pk}logit:output_size': 2})
+        n = m.build_graph({'rnn:fn': rnn_fn, f'{pk}logit:output_size': 2}, **build_opt)
+
         optimizer = tf.train.AdamOptimizer()
         train_op = optimizer.minimize(m.training_loss)
         sess.run(tf.global_variables_initializer())
@@ -263,6 +264,7 @@ class TestSeq2SeqModel(tf.test.TestCase):
             expected_vars.update({'t/dec/logit_w:0': (2, 10), 't/dec/logit_b:0': (2,)})
             n = m.build_graph(opt, name='t')
             for v in tf.global_variables():
+                # print(f'{v.name}, {v.get_shape()}')
                 self.assertTrue(v.name in expected_vars, 'expected variable scope/name')
                 self.assertEqual(v.shape, expected_vars[v.name], 'shape is correct')
             for k, v in m._fetches.items():
@@ -333,11 +335,37 @@ class TestSeq2SeqModel(tf.test.TestCase):
             num_vars_ = len(tf.global_variables())
             self.assertEqual(num_vars, num_vars, 'no new variables when reuse is True')
 
+    def test_build_attn(self):
+        with self.test_session(config=self.sess_config) as sess:
+            m = model.Seq2SeqModel(check_feed_dict=False)
+            opt = {'emb:vocab_size': 20, 'emb:dim': 5, 'cell:num_units': 10,
+                   'cell:cell_class': 'tensorflow.nn.rnn_cell.BasicLSTMCell'}
+            opt = {f'{n}:{k}': v for k, v in opt.items() for n in ('enc', 'dec')}
+            opt['dec:logit:output_size'] = 2
+            expected_vars = {'embedding:0': (20, 5),
+                             'rnn/basic_lstm_cell/kernel:0': (10 + 5, 10 * 4),
+                             'rnn/basic_lstm_cell/bias:0': (10 * 4,)}
+            expected_vars = {f't/{n}/{k}': v for k, v in expected_vars.items()
+                             for n in ('enc', 'dec')}
+            expected_vars.update({
+                't/dec/logit_w:0': (2, 10), 't/dec/logit_b:0': (2,),
+                't/dec/attention/dense/kernel:0': (20, 10),
+                't/dec/attention/dense/bias:0': (10,)})
+            n = m.build_graph(opt, name='t', **{'dec:attn_enc_output': True})
+            for v in tf.global_variables():
+                # print(f'{v.name}, {v.get_shape()}')
+                self.assertTrue(v.name in expected_vars, 'expected variable scope/name')
+                self.assertEqual(v.shape, expected_vars[v.name], 'shape is correct')
+            for k, v in m._fetches.items():
+                if k is not None:
+                    self.assertNotEqual(v[0], v[1], 'fetch array is set')
+
     def test_dynamic_rnn_run(self):
         _run(self, model.Seq2SeqModel, tf.nn.dynamic_rnn, 'seq2seq')
 
     def test_scan_rnn_run(self):
-        _run(self, model.Seq2SeqModel, graph.scan_rnn, 'seq2seq')
+        _run(self, model.Seq2SeqModel, graph.scan_rnn, 'seq2seq',
+             build_opt={'dec:attn_enc_output': True})
 
 
 class TestWord2DefModel(tf.test.TestCase):

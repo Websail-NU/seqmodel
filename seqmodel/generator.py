@@ -80,7 +80,7 @@ def read_seq_data(tokenized_lines, in_vocab, out_vocab, keep_sentence=True, seq_
             in_data.extend(in_vocab.w2i(line))
             out_data.extend(out_vocab.w2i(line))
     if not keep_sentence:
-        in_data.insert(0, in_vocab.w2i(sos_sym))
+        in_data.insert(0, in_vocab.w2i(eos_sym))
         in_data = in_data[:-1]
         chunk_in_data, chunk_out_data = [], []
         for i in range(0, len(in_data), seq_len):

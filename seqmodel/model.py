@@ -10,6 +10,8 @@ from seqmodel import util
 from seqmodel import dstruct
 from seqmodel import graph as tfg
 
+from seqmodel import contrib as tfg_ct
+
 
 __all__ = ['Model', 'SeqModel', 'Seq2SeqModel', 'Word2DefModel']
 
@@ -213,7 +215,7 @@ class Model(object):
 
 class SeqModel(Model):
 
-    _ENC_FEA_LEN_ = 0
+    _ENC_FEA_LEN_ = 2
     _STATE_ = 's'
     _RSK_EMB_ = 'emb'
     _RSK_RNN_ = 'rnn'
@@ -293,6 +295,16 @@ class SeqModel(Model):
             cell_ = tfg.create_cells(reuse=_reuse, input_size=opt['emb:dim'], **cell_opt)
             cell_output_, initial_state_, final_state_ = tfg.create_rnn(
                 cell_, lookup_, seq_len_, initial_state, rnn_fn=opt['rnn:fn'])
+            # XXX: SoXC
+            # ACe = 10.0
+            # ACe_ = tf.get_variable('AC_e', dtype=tf.float32,
+            #                        initializer=[10.0] * opt['logit:output_size'])
+            # ACe = tf.nn.relu(ACe_)
+            # cell_output_, initial_state_, final_state_, ac_ = tfg_ct.create_anticache_rnn(  # noqa
+            #     input_, cell_, lookup_, opt['logit:output_size'],
+            #     sequence_length=seq_len_, initial_state=initial_state,
+            #     rnn_fn=opt['rnn:fn'], e=ACe)
+            # XXX: EoXC
         predict_fetch = {'cell_output': cell_output_}
         nodes = util.dict_with_key_endswith(locals(), '_')
         graph_args = {'feature_feed': dstruct.SeqFeatureTuple(input_, seq_len_),
@@ -305,6 +317,9 @@ class SeqModel(Model):
             predict_fetch.update(output_fectch)
             nodes.update(output_nodes)
             graph_args.update(label_feed=label_feed)
+            # XXX: SoXC
+            # logit = logit - ac_
+            # XXX: EoXC
         # loss
         if opt['out:loss'] and opt['out:logit']:
             train_fetch, eval_fetch, loss_nodes = self._build_loss(
@@ -482,7 +497,8 @@ class Seq2SeqModel(SeqModel):
         decoder_opt = {f'dec:{k}': v for k, v in rnn_opt.items()}
         decoder_opt.update({'share:enc_dec_rnn': False, 'share:enc_dec_emb': False,
                             'dec:out:decode': True, 'dec:decode:add_greedy': True,
-                            'dec:decode:add_sampling': True})
+                            'dec:decode:add_sampling': True,
+                            'dec:attn_enc_output': False})
         return {**encoder_opt, **decoder_opt}
 
     @classmethod
@@ -530,6 +546,13 @@ class Seq2SeqModel(SeqModel):
                 opt, reuse, enc_nodes, enc_scope, collect_key)
         else:
             dec_initial_state, b_nodes = enc_nodes['final_state'], {}
+        # attention
+        if opt['dec:attn_enc_output']:
+            self._build_logit = partial(self._build_attn_logit, full_opt=opt,
+                                        reuse=reuse, enc_output=enc_nodes['cell_output'])
+            self._decode_late_attn = partial(
+                self._build_dec_attn_logit, full_opt=opt,
+                enc_output=enc_nodes['cell_output'])
         # decoder
         with tf.variable_scope('dec', reuse=reuse) as dec_scope:
             dec_nodes, dec_graph_args = super()._build(
@@ -553,6 +576,29 @@ class Seq2SeqModel(SeqModel):
             self.set_default_feed('dec.decode_max_len', 40)
         if 'nll' in self._nodes['dec']:
             self._nll = self._nodes['dec']['nll']
+
+    def _build_attn_logit(self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output,
+                          enc_output, full_opt, reuse):
+        with tf.variable_scope('attention', reuse=reuse) as attn_scope:
+            attn_context_, attn_scores_ = tfg.attn_dot(
+                q=cell_output, k=enc_output, v=enc_output, time_major=True)
+            attn_dec_output_ = tf.concat([cell_output, attn_context_], axis=-1)
+            attn_dec_output_ = tf.layers.dense(
+                attn_dec_output_, cell_output.get_shape()[-1],
+                use_bias=True, reuse=reuse)
+            self._attn_scope = attn_scope
+        logit_, label_feed, predict_fetch, nodes = super()._build_logit(
+            opt, reuse_scope, collect_kwargs, emb_vars, attn_dec_output_)
+        return logit_, label_feed, predict_fetch, nodes
+
+    def _build_dec_attn_logit(self, cell_output, enc_output, full_opt):
+        with tfg.maybe_scope(self._attn_scope):
+            attn_context_, attn_scores_ = tfg.attn_dot(
+                q=cell_output, k=enc_output, v=enc_output, time_major=True)
+            attn_dec_output_ = tf.concat([cell_output, attn_context_], axis=-1)
+            attn_dec_output_ = tf.layers.dense(
+                attn_dec_output_, cell_output.get_shape()[-1], use_bias=True, reuse=True)
+        return attn_dec_output_
 
 #############################
 #    ########  ##     ##    #
@@ -578,7 +624,8 @@ class Word2DefModel(Seq2SeqModel):
                          'activation_fn': 'tensorflow.nn.relu'}
         opt.update({f'wbdef:char_emb:{k}': v for k, v in char_emb_opt.items()})
         opt.update({f'wbdef:char_tdnn:{k}': v for k, v in char_tdnn_opt.items()})
-        opt.update({'wbdef:keep_prob': 1.0, 'share:enc_dec_rnn': True})
+        opt.update({'wbdef:keep_prob': 1.0, 'share:enc_dec_rnn': True,
+                    'dec:attn_enc_output': False})
         return opt
 
     @classmethod
@@ -635,15 +682,15 @@ class Word2DefModel(Seq2SeqModel):
                 wbdef_ = tf.nn.dropout(wbdef_, opt['wbdef:keep_prob'])
         nodes = util.dict_with_key_endswith(locals(), '_')
         # add param to super()_build_logit
-        self._build_logit = partial(self._build_attn_logit, wbdef=wbdef_,
+        self._build_logit = partial(self._build_gated_logit, wbdef=wbdef_,
                                     wbdef_scope=wbdef_scope, wbdef_nodes=nodes,
                                     full_opt=opt, reuse=reuse)
-        self._decode_late_attn = partial(self._build_decode_late_attn, wbdef=wbdef_,
+        self._decode_late_attn = partial(self._build_dec_gated_logit, wbdef=wbdef_,
                                          wbdef_scope=wbdef_scope)
         return enc_nodes['final_state'], nodes
 
-    def _build_attn_logit(self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output,
-                          wbdef, wbdef_scope, wbdef_nodes, full_opt, reuse):
+    def _build_gated_logit(self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output,
+                           wbdef, wbdef_scope, wbdef_nodes, full_opt, reuse):
         wbdef_nodes = {} if wbdef_nodes is None else wbdef_nodes
         with tfg.maybe_scope(wbdef_scope, reuse):
             _multiples = [tf.shape(cell_output)[0], 1, 1]
@@ -663,8 +710,14 @@ class Word2DefModel(Seq2SeqModel):
             opt, reuse_scope, collect_kwargs, emb_vars, updated_output_)
         return logit_, label_feed, predict_fetch, nodes
 
-    def _build_decode_late_attn(self, cell_output, wbdef, wbdef_scope):
+    def _build_dec_gated_logit(self, cell_output, wbdef, wbdef_scope):
         with tfg.maybe_scope(wbdef_scope, True):
             updated_output, __ = tfg.create_gru_layer(
                 cell_output, wbdef, cell_output)
         return updated_output
+
+    def _build_attn_logit(self, *args, **kwargs):
+        raise ValueError('`dec:attn_enc_output` is not supported in DM.')
+
+    def _build_dec_attn_logit(self, *args, **kwargs):
+        raise ValueError('`dec:attn_enc_output` is not supported in DM.')
