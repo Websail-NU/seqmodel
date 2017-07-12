@@ -40,9 +40,11 @@ def decode_lm(opt, model_class, model_opt, data_fn, logger, decode_opt, seed):
             return
 
         logger.info('Decoding...')
+        decode_fn = model.decode_sampling
+        if decode_opt['decode:greedy']:
+            decode_fn = model.decode_greedy
         state = None
         while True:
-            result, __ = model.decode_greedy(sess, seed.features, fetch_state=True,
-                                             state=state)
+            result, __ = decode_fn(sess, seed.features, fetch_state=True, state=state)
             output, state = result
             yield output, vocabs

@@ -71,7 +71,10 @@ def read_seq_data(tokenized_lines, in_vocab, out_vocab, keep_sentence=True, seq_
     eos_sym = ds.Vocabulary.special_symbols['end_seq']
     in_data, out_data = [], []
     for line in tokenized_lines:
-        line = line[0] + [eos_sym]  # assume many parts, but only take first
+        if len(line[0][0]) == 0:  # empty line
+            line = [eos_sym]
+        else:
+            line = line[0] + [eos_sym]  # assume many parts, but only take first
         if keep_sentence:
             line.insert(0, sos_sym)
             in_data.append(in_vocab.w2i(line[:-1]))

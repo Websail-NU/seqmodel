@@ -290,10 +290,54 @@ def create_gru_layer(transform, extra, carried):
     return tf.multiply(h - carried, z) + carried, zr
 
 
+# def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial_finish,
+#                   logit_b=None, logit_temperature=None, min_len=1, max_len=40, end_id=0,
+#                   cell_scope=None, reuse_cell=True, back_prop=False, select_fn=None,
+#                   late_attn_fn=None):
+#     if select_fn is None:
+#         def select_fn(logit):
+#             idx = tf.argmax(logit, axis=-1)
+#             score = tf.reduce_max(tf.nn.log_softmax(logit), axis=-1)
+#             return tf.cast(idx, tf.int32), score
+
+#     gen_ta = tf.TensorArray(dtype=tf.int32, size=min_len, dynamic_size=True)
+#     logp_ta = tf.TensorArray(dtype=tf.float32, size=min_len, dynamic_size=True)
+#     len_ta = tf.TensorArray(dtype=tf.int32, size=min_len, dynamic_size=True)
+#     init_values = (tf.constant(0), initial_inputs, initial_state, gen_ta, logp_ta,
+#                    len_ta, initial_finish)
+
+#     def cond(t, _inputs, _state, _out_ta, _score_ta, _end_ta, finished):
+#         return tf.logical_and(t < max_len, tf.logical_not(tf.reduce_all(finished)))
+
+#     def step(t, inputs, state, out_ta, score_ta, end_ta, finished):
+#         input_emb = tf.nn.embedding_lookup(emb_var, inputs)
+#         with maybe_scope(cell_scope, reuse=reuse_cell):
+#             with tf.variable_scope('rnn', reuse=True):
+#                 output, new_state = cell(input_emb, state)
+#         if late_attn_fn is not None:
+#             output = late_attn_fn(output)
+#         logit = tf.matmul(output, logit_w, transpose_b=True)
+#         if logit_b is not None:
+#             logit = logit + logit_b
+#         if logit_temperature is not None:
+#             logit = logit / logit_temperature
+#         next_token, score = select_fn(logit)
+#         out_ta = out_ta.write(t, next_token)
+#         score_ta = score_ta.write(t, score)
+#         end_ta = end_ta.write(t, tf.cast(tf.not_equal(next_token, end_id), tf.int32))
+#         finished = tf.logical_or(finished, tf.equal(next_token, end_id))
+#         return t + 1, next_token, new_state, out_ta, score_ta, end_ta, finished
+
+#     _t, _i, _s, result, score, seq_len, _f = tf.while_loop(
+#         cond, step, init_values, back_prop=back_prop, parallel_iterations=10)
+#     # parallel_iterations does not matter much here.
+#     return result.stack(), score.stack(), tf.reduce_sum(seq_len.stack(), axis=0) + 1
+
+
 def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial_finish,
                   logit_b=None, logit_temperature=None, min_len=1, max_len=40, end_id=0,
                   cell_scope=None, reuse_cell=True, back_prop=False, select_fn=None,
-                  late_attn_fn=None):
+                  late_attn_fn=None, anticache=False):
     if select_fn is None:
         def select_fn(logit):
             idx = tf.argmax(logit, axis=-1)
@@ -311,21 +355,25 @@ def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial
 
     def step(t, inputs, state, out_ta, score_ta, end_ta, finished):
         input_emb = tf.nn.embedding_lookup(emb_var, inputs)
+        cell_input = (input_emb, inputs) if anticache else input_emb
         with maybe_scope(cell_scope, reuse=reuse_cell):
             with tf.variable_scope('rnn', reuse=True):
-                output, new_state = cell(input_emb, state)
+                output, new_state = cell(cell_input, state)
+        if anticache:
+            output, ac = output
         if late_attn_fn is not None:
             output = late_attn_fn(output)
         logit = tf.matmul(output, logit_w, transpose_b=True)
         if logit_b is not None:
             logit = logit + logit_b
-
-        # XXX: SoXC
+        if anticache:
+            elogit = tf.exp(logit)
+            shifted_elogit = elogit - tf.reduce_min(elogit, axis=-1, keep_dims=True)
+            elogit = elogit - tf.abs(ac * shifted_elogit)
+            logit = tf.log(elogit)
         # mask = np.zeros((10000, ), dtype=np.float32)
         # mask[2] = 1e5
         # logit = logit - tf.constant(mask, dtype=tf.float32)
-        # XX: EoXC
-
         if logit_temperature is not None:
             logit = logit / logit_temperature
         next_token, score = select_fn(logit)
@@ -336,8 +384,7 @@ def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial
         return t + 1, next_token, new_state, out_ta, score_ta, end_ta, finished
 
     _t, _i, _s, result, score, seq_len, _f = tf.while_loop(
-        cond, step, init_values, back_prop=back_prop, parallel_iterations=10)
-    # parallel_iterations does not matter much here.
+        cond, step, init_values, back_prop=back_prop)
     return result.stack(), score.stack(), tf.reduce_sum(seq_len.stack(), axis=0) + 1
 
 

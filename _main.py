@@ -96,8 +96,12 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
             # import numpy as np
             # for v in tf.trainable_variables():
             #     if 'AC_e' in v.name:
-            #         np.save('tmp.npy', sess.run(v))
-
+            #         np.save('tmp', sess.run(v))
+            #     if 'mem_wrapper' in v.name:
+            #         name = 'kernel' if 'kernel' in v.name else 'bias'
+            #         np.save(name, sess.run(v))
+            #     if 'embedding' in v.name:
+            #         np.save('emb', sess.run(v))
             # return
 
             sq.train(train_fn, logger, max_epoch=train_opt['train:max_epoch'],

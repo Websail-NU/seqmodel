@@ -237,7 +237,8 @@ class SeqModel(Model):
                'logit:init': None, 'logit:add_project': False, 'logit:project_size': -1,
                'logit:project_act': 'tensorflow.tanh', 'loss:type': 'xent',
                'loss:add_entropy': False, 'decode:add_greedy': True,
-               'decode:add_sampling': True, 'share:input_emb_logit': False}
+               'decode:add_sampling': True, 'share:input_emb_logit': False,
+               'anticache:enable': False, 'anticache:size': 5}
         return opt
 
     @classmethod
@@ -288,23 +289,29 @@ class SeqModel(Model):
         emb_opt = util.dict_with_key_startswith(opt, 'emb:')
         with tfg.maybe_scope(reuse_scope[self._RSK_EMB_], reuse=True) as scope:
             lookup_, emb_vars_ = tfg.create_lookup(input_, **emb_opt)
-        # cell and rnn
+        # cell rnn
         cell_opt = util.dict_with_key_startswith(opt, 'cell:')
         with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
             _reuse = reuse or scope is not None
             cell_ = tfg.create_cells(reuse=_reuse, input_size=opt['emb:dim'], **cell_opt)
-            cell_output_, initial_state_, final_state_ = tfg.create_rnn(
-                cell_, lookup_, seq_len_, initial_state, rnn_fn=opt['rnn:fn'])
-            # XXX: SoXC
-            # ACe = 10.0
-            # ACe_ = tf.get_variable('AC_e', dtype=tf.float32,
-            #                        initializer=[10.0] * opt['logit:output_size'])
-            # ACe = tf.nn.relu(ACe_)
-            # cell_output_, initial_state_, final_state_, ac_ = tfg_ct.create_anticache_rnn(  # noqa
-            #     input_, cell_, lookup_, opt['logit:output_size'],
-            #     sequence_length=seq_len_, initial_state=initial_state,
-            #     rnn_fn=opt['rnn:fn'], e=ACe)
-            # XXX: EoXC
+        # maybe anti-cache rnn
+        if opt['anticache:enable']:
+            if hasattr(self, '_batch_size'):
+                batch_size = self._batch_size
+            else:
+                batch_size = tf.shape(input_)[1]
+            (cell_, cell_output_, initial_state_,
+             final_state_, ac_) = tfg_ct.create_anticache_rnn(
+                input_, cell_, reuse_scope[self._RSK_RNN_],
+                lookup_, opt['emb:dim'], opt['logit:output_size'], batch_size,
+                ac_size=opt['anticache:size'],
+                sequence_length=seq_len_, initial_state=initial_state,
+                rnn_fn=opt['rnn:fn'], reuse=reuse)
+        else:
+            with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
+                cell_output_, initial_state_, final_state_ = tfg.create_rnn(
+                    cell_, lookup_, seq_len_, initial_state, rnn_fn=opt['rnn:fn'])
+        # collect nodes
         predict_fetch = {'cell_output': cell_output_}
         nodes = util.dict_with_key_endswith(locals(), '_')
         graph_args = {'feature_feed': dstruct.SeqFeatureTuple(input_, seq_len_),
@@ -317,9 +324,8 @@ class SeqModel(Model):
             predict_fetch.update(output_fectch)
             nodes.update(output_nodes)
             graph_args.update(label_feed=label_feed)
-            # XXX: SoXC
-            # logit = logit - ac_
-            # XXX: EoXC
+            if opt['anticache:enable']:
+                logit = tfg_ct.apply_anticache(logit, ac_)
         # loss
         if opt['out:loss'] and opt['out:logit']:
             train_fetch, eval_fetch, loss_nodes = self._build_loss(

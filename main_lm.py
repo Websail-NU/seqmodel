@@ -45,11 +45,9 @@ if __name__ == '__main__':
             for b_samples, vocabs in decode_lm(
                     opt, sq.SeqModel, model_opt, data_fn, logger, decode_opt, seed):
                 b_seq_len = sq.find_first_min_zero(b_samples)
-                print(b_seq_len)
                 for ib, sample in enumerate(b_samples.T):
                     tokens = vocabs[1].i2w(sample[:b_seq_len[ib]])
                     sen = ' '.join(tokens)
-                    # print(sen)
                     ofp.write(f'{sen}')
                     if len(tokens) < 40:
                         ofp.write('\n')
