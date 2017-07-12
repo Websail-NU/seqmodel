@@ -402,8 +402,11 @@ class SeqModel(Model):
         late_attn_fn = None
         if hasattr(self, '_decode_late_attn'):
             late_attn_fn = self._decode_late_attn
+        build_decode_fn = tfg.create_decode
+        if opt['anticache:enable']:
+            build_decode_fn = tfg_ct.create_decode_ac
         decode_fn = partial(
-            tfg.create_decode, nodes['emb_vars'], nodes['cell'], nodes['logit_w'],
+            build_decode_fn, nodes['emb_vars'], nodes['cell'], nodes['logit_w'],
             nodes['initial_state'], tf.tile((1, ), (batch_size, )),
             tf.tile([False], (batch_size, )), logit_b=nodes['logit_b'],
             logit_temperature=nodes['temperature'], max_len=decode_max_len_,
