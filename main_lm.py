@@ -7,6 +7,7 @@ import numpy as np
 from _main import sq
 from _main import mle
 from _main import decode
+from _decode import decode_lm
 
 if __name__ == '__main__':
     start_time = time.time()
@@ -35,13 +36,29 @@ if __name__ == '__main__':
         return data, batch_iter, (vocab, vocab)
 
     if opt['command'] == 'decode':
+        # with open(decode_opt['decode:outpath'], 'w') as ofp:
+        #     _b = opt['batch_size']
+        #     seed_in = np.array([[0]] * _b, dtype=np.int32)
+        #     seed_len = np.array([1] * _b, dtype=np.int32)
+        #     features = sq.SeqFeatureTuple(seed_in, seed_len)
+        #     seed = sq.BatchTuple(features, None, _b, not opt['sentence_level'])
+        #     n_tokens = 0
+        #     for b_sample, vocabs in decode_lm(
+        #             opt, sq.SeqModel, model_opt, data_fn, logger, decode_opt, seed):
+        #         word = vocabs[-1].i2w(b_sample[0, 0])
+        #         if word == '</s>':
+        #             word = '\n'
+        #         ofp.write(f'{word} ')
+        #         n_tokens += 1
+        #         if n_tokens >= 887521:
+        #             break
         with open(decode_opt['decode:outpath'], 'w') as ofp:
             def decode_batch(batch, samples, vocabs):
                 for b_samples in samples:
-                    for sample in b_samples:
-                        seq_len = np.argmin(sample)
-                        sen = ' '.join(vocabs[1].i2w(sample[0: seq_len]))
-                        ofp.write(f'{sen}\n')
+                    b_seq_len = sq.find_first_min_zero(b_samples)
+                    for dec, dec_len in zip(b_samples.T, b_seq_len):
+                        dec_text = ' '.join(vocabs[1].i2w(dec[:dec_len]))
+                        ofp.write(f'{dec_text}\n')
             decode(opt, model_opt, decode_opt, decode_batch, logger,
                    data_fn, sq.SeqModel)
     else:

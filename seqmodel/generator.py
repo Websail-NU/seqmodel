@@ -67,13 +67,19 @@ def read_seq_data(tokenized_lines, in_vocab, out_vocab, keep_sentence=True, seq_
     """read data in format of [[['tk1_seq1', 'tk2_seq1']], [['tk1_seq2', 'tk2_seq2']]].
     Add start sequence and end sequence symbol.
     If keep_sentence is False, chunk sequence in length of seq_len (except last one)"""
-    sos_sym = ds.Vocabulary.special_symbols['start_seq']
+    # sos_sym = ds.Vocabulary.special_symbols['start_seq']
+    sos_sym = ds.Vocabulary.special_symbols['end_seq']
     eos_sym = ds.Vocabulary.special_symbols['end_seq']
     in_data, out_data = [], []
     for line in tokenized_lines:
-        line = line[0] + [eos_sym]  # assume many parts, but only take first
+        if len(line[0][0]) == 0:  # empty line
+            line = [eos_sym]
+        else:
+            line = line[0] + [eos_sym]  # assume many parts, but only take first
         if keep_sentence:
             line.insert(0, sos_sym)
+            # if len(line) < 5:
+            #     line = line + [eos_sym]
             in_data.append(in_vocab.w2i(line[:-1]))
             out_data.append(out_vocab.w2i(line[1:]))
         else:
