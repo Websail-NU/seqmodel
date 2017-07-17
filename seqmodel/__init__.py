@@ -4,3 +4,4 @@ from seqmodel.generator import *
 from seqmodel.graph import *
 from seqmodel.model import *
 from seqmodel.run import *
+from seqmodel.contrib import *
