@@ -44,7 +44,30 @@ def decode_lm(opt, model_class, model_opt, data_fn, logger, decode_opt, seed):
         if decode_opt['decode:greedy']:
             decode_fn = model.decode_greedy
         state = None
+        end_states = []
+        feature = seed.features
+        c = 0
+        import numpy as np
         while True:
-            result, __ = decode_fn(sess, seed.features, fetch_state=True, state=state)
+            result, __ = model.predict(sess, feature, predict_key='dec_max_id',
+                                       fetch_state=True, state=state)
+            # result, __ = decode_fn(sess, seed.features, fetch_state=True, state=state)
+
             output, state = result
+            feature.inputs[0, 0] = output[0, 0]
+
+            if output[0, 0] == 0:
+                end_states.append(state[-1].h[0, 0])
+
+            if c > 500:
+                break
+            c += 1
+
             yield output, vocabs
+
+        p_s = None
+        for s in end_states:
+            if p_s is not None:
+                print(np.power(np.sum(np.power(s - p_s, 2)), 0.5))
+            p_s = s
+

@@ -154,7 +154,7 @@ class Model(object):
         else:
             raise ValueError(f'{mode} is a not valid mode')
         extra_fetch = self._get_extra_fetch(extra_fetch, **kwargs)
-        fetch[-1] = extra_fetch
+        fetch[1] = extra_fetch
         return fetch
 
     def _get_extra_fetch(self, extra_fetch, **kwargs):
@@ -238,7 +238,8 @@ class SeqModel(Model):
                'logit:project_act': 'tensorflow.tanh', 'loss:type': 'xent',
                'loss:add_entropy': False, 'decode:add_greedy': True,
                'decode:add_sampling': True, 'share:input_emb_logit': False,
-               'anticache:enable': False, 'anticache:size': 5}
+               'anticache:enable': False, 'anticache:size': 5, 'loss:add_progreg': False,
+               'loss:progreg_type': 'dot', 'loss:progreg_coeff': 2.0}
         return opt
 
     @classmethod
@@ -312,6 +313,8 @@ class SeqModel(Model):
                 cell_output_, initial_state_, final_state_ = tfg.create_rnn(
                     cell_, lookup_, seq_len_, initial_state, rnn_fn=opt['rnn:fn'])
         # collect nodes
+        self._cell_output = cell_output_
+        self._seq_len = seq_len_
         predict_fetch = {'cell_output': cell_output_}
         nodes = util.dict_with_key_endswith(locals(), '_')
         graph_args = {'feature_feed': dstruct.SeqFeatureTuple(input_, seq_len_),
@@ -326,6 +329,7 @@ class SeqModel(Model):
             graph_args.update(label_feed=label_feed)
             if opt['anticache:enable']:
                 logit = tfg_ct.apply_anticache(logit, ac_)
+                nodes['ac_logit'] = logit
         # loss
         if opt['out:loss'] and opt['out:logit']:
             train_fetch, eval_fetch, loss_nodes = self._build_loss(
@@ -378,6 +382,12 @@ class SeqModel(Model):
                 train_loss_denom_ = get(name, tf.float32, shape=[])
             mean_loss_, train_loss_, batch_loss_, nll_ = tfg.create_xent_loss(
                 logit, label, weight, seq_weight, train_loss_denom_)
+
+            if opt['loss:add_progreg']:
+                prog_reg = tfg_ct.progression_regularizer(
+                    self._cell_output, self._seq_len, opt['loss:progreg_type'])
+                train_loss_ = train_loss_ + opt['loss:progreg_coeff'] * prog_reg
+
             if opt['loss:add_entropy']:
                 _sum_minus_ent, minus_avg_ent_ = tfg.create_ent_loss(
                     tf.nn.softmax(logit), tf.abs(weight), tf.abs(seq_weight))
@@ -412,21 +422,18 @@ class SeqModel(Model):
             logit_temperature=nodes['temperature'], max_len=decode_max_len_,
             cell_scope=cell_scope, late_attn_fn=late_attn_fn)
         if opt['decode:add_greedy']:
-            decode_greedy_, decode_greedy_score_, decode_greedy_len_ = decode_fn()
+            # select_fn = tfg.seeded_decode_select_fn(
+            #     nodes['input'], 3, tfg.greedy_decode_select, seed_offset=1)
+            # decode_greedy_, decode_greedy_score_, decode_greedy_len_ = decode_fn(
+            #     select_fn=select_fn)
+            decode_greedy_, decode_greedy_score_, decode_greedy_len_ = decode_fn(
+                select_fn=tfg.greedy_decode_select)
             output['decode_greedy'] = decode_greedy_
             output['decode_greedy_score'] = (decode_greedy_, decode_greedy_score_)
             output['decode_greedy_len'] = decode_greedy_len_
         if opt['decode:add_sampling']:
-            def select_fn(logit):
-                idx = tf.cast(tf.multinomial(logit, 1), tf.int32)
-                gather_idx = tf.expand_dims(
-                    tf.range(start=0, limit=tf.shape(idx)[0]), axis=-1)
-                gather_idx = tf.concat([gather_idx, idx], axis=-1)
-                score = tf.gather_nd(tf.nn.log_softmax(logit), gather_idx)
-                idx = tf.squeeze(idx, axis=(1, ))
-                return idx, score
             decode_sampling_, decode_sampling_score_, decode_sampling_len_ = decode_fn(
-                select_fn=select_fn)
+                select_fn=tfg.sampling_decode_select)
             output['decode_sampling'] = decode_sampling_
             output['decode_sampling_score'] = (decode_sampling_, decode_sampling_score_)
             output['decode_sampling_len'] = decode_sampling_len_

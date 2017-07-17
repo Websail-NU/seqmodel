@@ -17,7 +17,8 @@ __all__ = ['_safe_div', 'tfph_collection', 'create_2d_tensor', 'matmul', 'create
            'select_from_logit', 'create_xent_loss', 'create_ent_loss',
            'create_slow_feature_loss', 'create_l2_loss', 'create_train_op',
            'empty_tfph_collection', 'scan_rnn_no_mask', 'create_decode',
-           'create_pg_train_op']
+           'create_pg_train_op', 'seeded_decode_select_fn', 'greedy_decode_select',
+           'sampling_decode_select']
 
 
 _global_collections = {}
@@ -290,16 +291,22 @@ def create_gru_layer(transform, extra, carried):
     return tf.multiply(h - carried, z) + carried, zr
 
 
+##################################################################
+#    ########  ########  ######   #######  ########  ########    #
+#    ##     ## ##       ##    ## ##     ## ##     ## ##          #
+#    ##     ## ##       ##       ##     ## ##     ## ##          #
+#    ##     ## ######   ##       ##     ## ##     ## ######      #
+#    ##     ## ##       ##       ##     ## ##     ## ##          #
+#    ##     ## ##       ##    ## ##     ## ##     ## ##          #
+#    ########  ########  ######   #######  ########  ########    #
+##################################################################
+
+
 def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial_finish,
                   logit_b=None, logit_temperature=None, min_len=1, max_len=40, end_id=0,
                   cell_scope=None, reuse_cell=True, back_prop=False, select_fn=None,
                   late_attn_fn=None):
-    if select_fn is None:
-        def select_fn(logit):
-            idx = tf.argmax(logit, axis=-1)
-            score = tf.reduce_max(tf.nn.log_softmax(logit), axis=-1)
-            return tf.cast(idx, tf.int32), score
-
+    select_fn = select_fn or greedy_decode_select
     gen_ta = tf.TensorArray(dtype=tf.int32, size=min_len, dynamic_size=True)
     logp_ta = tf.TensorArray(dtype=tf.float32, size=min_len, dynamic_size=True)
     len_ta = tf.TensorArray(dtype=tf.int32, size=min_len, dynamic_size=True)
@@ -319,9 +326,14 @@ def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial
         logit = tf.matmul(output, logit_w, transpose_b=True)
         if logit_b is not None:
             logit = logit + logit_b
+
+        # mask = np.zeros((10000, ), dtype=np.float32)
+        # mask[2] = 1e5
+        # logit = logit - tf.constant(mask, dtype=tf.float32)
+
         if logit_temperature is not None:
             logit = logit / logit_temperature
-        next_token, score = select_fn(logit)
+        next_token, score = select_fn(t, logit)
         out_ta = out_ta.write(t, next_token)
         score_ta = score_ta.write(t, score)
         end_ta = end_ta.write(t, tf.cast(tf.not_equal(next_token, end_id), tf.int32))
@@ -332,6 +344,31 @@ def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial
         cond, step, init_values, back_prop=back_prop, parallel_iterations=10)
     # parallel_iterations does not matter much here.
     return result.stack(), score.stack(), tf.reduce_sum(seq_len.stack(), axis=0) + 1
+
+
+def seeded_decode_select_fn(seed, seed_len, after_seed_fn, seed_offset=0):
+    def select_fn(t, logit):
+        i = t + seed_offset
+        return tf.cond(t < seed_len,
+                       lambda: (seed[i], tf.constant(1.0, dtype=tf.float32)),
+                       lambda: after_seed_fn(t, logit))
+    return select_fn
+
+
+def greedy_decode_select(_t, logit):
+    idx = tf.argmax(logit, axis=-1)
+    score = tf.reduce_max(tf.nn.log_softmax(logit), axis=-1)
+    return tf.cast(idx, tf.int32), score
+
+
+def sampling_decode_select(_t, logit):
+    idx = tf.cast(tf.multinomial(logit, 1), tf.int32)
+    gather_idx = tf.expand_dims(
+        tf.range(start=0, limit=tf.shape(idx)[0]), axis=-1)
+    gather_idx = tf.concat([gather_idx, idx], axis=-1)
+    score = tf.gather_nd(tf.nn.log_softmax(logit), gather_idx)
+    idx = tf.squeeze(idx, axis=(1, ))
+    return idx, score
 
 
 ##############################################
@@ -472,6 +509,9 @@ def get_logit_layer(inputs, logit_w=None, logit_b=None, output_size=None,
 
 
 def select_from_logit(logit, distribution=None):
+    mask = np.zeros((10000, ), dtype=np.float32)
+    mask[2] = 1e5
+    logit = logit - tf.constant(mask, dtype=tf.float32)
     if distribution is None:
         distribution = tf.nn.softmax(logit)
     max_idx = tf.argmax(logit, axis=-1)
@@ -542,7 +582,7 @@ def create_ent_loss(distribution, weight, seq_weight=None):
     return sum_loss, mean_loss
 
 
-def create_slow_feature_loss(feature, weight, delta=1.0):
+def create_slow_feature_loss(feature, weight=None, delta=0.0):
     """return a constrastive slow feature analysis loss
     Args:
         feature: A tensor of shape [batch, time, dim]
@@ -554,17 +594,21 @@ def create_slow_feature_loss(feature, weight, delta=1.0):
         loss: A tensor of shape [batch, time, time]
         batch_loss: sum loss, averaged by batch size"""
     r = tf.expand_dims(tf.reduce_sum(feature * feature, -1), axis=-1)
-    D = r - 2 * tf.matmul(A, tf.transpose(A, perm=[0, 2, 1]))
-    D = D + tf.transpose(r, perm=[0, 2, 1])
-    R2 = tf.multiply(D, weight)
-    if delta > 0:
+    D = r - 2 * tf.matmul(feature, tf.transpose(feature, perm=[0, 2, 1]))
+    R2 = D + tf.transpose(r, perm=[0, 2, 1])
+    if weight is not None:
+        R2 = tf.multiply(R2, weight)
+    if delta > 0 and weight is not None:
         n_weight = 1 - weight
         n_weight = tf.matrix_band_part(n_weight, 0, -1)
         n_weight = n_weight - tf.matrix_band_part(n_weight, 0, 0)
         R2_n = tf.multiply(tf.nn.relu(delta - D), n_weight)
         R2 = R2 + R2_n
-    batch_size = tf.shape(feature)[0]
-    return R2, tf.reduce_sum(R2) / tf.cast(batch_size, tf.float32)
+    if weight is not None:
+        avg_R2 = _safe_div(tf.reduce_sum(R2), tf.reduce_sum(weight))
+    else:
+        avg_R2 = tf.reduce_mean(R2)
+    return R2, avg_R2
 
 
 def create_l2_loss(var_list):

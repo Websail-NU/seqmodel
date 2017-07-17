@@ -8,7 +8,7 @@ from seqmodel import graph as tfg
 
 
 __all__ = ['NGramCell', 'create_anticache_rnn', 'apply_anticache',
-           'create_decode_ac']
+           'create_decode_ac', 'progression_regularizer']
 
 
 class NGramCell(tf.nn.rnn_cell.RNNCell):
@@ -65,7 +65,13 @@ class MemWrapper(tf.nn.rnn_cell.RNNCell):
         e_input = tf.stack(new_mem_emb, axis=1)
         if self._add_pos_enc:
             e_input = add_timing_signal_1d(e_input)
-        e = tf.layers.dense(e_input, 1, activation=tf.nn.sigmoid, reuse=self._reuse)
+        e_input = tf.stop_gradient(e_input)
+        # e = tf.layers.dense(e_input, 1, activation=tf.nn.sigmoid, reuse=self._reuse)
+        e_input = tf.layers.dense(e_input, 100, activation=tf.nn.tanh, name='e_relu')
+        logits = tf.layers.dense(e_input, 1, reuse=self._reuse, name='e_logit')
+        q_e = tf.contrib.distributions.RelaxedBernoulli(0.1, logits=logits)
+        e = tf.cast(q_e.sample(), dtype=tf.float32)
+
         mem_ids = tf.stack(new_mem_ids, axis=1)
         bow = tf.one_hot(mem_ids, self._output_size, on_value=1.0, off_value=0.0,
                          dtype=tf.float32, name='ACBOW')
@@ -97,10 +103,14 @@ def create_anticache_rnn(input_ids, cell, cell_scope, lookup, emb_size, output_s
 
 
 def apply_anticache(logit, ac):
-    elogit = tf.exp(logit)
-    shifted_elogit = elogit - tf.reduce_min(elogit, axis=-1, keep_dims=True)
-    elogit = elogit - tf.abs(ac * shifted_elogit)
-    return tf.log(elogit)
+    # min_logit = tf.reduce_min(logit, axis=-1, keep_dims=True)
+    # logit = logit - ((min_logit - logit) * ac)
+    logit = tf.stop_gradient(logit) - 50 * ac
+    return logit
+    # elogit = tf.exp(logit)
+    # shifted_elogit = elogit - tf.reduce_min(elogit, axis=-1, keep_dims=True)
+    # elogit = elogit - tf.abs(ac * shifted_elogit)
+    # return tf.log(elogit)
 
 
 def create_decode_ac(emb_var, cell, logit_w, initial_state, initial_inputs,
@@ -152,29 +162,27 @@ def create_decode_ac(emb_var, cell, logit_w, initial_state, initial_inputs,
     return result.stack(), score.stack(), tf.reduce_sum(seq_len.stack(), axis=0) + 1
 
 
+def progression_regularizer(cell_output, seq_len, distance='dot'):
+    max_len = tf.shape(cell_output)[0]
+    feature = tf.transpose(cell_output, [1, 0, 2])
+    mask = tf.sequence_mask(seq_len, maxlen=max_len, dtype=tf.float32)
+    mask = tf.expand_dims(mask, axis=1)
+    prog_w = tf.matmul(mask, mask, transpose_a=True)
+    prog_w = tf.matrix_band_part(prog_w, 0, -1) - tf.matrix_band_part(prog_w, 0, 0)
+
+    if distance == 'dot':
+        dot_product = tf.matmul(feature, feature, transpose_b=True)
+        prog_reg = tf.reduce_sum(dot_product * prog_w) / tf.reduce_sum(prog_w)
+    else:
+        r2, __ = tfg.create_slow_feature_loss(feature)
+        prog_reg = tf.reduce_sum((1 / (1 + r2)) * prog_w) / tf.reduce_sum(prog_w)
+
+    prog_reg = tf.Print(prog_reg, [prog_reg])
+    return prog_reg
+
+
 def add_timing_signal_1d(x, min_timescale=1.0, max_timescale=1.0e4):
     """ Copied from https://github.com/tensorflow/tensor2tensor
-
-    Adds a bunch of sinusoids of different frequencies to a Tensor.
-    Each channel of the input Tensor is incremented by a sinusoid of a different
-    frequency and phase.
-    This allows attention to learn to use absolute and relative positions.
-    Timing signals should be added to some precursors of both the query and the
-    memory inputs to attention.
-    The use of relative position is possible because sin(x+y) and cos(x+y) can be
-    experessed in terms of y, sin(x) and cos(x).
-    In particular, we use a geometric sequence of timescales starting with
-    min_timescale and ending with max_timescale.  The number of different
-    timescales is equal to channels / 2. For each timescale, we
-    generate the two sinusoidal signals sin(timestep/timescale) and
-    cos(timestep/timescale).  All of these sinusoids are concatenated in
-    the channels dimension.
-    Args:
-    x: a Tensor with shape [batch, length, channels]
-    min_timescale: a float
-    max_timescale: a float
-    Returns:
-    a Tensor the same shape as x.
     """
     length = tf.shape(x)[1]
     channels = tf.shape(x)[2]

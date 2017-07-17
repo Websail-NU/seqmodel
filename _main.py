@@ -32,7 +32,7 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
         valid_batch_iter = partial(batch_iter, *data[1])
         train_model = model_class()
         init_lr = train_opt['train:init_lr']
-        train_model.build_graph(model_opt)
+        __nodes = train_model.build_graph(model_opt)
         if model_class == sq.SeqModel:
             train_model.set_default_feed('train_loss_denom', opt['batch_size'])
         else:
