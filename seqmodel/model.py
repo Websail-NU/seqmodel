@@ -290,11 +290,7 @@ class SeqModel(Model):
         emb_opt = util.dict_with_key_startswith(opt, 'emb:')
         with tfg.maybe_scope(reuse_scope[self._RSK_EMB_], reuse=True) as scope:
             lookup_, emb_vars_ = tfg.create_lookup(input_, **emb_opt)
-        if hasattr(self, '_batch_size'):
-            batch_size = self._batch_size
-        else:
-            batch_size = tf.shape(input_)[1]
-            self._batch_size = batch_size
+        batch_size = self._get_batch_size(input_)
         # cell rnn
         cell_opt = util.dict_with_key_startswith(opt, 'cell:')
         with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
@@ -315,8 +311,6 @@ class SeqModel(Model):
                     cell_, lookup_, seq_len_, initial_state, rnn_fn=opt['rnn:fn'],
                     batch_size=batch_size)
         # collect nodes
-        self._cell_output = cell_output_
-        self._seq_len = seq_len_
         predict_fetch = {'cell_output': cell_output_}
         nodes = util.dict_with_key_endswith(locals(), '_')
         graph_args = {'feature_feed': dstruct.SeqFeatureTuple(input_, seq_len_),
@@ -335,7 +329,7 @@ class SeqModel(Model):
         # loss
         if opt['out:loss'] and opt['out:logit']:
             train_fetch, eval_fetch, loss_nodes = self._build_loss(
-                opt, logit, *label_feed, collect_key,
+                opt, logit, *label_feed, nodes, collect_key,
                 collect_kwargs['add_to_collection'])
             nodes.update(loss_nodes)
             graph_args.update(train_fetch=train_fetch, eval_fetch=eval_fetch)
@@ -376,7 +370,7 @@ class SeqModel(Model):
         nodes = util.dict_with_key_endswith(locals(), '_')
         return logit_, label_feed, predict_fetch, nodes
 
-    def _build_loss(self, opt, logit, label, weight, seq_weight,
+    def _build_loss(self, opt, logit, label, weight, seq_weight, nodes,
                     collect_key, add_to_collection):
         if opt['loss:type'] == 'xent':
             with tfg.tfph_collection(collect_key, add_to_collection) as get:
@@ -387,7 +381,7 @@ class SeqModel(Model):
 
             if opt['loss:add_progreg']:
                 prog_reg = tfg_ct.progression_regularizer(
-                    self._cell_output, self._seq_len, opt['loss:progreg_type'])
+                    nodes['cell_output'], nodes['seq_len'], opt['loss:progreg_type'])
                 train_loss_ = train_loss_ + opt['loss:progreg_coeff'] * prog_reg
 
             if opt['loss:add_entropy']:
@@ -414,10 +408,7 @@ class SeqModel(Model):
         output = {}
         with tfg.tfph_collection(collect_key, add_to_collection) as get:
             decode_max_len_ = get('decode_max_len', tf.int32, None)
-        if hasattr(self, '_batch_size'):
-            batch_size = self._batch_size
-        else:
-            batch_size = tf.shape(nodes['input'])[1]
+        batch_size = self._get_batch_size(nodes['input'])
         late_attn_fn = None
         if hasattr(self, '_decode_late_attn'):
             late_attn_fn = self._decode_late_attn
@@ -448,6 +439,13 @@ class SeqModel(Model):
             output['decode_sampling_len'] = decode_sampling_len_
         nodes = util.dict_with_key_endswith(locals(), '_')
         return output, nodes
+
+    def _get_batch_size(self, inputs):
+        if hasattr(self, '_batch_size'):
+            batch_size = self._batch_size
+        else:
+            batch_size = tf.shape(inputs)[1]
+        return batch_size
 
     def _get_fetch(self, mode, extra_fetch=None, fetch_state=False, **kwargs):
         fetch = super()._get_fetch(mode, extra_fetch, **kwargs)
@@ -561,6 +559,7 @@ class Seq2SeqModel(SeqModel):
             enc_nodes, enc_graph_args = super()._build(
                 enc_opt, reuse_scope, reuse=reuse, collect_key=f'{collect_key}_enc',
                 prefix=f'{prefix}_enc')
+        # remove input dependency when decoding
         self._batch_size = tf.shape(enc_nodes['input'])[1]
         # sharing (is caring)
         if opt['share:enc_dec_emb']:
@@ -870,7 +869,7 @@ class Word2DefModel(Seq2SeqModel):
     def _build_gated_logit(self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output,
                            wbdef, wbdef_scope, wbdef_nodes, full_opt, reuse):
         wbdef_nodes = {} if wbdef_nodes is None else wbdef_nodes
-        cell_output = tf.slice(cell_output, [0, 0, 100], [-1, -1, -1])
+        # cell_output = tf.slice(cell_output, [0, 0, 100], [-1, -1, -1])
         with tfg.maybe_scope(wbdef_scope, reuse):
             _multiples = [tf.shape(cell_output)[0], 1, 1]
             tiled_wbdef_ = tf.tile(tf.expand_dims(wbdef, 0), _multiples)
@@ -888,7 +887,7 @@ class Word2DefModel(Seq2SeqModel):
         return logit_, label_feed, predict_fetch, nodes
 
     def _build_dec_gated_logit(self, cell_output, wbdef, wbdef_scope):
-        cell_output = tf.slice(cell_output, [0, 100], [-1, -1])
+        # cell_output = tf.slice(cell_output, [0, 100], [-1, -1])
         with tfg.maybe_scope(wbdef_scope, True):
             updated_output, __ = tfg.create_gru_layer(
                 cell_output, wbdef)

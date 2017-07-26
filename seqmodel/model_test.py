@@ -395,15 +395,15 @@ class TestWord2DefModel(tf.test.TestCase):
                                   't/wbdef/filter_3:0': (1, 3, 55, 30),
                                   't/wbdef/filter_4:0': (1, 4, 55, 40),
                                   't/wbdef/filter_5:0': (1, 5, 55, 40),
-                                  't/wbdef/gate_zr_w:0': (145, 145),
-                                  't/wbdef/gate_zr_b:0': (145,),
-                                  't/wbdef/h_w:0': (145, 10),
-                                  't/wbdef/h_b:0': (10,)})
+                                  't/wbdef/gate_zr/kernel:0': (145, 145),
+                                  't/wbdef/gate_zr/bias:0': (145,),
+                                  't/wbdef/transform/kernel:0': (145, 10),
+                                  't/wbdef/transform/bias:0': (10,)})
             n = m.build_graph(opt, name='t')
             self.assertIsInstance(n['dec']['cell'], tf.nn.rnn_cell.BasicLSTMCell,
                                   'no dropout at the final cell (1-layer)')
-            for name in ('wbdef', 'updated_output'):
-                self.assertTrue('dropout' in n['bridge'][name].name, 'dropout')
+
+            self.assertTrue('dropout' in n['bridge']['updated_output'].name, 'dropout')
             for v in tf.global_variables():
                 self.assertTrue(v.name in expected_vars, 'expected variable scope/name')
                 self.assertEqual(v.shape, expected_vars[v.name], 'shape is correct')
@@ -422,7 +422,6 @@ class TestWord2DefModel(tf.test.TestCase):
             self.assertNotEqual(type(n['dec']['cell']._cells[-1]),
                                 tf.nn.rnn_cell.DropoutWrapper)
             self.assertTrue('dropout' in n['bridge']['updated_output'].name)
-            self.assertTrue('dropout' in n['bridge']['wbdef'].name)
 
     def test_dynamic_rnn_run(self):
         _run(self, model.Word2DefModel, tf.nn.dynamic_rnn, 'word2def')
