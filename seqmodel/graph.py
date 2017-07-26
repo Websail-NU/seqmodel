@@ -18,7 +18,7 @@ __all__ = ['_safe_div', 'tfph_collection', 'create_2d_tensor', 'matmul', 'create
            'create_slow_feature_loss', 'create_l2_loss', 'create_train_op',
            'empty_tfph_collection', 'scan_rnn_no_mask', 'create_decode',
            'create_pg_train_op', 'seeded_decode_select_fn', 'greedy_decode_select',
-           'sampling_decode_select']
+           'sampling_decode_select', 'create_gated_layer']
 
 
 _global_collections = {}
@@ -188,12 +188,13 @@ scan_rnn_no_mask = partial(scan_rnn, mask_output=False)
 
 
 def create_rnn(cell, inputs, sequence_length=None, initial_state=None,
-               rnn_fn=tf.nn.dynamic_rnn):
+               rnn_fn=tf.nn.dynamic_rnn, batch_size=None):
     """return output (all time steps), initial state, and final state in time major."""
     if isinstance(rnn_fn, six.string_types):
         rnn_fn = locate(rnn_fn)
     if initial_state is None:
-        batch_size = _tf_shape_of_tensor_or_tuple(inputs)
+        if batch_size is None:
+            batch_size = _tf_shape_of_tensor_or_tuple(inputs)
         initial_state = cell.zero_state(batch_size, tf.float32)
     cell_output, final_state = rnn_fn(
         cell=cell, inputs=inputs, sequence_length=sequence_length,
@@ -246,6 +247,31 @@ def create_tdnn(inputs, sequence_length=None, filter_widths=[2, 3, 4, 5, 6],
     return tf.concat(layers, axis=1) if len(layers) > 1 else layers[0]
 
 
+###################################################################
+#    ##     ## ########  ########     ###    ######## ########    #
+#    ##     ## ##     ## ##     ##   ## ##      ##    ##          #
+#    ##     ## ##     ## ##     ##  ##   ##     ##    ##          #
+#    ##     ## ########  ##     ## ##     ##    ##    ######      #
+#    ##     ## ##        ##     ## #########    ##    ##          #
+#    ##     ## ##        ##     ## ##     ##    ##    ##          #
+#     #######  ##        ########  ##     ##    ##    ########    #
+###################################################################
+
+
+def create_gated_layer(carried, extra, carried_keep_prob=1.0, extra_keep_prob=1.0,
+                       fine_grain=False):
+    out_size = int(carried.get_shape()[-1]) if fine_grain else 1
+    _carried, _extra = carried, extra
+    if carried_keep_prob < 1.0:
+        _carried = tf.nn.dropout(carried, carried_keep_prob)
+    if extra_keep_prob < 1.0:
+        _extra = tf.nn.dropout(extra, extra_keep_prob)
+    z = tf.layers.dense(
+        tf.concat([_carried, _extra], -1), out_size, activation=tf.sigmoid,
+        name='gate')
+    return tf.multiply(extra - carried, z) + carried, z
+
+
 def create_highway_layer(transform, extra, carried):
     """return updated carried using Highway-like update function.
     (https://arxiv.org/abs/1505.00387)"""
@@ -266,28 +292,26 @@ def create_highway_layer(transform, extra, carried):
     return tf.multiply(h - carried, t) + carried, t
 
 
-def create_gru_layer(transform, extra, carried):
+def create_gru_layer(carried, extra, carried_keep_prob=1.0, extra_keep_prob=1.0):
     """return updated carried using GRU-like update function.
     (https://arxiv.org/abs/1612.00394)"""
-    transform_dim = int(transform.get_shape()[-1])
-    carried_dim = int(carried.get_shape()[-1])
-    extra_dim = int(extra.get_shape()[-1])
-    assert transform_dim == carried_dim, 'transform and carried must have the same size'
-    in_size = transform_dim + extra_dim
-    out_size = carried_dim + extra_dim
-    zr_w = tf.get_variable('gate_zr_w', [in_size, out_size])
-    zr_b = tf.get_variable('gate_zr_b', [out_size])
-    zr = tf.sigmoid(matmul(tf.concat([extra, transform], -1), zr_w) + zr_b)
-    if len(transform.get_shape()) == 2:
-        z = tf.slice(zr, [0, 0], [-1, carried_dim])
-        r = tf.slice(zr, [0, carried_dim], [-1, -1])
-    else:
-        z = tf.slice(zr, [0, 0, 0], [-1, -1, carried_dim])
-        r = tf.slice(zr, [0, 0, carried_dim], [-1, -1, -1])
-    h_w = tf.get_variable('h_w', [in_size, carried_dim])
-    h_b = tf.get_variable('h_b', [carried_dim])
-    scaled_extra = tf.multiply(r, extra)
-    h = tf.tanh(matmul(tf.concat([scaled_extra, transform], -1), h_w) + h_b)
+    _carried, _extra = carried, extra
+    if carried_keep_prob < 1.0:
+        _carried = tf.nn.dropout(carried, carried_keep_prob)
+    if extra_keep_prob < 1.0:
+        _extra = tf.nn.dropout(extra, extra_keep_prob)
+    c_dim = int(carried.get_shape()[-1])
+    x_dim = int(extra.get_shape()[-1])
+    out_size = c_dim + x_dim
+    zr = tf.layers.dense(tf.concat([_carried, _extra], -1), out_size,
+                         activation=tf.sigmoid, name='gate_zr')
+    _begin = [0] * (len(carried.get_shape()) - 1)
+    _size = [-1] * (len(carried.get_shape()) - 1)
+    z = tf.slice(zr, _begin + [0], _size + [c_dim])
+    r = tf.slice(zr, _begin + [c_dim], _size + [-1])
+    _scaled_extra = tf.multiply(r, _extra)
+    h = tf.layers.dense(tf.concat([_scaled_extra, _carried], -1), c_dim,
+                        activation=tf.tanh, name='transform')
     return tf.multiply(h - carried, z) + carried, zr
 
 
@@ -509,9 +533,9 @@ def get_logit_layer(inputs, logit_w=None, logit_b=None, output_size=None,
 
 
 def select_from_logit(logit, distribution=None):
-    mask = np.zeros((10000, ), dtype=np.float32)
-    mask[2] = 1e5
-    logit = logit - tf.constant(mask, dtype=tf.float32)
+    # mask = np.zeros((10000, ), dtype=np.float32)
+    # mask[2] = 1e5
+    # logit = logit - tf.constant(mask, dtype=tf.float32)
     if distribution is None:
         distribution = tf.nn.softmax(logit)
     max_idx = tf.argmax(logit, axis=-1)

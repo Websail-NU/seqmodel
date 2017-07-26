@@ -51,7 +51,7 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
 
     eval_batch_iter = partial(batch_iter, *data[-1])
     eval_model = model_class()
-    eval_model.build_graph(model_opt, reuse=is_training, no_dropout=True)
+    nodes = eval_model.build_graph(model_opt, reuse=is_training, no_dropout=True)
 
     logger.debug('Trainable Variables:')
     for v in tf.trainable_variables():

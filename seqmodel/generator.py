@@ -20,7 +20,7 @@ __all__ = ['open_files', 'read_lines', 'read_seq_data', 'read_seq2seq_data',
            'get_batch_data', 'reward_match_label', 'read_word2def_data', 'count_ngrams',
            'word2def_batch_iter', 'reward_ngram_lm', 'concat_word2def_batch',
            'make_ngrams', 'reward_constant', 'reward_progressive_match_label',
-           'reward_bleu']
+           'reward_bleu', 'lseq2seq_batch_iter', 'read_lseq2seq_data']
 
 ##################################################
 #    ######## #### ##       ########  ######     #
@@ -111,6 +111,23 @@ def read_seq2seq_data(tokenized_lines, in_vocab, out_vocab):
         enc_data.append(enc_)
         dec_data.append(dec_)
     return enc_data, dec_data
+
+
+def read_lseq2seq_data(tokenized_lines, in_vocab, out_vocab, l_vocab):
+    """this is a copy of read_seq2seq_data with label data"""
+    eoe_sym = ds.Vocabulary.special_symbols['end_encode']
+    sod_sym = ds.Vocabulary.special_symbols['start_seq']
+    eod_sym = ds.Vocabulary.special_symbols['end_seq']
+    enc_data, dec_data, label_data = [], [], []
+    for part in tokenized_lines:
+        enc_, dec_, label_ = part[:3]
+        enc_ = in_vocab.w2i(enc_ + [eoe_sym])
+        dec_ = out_vocab.w2i([sod_sym] + dec_ + [eod_sym])
+        label_ = l_vocab.w2i(' '.join(label_))
+        enc_data.append(enc_)
+        dec_data.append(dec_)
+        label_data.append(label_)
+    return enc_data, dec_data, label_data
 
 
 def read_word2def_data(tokenized_lines, in_vocab, out_vocab, char_vocab,
@@ -270,9 +287,28 @@ def seq2seq_batch_iter(enc_data, dec_data, batch_size=1, shuffle=True):
         yield ds.BatchTuple(features, labels, num_tokens, False)
 
 
+def lseq2seq_batch_iter(enc_data, dec_data, label_data, batch_size=1, shuffle=True):
+    """same as seq2seq_batch_iter, just add label"""
+    data_tuple = (enc_data, dec_data, label_data)
+    for x, y, L in batch_iter(batch_size, shuffle, *data_tuple, pad=[[], [], 0]):
+        enc, enc_len = util.hstack_list(x)
+        dec, dec_len = util.hstack_list(y)
+        label = np.array(L, dtype=np.int32)
+        in_dec = dec[:-1, :]
+        out_dec = dec[1:, :]
+        seq_weight = np.where(dec_len > 0, 1, 0)
+        dec_len -= seq_weight
+        token_weight, num_tokens = util.masked_full_like(
+            out_dec, 1, num_non_padding=dec_len)
+        seq_weight = seq_weight.astype(np.float32)
+        features = ds.LSeq2SeqFeatureTuple(enc, enc_len, in_dec, dec_len, label)
+        labels = ds.SeqLabelTuple(out_dec, token_weight, seq_weight)
+        yield ds.BatchTuple(features, labels, num_tokens, False)
+
+
 def word2def_batch_iter(enc_data, word_data, char_data, dec_data, seq_weight_data,
                         batch_size=1, shuffle=True):
-    """same as seq2seq_batch_iter, just add more info"""
+    """same as seq2seq_batch_iter, just add word and character"""
     for x, w, c, y, sw in batch_iter(batch_size, shuffle, enc_data, word_data,
                                      char_data, dec_data, seq_weight_data,
                                      pad=[[], 0, [], [], 0]):

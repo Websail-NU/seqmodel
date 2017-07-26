@@ -13,7 +13,7 @@ from seqmodel import graph as tfg
 from seqmodel import contrib as tfg_ct
 
 
-__all__ = ['Model', 'SeqModel', 'Seq2SeqModel', 'Word2DefModel']
+__all__ = ['Model', 'SeqModel', 'Seq2SeqModel', 'AutoSeqModel', 'Word2DefModel']
 
 
 #########################################################
@@ -290,6 +290,11 @@ class SeqModel(Model):
         emb_opt = util.dict_with_key_startswith(opt, 'emb:')
         with tfg.maybe_scope(reuse_scope[self._RSK_EMB_], reuse=True) as scope:
             lookup_, emb_vars_ = tfg.create_lookup(input_, **emb_opt)
+        if hasattr(self, '_batch_size'):
+            batch_size = self._batch_size
+        else:
+            batch_size = tf.shape(input_)[1]
+            self._batch_size = batch_size
         # cell rnn
         cell_opt = util.dict_with_key_startswith(opt, 'cell:')
         with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
@@ -297,10 +302,6 @@ class SeqModel(Model):
             cell_ = tfg.create_cells(reuse=_reuse, input_size=opt['emb:dim'], **cell_opt)
         # maybe anti-cache rnn
         if opt['anticache:enable']:
-            if hasattr(self, '_batch_size'):
-                batch_size = self._batch_size
-            else:
-                batch_size = tf.shape(input_)[1]
             (cell_, cell_output_, initial_state_,
              final_state_, ac_) = tfg_ct.create_anticache_rnn(
                 input_, cell_, reuse_scope[self._RSK_RNN_],
@@ -311,7 +312,8 @@ class SeqModel(Model):
         else:
             with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
                 cell_output_, initial_state_, final_state_ = tfg.create_rnn(
-                    cell_, lookup_, seq_len_, initial_state, rnn_fn=opt['rnn:fn'])
+                    cell_, lookup_, seq_len_, initial_state, rnn_fn=opt['rnn:fn'],
+                    batch_size=batch_size)
         # collect nodes
         self._cell_output = cell_output_
         self._seq_len = seq_len_
@@ -392,6 +394,13 @@ class SeqModel(Model):
                 _sum_minus_ent, minus_avg_ent_ = tfg.create_ent_loss(
                     tf.nn.softmax(logit), tf.abs(weight), tf.abs(seq_weight))
                 train_loss_ = train_loss_ + minus_avg_ent_
+
+            if hasattr(self, '_KLD'):
+                train_loss_ += (tf.reduce_sum(self._KLD) / train_loss_denom_)
+
+            if hasattr(self, '_EMB_DIS'):
+                train_loss_ += self._EMB_DIS
+
             train_fetch = {'train_loss': train_loss_, 'eval_loss': mean_loss_}
             eval_fetch = {'eval_loss': mean_loss_}
 
@@ -535,8 +544,10 @@ class Seq2SeqModel(SeqModel):
         if no_dropout:
             chain_opt = ChainMap(self._all_keep_prob_shall_be_one(chain_opt), chain_opt)
         self._name = name
+        bridge = None if not hasattr(self, '_bridge') else self._bridge
         with tf.variable_scope(name, reuse=reuse):
-            nodes, graph_args = self._build(chain_opt, reuse, collect_key, **kwargs)
+            nodes, graph_args = self._build(chain_opt, reuse, collect_key,
+                                            bridge_fn=bridge, **kwargs)
             self.set_graph(**graph_args)
             return nodes
 
@@ -572,7 +583,7 @@ class Seq2SeqModel(SeqModel):
         # decoder
         with tf.variable_scope('dec', reuse=reuse) as dec_scope:
             dec_nodes, dec_graph_args = super()._build(
-                dec_opt, reuse_scope, initial_state=enc_nodes['final_state'],
+                dec_opt, reuse_scope, initial_state=dec_initial_state,
                 reuse=reuse, collect_key=f'{collect_key}_dec', prefix=f'{prefix}_dec')
         # prepare output
         graph_args = dec_graph_args  # rename for visual
@@ -615,6 +626,159 @@ class Seq2SeqModel(SeqModel):
             attn_dec_output_ = tf.layers.dense(
                 attn_dec_output_, cell_output.get_shape()[-1], use_bias=True, reuse=True)
         return attn_dec_output_
+
+
+###########################################################################
+#       ###    ##     ## ########  #######  ######## ##    ##  ######     #
+#      ## ##   ##     ##    ##    ##     ## ##       ###   ## ##    ##    #
+#     ##   ##  ##     ##    ##    ##     ## ##       ####  ## ##          #
+#    ##     ## ##     ##    ##    ##     ## ######   ## ## ## ##          #
+#    ######### ##     ##    ##    ##     ## ##       ##  #### ##          #
+#    ##     ## ##     ##    ##    ##     ## ##       ##   ### ##    ##    #
+#    ##     ##  #######     ##     #######  ######## ##    ##  ######     #
+###########################################################################
+
+class AutoSeqModel(Seq2SeqModel):
+
+    ATTN_LOGIT = True
+    ATTN_FINE = False
+    TRANS_ENC_VEC = False
+    SPLIT_ENC_VEC = False
+    VARIATIONAL = True
+    BLOCK_ENC_STATE = True
+    E_SD = 1.0
+    EMB_CONTEXT = True
+    EMB_FILE = ('/home/northanapon/editor_sync/seqmodel'
+                '/data/wn_lemma_senses/enc_emb.npy')
+
+    def _bridge(self, opt, reuse, enc_nodes, enc_scope, collect_key):
+        nodes = {}
+        context_ = tfg.select_rnn(enc_nodes['cell_output'],
+                                  tf.nn.relu(enc_nodes['seq_len'] - 1))
+        emb_output_ = context_
+        with tf.variable_scope('bridge', reuse=reuse) as context_scope:
+            cell_dim = opt['enc:cell:num_units']
+            if self.EMB_CONTEXT:
+                context_label_, context_lookup_ = self._context_emb(opt, collect_key)
+            if self.SPLIT_ENC_VEC:
+                z = tf.layers.dense(
+                    context_, cell_dim * 2, reuse=reuse, name='split',
+                    activation=None)
+                main_ = tf.slice(z, [0, 0], [-1, cell_dim]) + context_
+                emb_output_ = main_
+                logsigma_ = tf.tanh(tf.slice(z, [0, cell_dim], [-1, -1]))
+                context_ = main_ + (logsigma_ / 2)
+            if self.TRANS_ENC_VEC:
+                context_ = tf.layers.dense(
+                    context_, cell_dim, activation=tf.tanh,
+                    reuse=reuse, name='context') + context_
+                emb_output_ = context_
+            if self.VARIATIONAL:
+                z = tf.layers.dense(
+                    context_, cell_dim * 2, reuse=reuse, name='mu_logsigma',
+                    activation=None)
+                mu_ = tf.slice(z, [0, 0], [-1, cell_dim]) + context_
+                main_ = mu_
+                emb_output_ = main_
+                logsigma_ = tf.slice(z, [0, cell_dim], [-1, -1])
+                scale = tf.exp(logsigma_)
+                st = tf.contrib.bayesflow.stochastic_tensor
+                with st.value_type(st.SampleValue()):
+                    u = tf.contrib.distributions.Normal(loc=mu_, scale=scale)
+                    context_ = st.StochasticTensor(u)
+                p_mu = context_lookup_ if self.EMB_CONTEXT else 0.0
+                p_z = tf.contrib.distributions.Normal(loc=p_mu, scale=self.E_SD)
+                self._KLD = tf.reduce_sum(
+                    tf.contrib.distributions.kl_divergence(context_.distribution, p_z),
+                    axis=-1)
+                # self._KLD = tf.Print(self._KLD, [tf.reduce_mean(self._KLD)])
+            if self.EMB_CONTEXT:
+                _predict = context_
+                if self.SPLIT_ENC_VEC or self.VARIATIONAL:
+                    _predict = main_
+                _predict = tf.nn.l2_normalize(_predict, -1)
+                self._EMB_DIS = 4 * tf.losses.cosine_distance(
+                    context_lookup_, _predict, dim=-1,
+                    weights=tf.expand_dims(enc_nodes['seq_len'], -1))
+                # self._EMB_DIS = tf.Print(self._EMB_DIS, [self._EMB_DIS])
+            if self.ATTN_LOGIT:
+                self._build_logit = partial(self._build_gated_logit, context=context_,
+                                            context_scope=context_scope,
+                                            context_nodes=nodes,
+                                            full_opt=opt, reuse=reuse)
+                self._decode_late_attn = partial(self._build_dec_gated_logit,
+                                                 context=context_,
+                                                 context_scope=context_scope)
+        nodes.update(util.dict_with_key_endswith(locals(), '_'))
+        if self.BLOCK_ENC_STATE:
+            return None, nodes
+        else:
+            return enc_nodes['final_state'], nodes
+
+    def _context_emb(self, opt, collect_key):
+        import numpy as np
+        context_emb = np.load(self.EMB_FILE)
+        dim1, dim2 = context_emb.shape
+        context_emb = tfg.create_2d_tensor(
+            dim1, dim2, trainable=False, init=context_emb, name='context_emb')
+        with tfg.tfph_collection(collect_key, True) as get:
+            context_label = get('context_label', tf.int32, (None, ))
+        return context_label, tf.nn.embedding_lookup(context_emb, context_label)
+
+    def _build_gated_logit(self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output,
+                           context, context_scope, context_nodes, full_opt, reuse):
+        context_nodes = {} if context_nodes is None else context_nodes
+        with tfg.maybe_scope(context_scope, reuse):
+            _multiples = [tf.shape(cell_output)[0], 1, 1]
+            tiled_context_ = tf.tile(tf.expand_dims(context, 0), _multiples)
+            _keep_prob = full_opt['dec:cell:out_keep_prob']
+            updated_output_, attention_ = tfg.create_gated_layer(
+                cell_output, tiled_context_, carried_keep_prob=_keep_prob,
+                extra_keep_prob=_keep_prob, fine_grain=self.ATTN_FINE)
+            if _keep_prob < 1.0:
+                updated_output_ = tf.nn.dropout(updated_output_, _keep_prob)
+        context_nodes.update(util.dict_with_key_endswith(locals(), '_'))
+        context_nodes.pop('__class_', None)
+        logit_, label_feed, predict_fetch, nodes = super()._build_logit(
+            opt, reuse_scope, collect_kwargs, emb_vars, updated_output_)
+        return logit_, label_feed, predict_fetch, nodes
+
+    def _build_dec_gated_logit(self, cell_output, context, context_scope):
+        with tfg.maybe_scope(context_scope, True):
+            updated_output, __ = tfg.create_gated_layer(
+                cell_output, context, fine_grain=self.ATTN_FINE)
+        return updated_output
+
+    def _build_attn_logit(self, *args, **kwargs):
+        raise ValueError('`dec:attn_enc_output` is not supported in AE.')
+
+    def _build_dec_attn_logit(self, *args, **kwargs):
+        raise ValueError('`dec:attn_enc_output` is not supported in AE.')
+
+    def build_graph(self, opt=None, reuse=False, name='ae',
+                    collect_key='ae', no_dropout=False, **kwargs):
+        """ build encoder-decoder graph for definition modeling
+        (see default_opt() for configuration)
+        """
+        opt = opt if opt else {}
+        opt.update({'enc:out:logit': False, 'enc:out:loss': False,
+                    'enc:out:decode': False, 'dec:cell:dropout_last_output': False})
+        chain_opt = ChainMap(kwargs, opt, self.default_opt())
+        if no_dropout:
+            chain_opt = ChainMap(self._all_keep_prob_shall_be_one(chain_opt), chain_opt)
+        self._name = name
+        with tf.variable_scope(name, reuse=reuse):
+            nodes, graph_args = self._build(chain_opt, reuse, collect_key,
+                                            bridge_fn=self._bridge, **kwargs)
+            _f = graph_args['feature_feed']
+            _b = nodes['bridge']
+            if self.EMB_CONTEXT:
+                graph_args['feature_feed'] = dstruct.LSeq2SeqFeatureTuple(
+                    *_f, _b['context_label'])
+            else:
+                graph_args['feature_feed'] = dstruct.Seq2SeqFeatureTuple(*_f)
+            self.set_graph(**graph_args)
+            return nodes
 
 #############################
 #    ########  ##     ##    #
@@ -694,8 +858,6 @@ class Word2DefModel(Seq2SeqModel):
             wbdef_char_tdnn_ = tfg.create_tdnn(wbdef_char_lookup_, wbdef_char_len_,
                                                **char_tdnn_opt)
             wbdef_ = tf.concat((wbdef_word_lookup_, wbdef_char_tdnn_), axis=-1)
-            if wbdef_opt['keep_prob'] < 1.0:
-                wbdef_ = tf.nn.dropout(wbdef_, opt['wbdef:keep_prob'])
         nodes = util.dict_with_key_endswith(locals(), '_')
         # add param to super()_build_logit
         self._build_logit = partial(self._build_gated_logit, wbdef=wbdef_,
@@ -708,16 +870,15 @@ class Word2DefModel(Seq2SeqModel):
     def _build_gated_logit(self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output,
                            wbdef, wbdef_scope, wbdef_nodes, full_opt, reuse):
         wbdef_nodes = {} if wbdef_nodes is None else wbdef_nodes
+        cell_output = tf.slice(cell_output, [0, 0, 100], [-1, -1, -1])
         with tfg.maybe_scope(wbdef_scope, reuse):
             _multiples = [tf.shape(cell_output)[0], 1, 1]
             tiled_wbdef_ = tf.tile(tf.expand_dims(wbdef, 0), _multiples)
-            carried_output = cell_output
-            if full_opt['dec:cell:out_keep_prob'] < 1.0:  # no variational dropout :(
-                cell_output = tf.nn.dropout(
-                    cell_output, full_opt['dec:cell:out_keep_prob'])
             updated_output_, attention_ = tfg.create_gru_layer(
-                cell_output, tiled_wbdef_, carried_output)
-            if full_opt['dec:cell:out_keep_prob'] < 1.0:  # no variational dropout :(
+                cell_output, tiled_wbdef_,
+                carried_keep_prob=full_opt['dec:cell:out_keep_prob'],
+                extra_keep_prob=full_opt['wbdef:keep_prob'])
+            if full_opt['dec:cell:out_keep_prob'] < 1.0:
                 updated_output_ = tf.nn.dropout(
                     updated_output_, full_opt['dec:cell:out_keep_prob'])
         wbdef_nodes.update(util.dict_with_key_endswith(locals(), '_'))
@@ -727,9 +888,10 @@ class Word2DefModel(Seq2SeqModel):
         return logit_, label_feed, predict_fetch, nodes
 
     def _build_dec_gated_logit(self, cell_output, wbdef, wbdef_scope):
+        cell_output = tf.slice(cell_output, [0, 100], [-1, -1])
         with tfg.maybe_scope(wbdef_scope, True):
             updated_output, __ = tfg.create_gru_layer(
-                cell_output, wbdef, cell_output)
+                cell_output, wbdef)
         return updated_output
 
     def _build_attn_logit(self, *args, **kwargs):

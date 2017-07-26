@@ -40,6 +40,7 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 
 ### Scripts
 - [ ] Option to select reward function from CLI
+- [ ] Fix a bug where --__: options are not saved!
 
 ### TensorFlow
 - [ ] Take advantage of tf.Session.make_callable (need benchmark)
