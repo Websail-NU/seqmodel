@@ -357,6 +357,10 @@ class SeqModel(Model):
         with tfg.maybe_scope(reuse_scope[self._RSK_LOGIT_]) as scope:
             logit_, temperature_, logit_w_, logit_b_ = tfg.get_logit_layer(
                 cell_output, logit_w=logit_w_, **logit_opt, **collect_kwargs)
+
+            if hasattr(self, '_logit_mask'):
+                logit_ = logit_ + self._logit_mask
+
         dist_, dec_max_, dec_sample_ = tfg.select_from_logit(logit_)
         # label
         label_, token_weight_, seq_weight_ = tfg.get_seq_label_placeholders(
@@ -378,6 +382,40 @@ class SeqModel(Model):
                 train_loss_denom_ = get(name, tf.float32, shape=[])
             mean_loss_, train_loss_, batch_loss_, nll_ = tfg.create_xent_loss(
                 logit, label, weight, seq_weight, train_loss_denom_)
+
+            # mask = tf.fill(tf.shape(logit), 1.0)
+
+            # f_weight = tf.cast(tf.equal(nodes['input'], 23), tf.float32)
+            # f_label = tf.fill(tf.shape(label), 6414)
+            # f_m = tf.one_hot(f_label, 10000, on_value=1.0, off_value=0.0,
+            #                  dtype=tf.float32)
+            # mask += f_m * tf.expand_dims(f_weight, axis=-1)
+
+            # f_weight = tf.cast(tf.equal(nodes['input'], 35), tf.float32)
+            # f_label = tf.fill(tf.shape(label), 92)
+            # f_m = tf.one_hot(f_label, 10000, on_value=-1.0, off_value=0.0,
+            #                  dtype=tf.float32)
+            # mask += f_m * tf.expand_dims(f_weight, axis=-1)
+
+            # dist = tf.nn.softmax(logit)
+            # f_dist = tf.stop_gradient(tf.nn.softmax(logit * mask))
+
+            # f_loss = tf.reduce_sum(
+            #     f_dist * tf.log(f_dist / dist), axis=-1)
+            # f_loss = tf.reduce_sum(f_loss * weight) / train_loss_denom_
+            # train_loss_ = train_loss_ + f_loss
+
+            # # f_weight = tf.Print(f_weight, [f_weight])
+            # f_label = tf.fill(tf.shape(label), 6414)
+            # __, f_t_loss_, __, __ = tfg.create_xent_loss(
+            #     logit, f_label, f_weight, seq_weight, train_loss_denom_)
+            # train_loss_ += f_t_loss_
+
+            # f_weight = tf.cast(tf.equal(nodes['input'], 35), tf.float32) * -0.1
+            # f_label = tf.fill(tf.shape(label), 92)
+            # __, f_t_loss_, __, __ = tfg.create_xent_loss(
+            #     logit, f_label, f_weight, seq_weight, train_loss_denom_)
+            # train_loss_ += f_t_loss_
 
             if opt['loss:add_progreg']:
                 prog_reg = tfg_ct.progression_regularizer(
@@ -641,14 +679,15 @@ class AutoSeqModel(Seq2SeqModel):
 
     ATTN_LOGIT = True
     ATTN_FINE = False
-    TRANS_ENC_VEC = False
+    TRANS_ENC_VEC = True
     SPLIT_ENC_VEC = False
-    VARIATIONAL = True
+    VARIATIONAL = False
     BLOCK_ENC_STATE = True
     E_SD = 1.0
     EMB_CONTEXT = True
     EMB_FILE = ('/home/northanapon/editor_sync/seqmodel'
-                '/data/wn_lemma_senses/enc_emb.npy')
+                '/data/wn_lemma_senses/enc_emb_norm.npy')
+    USE_MASK = True
 
     def _bridge(self, opt, reuse, enc_nodes, enc_scope, collect_key):
         nodes = {}
@@ -658,7 +697,10 @@ class AutoSeqModel(Seq2SeqModel):
         with tf.variable_scope('bridge', reuse=reuse) as context_scope:
             cell_dim = opt['enc:cell:num_units']
             if self.EMB_CONTEXT:
-                context_label_, context_lookup_ = self._context_emb(opt, collect_key)
+                (context_label_, context_lookup_,
+                    mask_label_, logit_mask_) = self._context_emb(opt, collect_key)
+                if self.USE_MASK:
+                    self._logit_mask = logit_mask_
             if self.SPLIT_ENC_VEC:
                 z = tf.layers.dense(
                     context_, cell_dim * 2, reuse=reuse, name='split',
@@ -696,9 +738,13 @@ class AutoSeqModel(Seq2SeqModel):
                 if self.SPLIT_ENC_VEC or self.VARIATIONAL:
                     _predict = main_
                 _predict = tf.nn.l2_normalize(_predict, -1)
-                self._EMB_DIS = 4 * tf.losses.cosine_distance(
-                    context_lookup_, _predict, dim=-1,
-                    weights=tf.expand_dims(enc_nodes['seq_len'], -1))
+                inner_prod = tf.reduce_sum(
+                    tf.multiply(_predict, context_lookup_), axis=-1)
+                # self._EMB_DIS = tf.reduce_mean(1 - tf.exp(1 - inner_prod))
+                self._EMB_DIS = tf.reduce_mean(tf.sigmoid(-inner_prod))
+                # self._EMB_DIS = tf.losses.cosine_distance(
+                #     context_lookup_, _predict, dim=-1)
+                # weights=tf.expand_dims(enc_nodes['seq_len'], -1))
                 # self._EMB_DIS = tf.Print(self._EMB_DIS, [self._EMB_DIS])
             if self.ATTN_LOGIT:
                 self._build_logit = partial(self._build_gated_logit, context=context_,
@@ -722,7 +768,11 @@ class AutoSeqModel(Seq2SeqModel):
             dim1, dim2, trainable=False, init=context_emb, name='context_emb')
         with tfg.tfph_collection(collect_key, True) as get:
             context_label = get('context_label', tf.int32, (None, ))
-        return context_label, tf.nn.embedding_lookup(context_emb, context_label)
+            mask_label = get('mask_label', tf.int32, (None, ))
+        lookup = tf.nn.embedding_lookup(context_emb, context_label)
+        mask = tf.one_hot(mask_label, opt['dec:logit:output_size'],
+                          on_value=-1e5, off_value=0.0, dtype=tf.float32)
+        return context_label, lookup, mask_label, mask
 
     def _build_gated_logit(self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output,
                            context, context_scope, context_nodes, full_opt, reuse):
@@ -773,7 +823,7 @@ class AutoSeqModel(Seq2SeqModel):
             _b = nodes['bridge']
             if self.EMB_CONTEXT:
                 graph_args['feature_feed'] = dstruct.LSeq2SeqFeatureTuple(
-                    *_f, _b['context_label'])
+                    *_f, _b['context_label'], _b['mask_label'])
             else:
                 graph_args['feature_feed'] = dstruct.Seq2SeqFeatureTuple(*_f)
             self.set_graph(**graph_args)

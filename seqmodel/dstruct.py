@@ -36,7 +36,7 @@ Seq2SeqFeatureTuple = collections.namedtuple(
 
 LSeq2SeqFeatureTuple = collections.namedtuple(
     'LSeq2SeqFeatureTuple', ('enc_inputs', 'enc_seq_len',
-                             'dec_inputs', 'dec_seq_len', 'label'))
+                             'dec_inputs', 'dec_seq_len', 'label', 'mask'))
 
 Word2DefFeatureTuple = collections.namedtuple(
     'Word2DefFeatureTuple', ('enc_inputs', 'enc_seq_len', 'words', 'chars', 'char_len',
@@ -78,10 +78,11 @@ class Vocabulary(object):
         self._i2freq[self._vocab_size] = count
         self._vocab_size += 1
 
-    def w2i(self, word):
+    def w2i(self, word, unk_id=None):
         if isinstance(word, six.string_types):
-            if self.special_symbols['unknown'] in self._w2i:
+            if unk_id is None and self.special_symbols['unknown'] in self._w2i:
                 unk_id = self._w2i[self.special_symbols['unknown']]
+            if unk_id is not None:
                 return self._w2i.get(word, unk_id)
             else:
                 return self._w2i[word]

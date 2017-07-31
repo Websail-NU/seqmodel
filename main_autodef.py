@@ -9,6 +9,8 @@ from _main import mle
 from _main import policy_gradient
 from _main import decode
 
+_ENCODE = True
+
 if __name__ == '__main__':
     start_time = time.time()
     group_default = {'model': sq.AutoSeqModel.default_opt(),
@@ -21,18 +23,6 @@ if __name__ == '__main__':
     logger, all_opt = sq.init_exp_opts(opt, groups, group_default)
     opt, model_opt, train_opt, decode_opt, pg_opt = all_opt
 
-    # def data_fn():
-    #     dpath = partial(os.path.join, opt['data_dir'])
-    #     enc_vocab = sq.Vocabulary.from_vocab_file(dpath('dec_vocab.txt'))
-    #     dec_vocab = sq.Vocabulary.from_vocab_file(dpath('dec_vocab.txt'))
-    #     data_fn = partial(sq.read_seq2seq_data, in_vocab=enc_vocab, out_vocab=dec_vocab)
-    #     data = [data_fn(sq.read_lines(dpath(f), token_split=' ', part_split='\t',
-    #                                   part_indices=(-1, -1)))
-    #             for f in (opt['train_file'], opt['valid_file'], opt['eval_file'])]
-
-    #     batch_iter = partial(sq.seq2seq_batch_iter, batch_size=opt['batch_size'],
-    #                          shuffle=True)
-    #     return data, batch_iter, (enc_vocab, dec_vocab)
     def data_fn():
         dpath = partial(os.path.join, opt['data_dir'])
         enc_vocab = sq.Vocabulary.from_vocab_file(dpath('enc_vocab.txt'))
@@ -44,7 +34,7 @@ if __name__ == '__main__':
                 for f in (opt['train_file'], opt['valid_file'], opt['eval_file'])]
 
         batch_iter = partial(sq.lseq2seq_batch_iter, batch_size=opt['batch_size'],
-                             shuffle=False)
+                             shuffle=not _ENCODE)
         return data, batch_iter, (enc_vocab, dec_vocab)
 
     if opt['command'] == 'decode':
@@ -68,27 +58,29 @@ if __name__ == '__main__':
             policy_gradient(opt, model_opt, train_opt, pg_opt, logger, data_fn,
                             sq.AutoSeqModel)
         else:
-            # states = []
-            # batchs = []
-            # embs = []
+            if _ENCODE:
+                exp_path = partial(os.path.join, opt['exp_dir'])
+                states = []
+                batchs = []
+                embs = []
 
-            # def collect(batch, data):
-            #     batchs.append(batch)
-            #     states.append(data)
-            #     embs.append(data[0])
-            # # collect_keys = ['bridge.main', 'bridge.logsigma']
-            # collect_keys = ['bridge.emb_output']
-            # eval_run_fn = partial(
-            #     sq.run_collecting_epoch,
-            #     collect_keys=collect_keys, collect_fn=collect)
-            # mle(opt, model_opt, train_opt, logger, data_fn, sq.AutoSeqModel,
-            #     eval_run_fn=eval_run_fn)
+                def collect(batch, data):
+                    batchs.append(batch)
+                    states.append(data)
+                    embs.append(data[0])
+                # collect_keys = ['bridge.main', 'bridge.logsigma']
+                collect_keys = ['bridge.emb_output']
+                eval_run_fn = partial(
+                    sq.run_collecting_epoch,
+                    collect_keys=collect_keys, collect_fn=collect)
+                mle(opt, model_opt, train_opt, logger, data_fn, sq.AutoSeqModel,
+                    eval_run_fn=eval_run_fn)
 
-            # import pickle
-            # with open(os.path.join(opt['exp_dir'], 'batch_emb.pick'), mode='wb') as ofp:
-            #     pickle.dump(zip(batchs, states), ofp)
-            # embs = np.vstack(embs)
-            # np.save(os.path.join(opt['exp_dir'], 'emb.npy'), embs)
-
-            mle(opt, model_opt, train_opt, logger, data_fn, sq.AutoSeqModel)
+                import pickle
+                with open(exp_path('batch_emb.pick'), mode='wb') as ofp:
+                    pickle.dump(zip(batchs, states), ofp)
+                embs = np.vstack(embs)
+                np.save(exp_path('emb.npy'), embs)
+            else:
+                mle(opt, model_opt, train_opt, logger, data_fn, sq.AutoSeqModel)
     logger.info(f'Total time: {sq.time_span_str(time.time() - start_time)}')

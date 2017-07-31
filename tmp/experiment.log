@@ -1,0 +1,39 @@
+2017/07/28 15:00:38 [INFO ] Loading data...
+2017/07/28 15:00:39 [INFO ] Building graph...
+2017/07/28 15:00:47 [INFO ] Training...
+2017/07/28 15:00:47 [INFO ] No experiment to resume.
+2017/07/28 15:00:47 [INFO ] ep: 0, lr: 0.001000
+2017/07/28 15:01:00 [INFO ] (T) eval_loss: 1.79152 (5.99857), tr_loss: 11.67732, wps: 4991.9, 500 steps in 13.06s
+2017/07/28 15:01:00 [INFO ] (E) eval_loss: 1.47107 (4.35387), wps: 14594.2, 50 steps in 0.44s
+2017/07/28 15:01:08 [INFO ] ep: 1, lr: 0.001000
+2017/07/28 15:01:21 [INFO ] (T) eval_loss: 1.41882 (4.13223), tr_loss: 9.24799, wps: 5044.8, 500 steps in 12.92s
+2017/07/28 15:01:22 [INFO ] (E) eval_loss: 1.35372 (3.87179), wps: 21940.8, 50 steps in 0.29s
+2017/07/28 15:01:29 [INFO ] ep: 2, lr: 0.001000
+2017/07/28 15:01:42 [INFO ] (T) eval_loss: 1.34060 (3.82132), tr_loss: 8.73814, wps: 5218.3, 500 steps in 12.49s
+2017/07/28 15:01:42 [INFO ] (E) eval_loss: 1.29877 (3.66479), wps: 21720.0, 50 steps in 0.30s
+2017/07/28 15:01:50 [INFO ] ep: 3, lr: 0.001000
+2017/07/28 15:02:02 [INFO ] (T) eval_loss: 1.29632 (3.65582), tr_loss: 8.44955, wps: 5119.3, 500 steps in 12.73s
+2017/07/28 15:02:03 [INFO ] (E) eval_loss: 1.26050 (3.52718), wps: 20832.5, 50 steps in 0.31s
+2017/07/28 15:02:10 [INFO ] ep: 4, lr: 0.001000
+2017/07/28 15:02:22 [INFO ] (T) eval_loss: 1.25805 (3.51855), tr_loss: 8.20009, wps: 5455.0, 500 steps in 11.95s
+2017/07/28 15:02:23 [INFO ] (E) eval_loss: 1.22297 (3.39725), wps: 22032.2, 50 steps in 0.29s
+2017/07/28 15:02:30 [INFO ] ep: 5, lr: 0.001000
+2017/07/28 15:02:42 [INFO ] (T) eval_loss: 1.19522 (3.30429), tr_loss: 7.79057, wps: 5511.3, 500 steps in 11.83s
+2017/07/28 15:02:42 [INFO ] (E) eval_loss: 1.13643 (3.11564), wps: 22048.7, 50 steps in 0.29s
+2017/07/28 15:02:50 [INFO ] ep: 6, lr: 0.001000
+2017/07/28 15:03:02 [INFO ] (T) eval_loss: 1.07666 (2.93487), tr_loss: 7.01780, wps: 5309.0, 500 steps in 12.28s
+2017/07/28 15:03:02 [INFO ] (E) eval_loss: 1.01167 (2.75018), wps: 22255.7, 50 steps in 0.29s
+2017/07/28 15:03:10 [INFO ] ep: 7, lr: 0.001000
+2017/07/28 15:03:22 [INFO ] (T) eval_loss: 0.92869 (2.53118), tr_loss: 6.05326, wps: 5477.7, 500 steps in 11.90s
+2017/07/28 15:03:22 [INFO ] (E) eval_loss: 0.86188 (2.36762), wps: 21767.4, 50 steps in 0.30s
+2017/07/28 15:03:29 [INFO ] ep: 8, lr: 0.001000
+2017/07/28 15:03:41 [INFO ] (T) eval_loss: 0.80485 (2.23636), tr_loss: 5.24609, wps: 5473.8, 500 steps in 11.91s
+2017/07/28 15:03:41 [INFO ] (E) eval_loss: 0.75542 (2.12851), wps: 22336.1, 50 steps in 0.29s
+2017/07/28 15:03:49 [INFO ] ep: 9, lr: 0.001000
+2017/07/28 15:04:01 [INFO ] (T) eval_loss: 0.70766 (2.02923), tr_loss: 4.61258, wps: 5466.3, 500 steps in 11.92s
+2017/07/28 15:04:01 [INFO ] (E) eval_loss: 0.66951 (1.95328), wps: 21758.9, 50 steps in 0.30s
+2017/07/28 15:04:08 [INFO ] Maximum epoch reach at 10
+2017/07/28 15:04:08 [INFO ] Loading parameters from best checkpoint...
+2017/07/28 15:04:08 [INFO ] Evaluating...
+2017/07/28 15:04:09 [INFO ] (E) eval_loss: 0.67090 (1.95601), wps: 16683.0, 50 steps in 0.39s
+2017/07/28 15:04:09 [INFO ] Total time: 0h 3m 30.36s
