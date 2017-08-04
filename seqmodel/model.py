@@ -183,7 +183,7 @@ class Model(object):
                 'Need label data for training or evaluation.'
             feed_dict.update(zip(self._labels, labels))
         return feed_dict
-        # return ChainMap(feed_dict, self._default_feed)  #  no ChainMap no supported!
+        # return ChainMap(feed_dict, self._default_feed)  #  ChainMap not supported!
 
     def _get_feed_safe(self, mode, features, labels=None, **kwargs):
         feed_dict = self._get_feed_lite(mode, features, labels, **kwargs)
@@ -213,7 +213,7 @@ class Model(object):
 # VARIABLES END WITH '_' IN _BUILD_XX() WILL BE ADDED TO NODE DICTIONARY
 
 
-class SeqModel(Model):
+class _SeqModel(Model):
 
     _ENC_FEA_LEN_ = 2
     _STATE_ = 's'
@@ -382,60 +382,8 @@ class SeqModel(Model):
                 train_loss_denom_ = get(name, tf.float32, shape=[])
             mean_loss_, train_loss_, batch_loss_, nll_ = tfg.create_xent_loss(
                 logit, label, weight, seq_weight, train_loss_denom_)
-
-            # mask = tf.fill(tf.shape(logit), 1.0)
-
-            # f_weight = tf.cast(tf.equal(nodes['input'], 23), tf.float32)
-            # f_label = tf.fill(tf.shape(label), 6414)
-            # f_m = tf.one_hot(f_label, 10000, on_value=1.0, off_value=0.0,
-            #                  dtype=tf.float32)
-            # mask += f_m * tf.expand_dims(f_weight, axis=-1)
-
-            # f_weight = tf.cast(tf.equal(nodes['input'], 35), tf.float32)
-            # f_label = tf.fill(tf.shape(label), 92)
-            # f_m = tf.one_hot(f_label, 10000, on_value=-1.0, off_value=0.0,
-            #                  dtype=tf.float32)
-            # mask += f_m * tf.expand_dims(f_weight, axis=-1)
-
-            # dist = tf.nn.softmax(logit)
-            # f_dist = tf.stop_gradient(tf.nn.softmax(logit * mask))
-
-            # f_loss = tf.reduce_sum(
-            #     f_dist * tf.log(f_dist / dist), axis=-1)
-            # f_loss = tf.reduce_sum(f_loss * weight) / train_loss_denom_
-            # train_loss_ = train_loss_ + f_loss
-
-            # # f_weight = tf.Print(f_weight, [f_weight])
-            # f_label = tf.fill(tf.shape(label), 6414)
-            # __, f_t_loss_, __, __ = tfg.create_xent_loss(
-            #     logit, f_label, f_weight, seq_weight, train_loss_denom_)
-            # train_loss_ += f_t_loss_
-
-            # f_weight = tf.cast(tf.equal(nodes['input'], 35), tf.float32) * -0.1
-            # f_label = tf.fill(tf.shape(label), 92)
-            # __, f_t_loss_, __, __ = tfg.create_xent_loss(
-            #     logit, f_label, f_weight, seq_weight, train_loss_denom_)
-            # train_loss_ += f_t_loss_
-
-            if opt['loss:add_progreg']:
-                prog_reg = tfg_ct.progression_regularizer(
-                    nodes['cell_output'], nodes['seq_len'], opt['loss:progreg_type'])
-                train_loss_ = train_loss_ + opt['loss:progreg_coeff'] * prog_reg
-
-            if opt['loss:add_entropy']:
-                _sum_minus_ent, minus_avg_ent_ = tfg.create_ent_loss(
-                    tf.nn.softmax(logit), tf.abs(weight), tf.abs(seq_weight))
-                train_loss_ = train_loss_ + minus_avg_ent_
-
-            if hasattr(self, '_KLD'):
-                train_loss_ += (tf.reduce_sum(self._KLD) / train_loss_denom_)
-
-            if hasattr(self, '_EMB_DIS'):
-                train_loss_ += self._EMB_DIS
-
             train_fetch = {'train_loss': train_loss_, 'eval_loss': mean_loss_}
             eval_fetch = {'eval_loss': mean_loss_}
-
         else:
             raise ValueError(f'{opt["loss:type"]} is not supported, use (xent or mse)')
         nodes = util.dict_with_key_endswith(locals(), '_')
@@ -533,6 +481,60 @@ class SeqModel(Model):
         return self.predict(sess, features[0: self._ENC_FEA_LEN_],
                             predict_key='decode_sampling_score',
                             extra_fetch=extra_fetch, **kwargs)
+
+
+class SeqModel(_SeqModel):
+
+    BUILD_GLOBAL_STAT = True
+
+    def _build_loss(self, opt, logit, label, weight, seq_weight, nodes,
+                    collect_key, add_to_collection):
+        if opt['loss:type'] == 'xent':
+            with tfg.tfph_collection(collect_key, add_to_collection) as get:
+                name = 'train_loss_denom'
+                train_loss_denom_ = get(name, tf.float32, shape=[])
+            mean_loss_, train_loss_, batch_loss_, nll_ = tfg.create_xent_loss(
+                logit, label, weight, seq_weight, train_loss_denom_)
+
+            if opt['loss:add_progreg']:
+                prog_reg = tfg_ct.progression_regularizer(
+                    nodes['cell_output'], nodes['seq_len'], opt['loss:progreg_type'])
+                train_loss_ = train_loss_ + opt['loss:progreg_coeff'] * prog_reg
+
+            if opt['loss:add_entropy']:
+                _sum_minus_ent, minus_avg_ent_ = tfg.create_ent_loss(
+                    tf.nn.softmax(logit), tf.abs(weight), tf.abs(seq_weight))
+                train_loss_ = train_loss_ + minus_avg_ent_
+
+            # XXX: \[T]/
+            if hasattr(self, '_KLD'):
+                train_loss_ += (tf.reduce_sum(self._KLD) / train_loss_denom_)
+
+            if hasattr(self, '_EMB_DIS'):
+                train_loss_ += self._EMB_DIS
+
+            if self.BUILD_GLOBAL_STAT:
+                eps_idx_ = tf.placeholder(tf.int32, shape=(None, 3), name='eps_idx')
+                eps_val_ = tf.placeholder(tf.float32, shape=(None, ), name='eps_val')
+                ngram_kld = tfg_ct.create_global_stat_loss(logit, eps_idx_, eps_val_)
+                ngram_loss = tf.reduce_sum(ngram_kld * weight) / train_loss_denom_
+                ngram_loss = tf.Print(ngram_loss, [train_loss_, ngram_loss])
+                train_loss_ = train_loss_ - ngram_loss
+            # XXX: (- -)a
+
+            train_fetch = {'train_loss': train_loss_, 'eval_loss': mean_loss_}
+            eval_fetch = {'eval_loss': mean_loss_}
+
+        else:
+            raise ValueError(f'{opt["loss:type"]} is not supported, use (xent or mse)')
+        nodes = util.dict_with_key_endswith(locals(), '_')
+        return train_fetch, eval_fetch, nodes
+
+    def build_graph(self, *args, **kwargs):
+        nodes = super().build_graph(*args, **kwargs)
+        if self.BUILD_GLOBAL_STAT:
+            nodes['eps'] = (nodes['eps_idx'], nodes['eps_val'])
+        return nodes
 
 ###########################################################################
 #     ######  ########  #######   #######   ######  ########  #######     #
@@ -680,7 +682,7 @@ class AutoSeqModel(Seq2SeqModel):
     ATTN_LOGIT = True
     ATTN_FINE = False
     TRANS_ENC_VEC = True
-    SPLIT_ENC_VEC = False
+    SPLIT_ENC_VEC = True
     VARIATIONAL = False
     BLOCK_ENC_STATE = True
     E_SD = 1.0

@@ -40,7 +40,7 @@ def open_files(filepaths, open_fn=open, mode='r', encoding=None):
         filepaths = [filepaths]
     fds = [open_fn(filepath, mode=mode, encoding=encoding)
            for filepath in filepaths]
-    yield zip(*fds)
+    yield fds
     for fd in fds:
         fd.close()
 
@@ -54,7 +54,8 @@ def read_lines(filepaths, token_split=None, part_split=None, part_indices=None):
             line = [line.strip()]
         return line
 
-    with open_files(filepaths, codecs.open, 'r', 'utf-8') as ifp:
+    with open_files(filepaths, codecs.open, 'r', 'utf-8') as ifps:
+        ifp = zip(*ifps)
         for line in ifp:
             line = [maybe_split(line_, part_split) for line_ in line]
             line = [item for line_ in line for item in line_]  # flatten list of list

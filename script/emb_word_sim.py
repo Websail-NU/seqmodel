@@ -3,7 +3,7 @@ import itertools
 from functools import partial
 
 import numpy as np
-import scipy
+from scipy import stats
 
 sys.path.insert(0, '../')
 import seqmodel as sq  # noqa
@@ -74,9 +74,9 @@ def ranks(array):
 
 
 if __name__ == '__main__':
-    emb, emb_map = read_embeddings('tmp_autodef_tran/emb.npy',
+    emb, emb_map = read_embeddings('tmp_autodef_tran_mask_split_fix/emb.npy',
                                    'data/wn_lemma_senses/all.txt')
     pairs, scores = read_eval_file('data/wordsim_eval/SimLex-999.txt', emb_map)
     s_scores = emb_scores(pairs, emb, emb_map)
-    print(scipy.stats.stats.spearmanr(s_scores, scores))
+    print(stats.spearmanr(s_scores, scores))
     print(spearman_corr(np.array(s_scores), np.array(scores)))

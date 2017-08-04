@@ -1,6 +1,7 @@
 import time
 import os
 from functools import partial
+import fileinput
 
 import numpy as np
 
@@ -36,22 +37,32 @@ if __name__ == '__main__':
         return data, batch_iter, (vocab, vocab)
 
     if opt['command'] == 'decode':
-        with open(decode_opt['decode:outpath'], 'w') as ofp:
-            _b = opt['batch_size']
-            seed_in = np.array([[0]] * _b, dtype=np.int32)
+        _b = opt['batch_size']
+        opath = decode_opt['decode:outpath']
+        tmp_paths = [f'{opath}.{i}' for i in range(_b)]
+        with sq.open_files(tmp_paths, mode='w') as ofps:
+            seed_in = np.array([[0] * _b], dtype=np.int32)
             seed_len = np.array([1] * _b, dtype=np.int32)
             features = sq.SeqFeatureTuple(seed_in, seed_len)
             seed = sq.BatchTuple(features, None, _b, not opt['sentence_level'])
             n_tokens = 0
             for b_sample, vocabs in decode_lm(
                     opt, sq.SeqModel, model_opt, data_fn, logger, decode_opt, seed):
-                word = vocabs[-1].i2w(b_sample[0, 0])
-                if word == '</s>':
-                    word = '\n'
-                ofp.write(f'{word} ')
-                n_tokens += 1
-                if n_tokens >= 887521:
+                for i in range(_b):
+                    word = vocabs[-1].i2w(b_sample[0, i])
+                    if word == '</s>':
+                        ofps[i].write('\n')
+                    else:
+                        ofps[i].write(f'{word} ')
+                    n_tokens += 1
+                if n_tokens >= (887521 + 42068):
                     break
+        with open(opath, mode='w') as ofp:
+            with fileinput.input(files=tmp_paths) as fin:
+                for line in fin:
+                    ofp.write(line)
+        for fpath in tmp_paths:
+            os.remove(fpath)
         # with open(decode_opt['decode:outpath'], 'w') as ofp:
         #     def decode_batch(batch, samples, vocabs):
         #         for b_samples in samples:

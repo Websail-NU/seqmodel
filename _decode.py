@@ -50,7 +50,6 @@ def decode_lm(opt, model_class, model_opt, data_fn, logger, decode_opt, seed):
         while True:
             result, __ = model.predict(sess, feature, predict_key='dec_sample_id',
                                        fetch_state=True, state=state)
-            # result, __ = decode_fn(sess, seed.features, fetch_state=True, state=state)
             output, state = result
-            feature.inputs[0, 0] = output[0, 0]
+            feature.inputs[0, :] = output[0, :]
             yield output, vocabs

@@ -1,5 +1,8 @@
 import math
+from collections import defaultdict
+import time
 
+import kenlm
 import numpy as np
 import tensorflow as tf
 
@@ -8,7 +11,9 @@ from seqmodel import graph as tfg
 
 
 __all__ = ['NGramCell', 'create_anticache_rnn', 'apply_anticache',
-           'create_decode_ac', 'progression_regularizer']
+           'create_decode_ac', 'progression_regularizer', 'get_sparse_scalers',
+           'compute_ngram_constraints', 'get_union_ngram_set',
+           'create_global_stat_loss']
 
 
 class NGramCell(tf.nn.rnn_cell.RNNCell):
@@ -176,8 +181,6 @@ def progression_regularizer(cell_output, seq_len, distance='dot'):
     else:
         r2, __ = tfg.create_slow_feature_loss(feature)
         prog_reg = tf.reduce_sum((1 / (1 + r2)) * prog_w) / tf.reduce_sum(prog_w)
-
-    prog_reg = tf.Print(prog_reg, [prog_reg])
     return prog_reg
 
 
@@ -224,3 +227,118 @@ def create_seq_data_graph(in_data, out_data, prefix='decoder'):
 def prepare_model_for_data_graph(model, idx_node):
     train_model._features = (idx_node, )
     train_model._labels = ()
+
+#######################################################
+#     ######  ########    ###    ########  ######     #
+#    ##    ##    ##      ## ##      ##    ##    ##    #
+#    ##          ##     ##   ##     ##    ##          #
+#     ######     ##    ##     ##    ##     ######     #
+#          ##    ##    #########    ##          ##    #
+#    ##    ##    ##    ##     ##    ##    ##    ##    #
+#     ######     ##    ##     ##    ##     ######     #
+#######################################################
+
+
+def create_global_stat_loss(logit, eps_idx, eps_val, eps_u=None):
+    Q = tf.nn.softmax(logit)
+    # eps = tf.SparseTensor(eps_idx, eps_val, tf.cast(tf.shape(logit), tf.int64))
+    # P =  tf.nn.softmax(tf.sparse_add(tf.stop_gradient(logit), eps))
+    if eps_u is None:
+        eps = tf.sparse_to_dense(eps_idx, tf.shape(logit), eps_val)
+    else:
+        eps_u = tf.reshape(eps_u, [1, 1, -1])
+        eps = (tf.sparse_to_dense(eps_idx, tf.shape(logit), eps_val) + eps_u) / 2.0
+    # eps = tf.Print(eps, [tf.reduce_max(eps), tf.reduce_min(eps)])
+    # P = tf.stop_gradient(tf.nn.softmax(logit + tf.abs(logit) * eps))
+    # P = tf.stop_gradient(P)
+    # kld = tf.reduce_sum(P * tf.log(P / Q), axis=-1)
+    # return kld
+    R = tf.reduce_sum(eps * Q, axis=-1)
+    return R
+
+
+def get_sparse_scalers(inputs, C, max_order=1):
+    """ Create a sparse representation of 3D tensor [b, t, v], from input [b, t] and
+        a dictionary of cond:scaler. Not suitable if cond is * (everything)
+        Return idices, values """
+    e = defaultdict(lambda: [0, 0])  # val and count
+    for i in range(inputs.shape[0]):
+        for j in range(inputs.shape[1]):
+            for order in range(max_order):
+                key = tuple(inputs[(i-order):(i+1), j])
+                if not key:
+                    break
+                p = C.get(key, ([], []))
+                for idx, val in zip(*p):
+                    v_c = e[(i, j, idx)]
+                    v_c[0] += val
+                    v_c[1] += 1
+    if len(e) == 0:
+        indices = np.array([(0, 0, 0)], dtype=np.int32)
+        values = np.array([0], dtype=np.float32)
+        return indices, values
+    indices = np.array(tuple(e.keys()), dtype=np.int32)
+    values = np.array(tuple(e.values()), dtype=np.float32)
+    return indices, values[:, 0] / values[:, 1]
+
+
+def get_union_ngram_set(count_files, min_count=50):
+    ngram_set = set()
+    for count_file in count_files:
+        with open(count_file) as lines:
+            for line in lines:
+                part = line.strip().split('\t')
+                count = int(part[1])
+                if count < min_count:
+                    continue
+                ngram = part[0].split(' ')
+                ngram_set.add(tuple(ngram))
+    return ngram_set
+
+
+def compute_ngram_constraints(ngram_set, f_lm, p_lm, vocab):
+
+    def lm_distribution(lm, state):
+        score = np.zeros((vocab.vocab_size, ), dtype=np.float32)
+        for w, i in vocab._w2i.items():
+            score[i] = lm.BaseScore(state, w, kenlm.State())
+        return score
+
+    def get_state(context_tokens, lm):
+        if context_tokens is None or len(context_tokens) == 0:
+            return kenlm.State()
+        instate = kenlm.State()
+        outstate = kenlm.State()
+        for w in context_tokens:
+            __ = lm.BaseScore(instate, w, outstate)
+            instate = outstate
+        return outstate
+
+    f_u = lm_distribution(f_lm, kenlm.State())
+    p_u = lm_distribution(p_lm, kenlm.State())
+    C_u = (f_u - p_u) / np.log10(np.e)
+    C = {}
+    _state = kenlm.State()
+    for ngram in ngram_set:
+        if len(ngram) == 1:
+            continue  # unigram is already accounted for.
+        context, w = list(ngram[:-1]), ngram[-1]
+        state = get_state(context, f_lm)
+        f = f_lm.BaseScore(state, w, _state)
+        p = p_lm.BaseScore(state, w, _state)
+        ew = (f - p) / np.log10(np.e)
+        # if abs(ew) < 1.0:
+        #     continue
+        thre = 0.5
+        if abs(ew) > thre:
+            ew = np.sign(ew) * thre
+        if context[0] == '<s>':
+            context[0] = '</s>'  # overloading '</s>'
+        key = tuple(vocab.w2i(context))
+        e = C.setdefault(key, ([], []))
+        e[0].append(vocab.w2i(w))
+        e[1].append(ew)
+    for k in C:  # sort so that we don't need to sort later when feeding to GPU
+        e = C[k]
+        C[k] = list(zip(*sorted(zip(*e))))
+    return C_u, C

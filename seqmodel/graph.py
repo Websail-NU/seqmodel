@@ -216,9 +216,7 @@ def select_nested_rnn(maybe_tuple, time_step):
 def select_rnn(tensor, time_step):
     """return tensor at the time_step (time major). This is similar to numpy
     tensor[time_step, :, :] where time_step can be 1D array."""
-    time_step = tf.expand_dims(time_step, axis=-1)
-    range_ = tf.expand_dims(tf.range(start=0, limit=tf.shape(tensor)[1]), axis=-1)
-    idx = tf.concat([time_step, range_], axis=-1)
+    idx = tf.stack([time_step, tf.range(start=0, limit=tf.shape(tensor)[1])], axis=-1)
     return tf.gather_nd(tensor, idx)
 
 

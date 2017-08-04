@@ -10,6 +10,23 @@ sys.path.insert(0, '../')
 import seqmodel as sq  # noqa
 
 
+def ngram_stat_data():
+    import kenlm
+    ngram_path = partial(os.path.join, '../experiment/lm/ngram_lm/')
+    f_lm = kenlm.Model(ngram_path('train_bigram.arpa'))
+    p_lm = kenlm.Model(ngram_path('current_bigram.arpa'))
+    ngram_set = sq.get_union_ngram_set([ngram_path('train_bigram.count'),
+                                        ngram_path('current_bigram.count')])
+    vocab = sq.Vocabulary.from_vocab_file('data/ptb/vocab.txt')
+    CU, C = sq.compute_ngram_constraints(ngram_set, f_lm, p_lm, vocab)
+
+    def eps_feed(mode, features, labels, **kwargs):
+        inputs = features.inputs
+        return sq.get_sparse_scalers(inputs, C, max_order=1)
+
+    return eps_feed
+
+
 def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
           decode_opt=None, decode_batch_fn=None, eval_run_fn=None, pg=False):
     is_training = opt['command'] == 'train'
@@ -30,13 +47,17 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
     if is_training:
         train_batch_iter = partial(batch_iter, *data[0])
         valid_batch_iter = partial(batch_iter, *data[1])
-        train_model = model_class()
+        train_model = model_class(check_feed_dict=True)
         init_lr = train_opt['train:init_lr']
         __nodes = train_model.build_graph(model_opt)
         if model_class == sq.SeqModel:
             train_model.set_default_feed('train_loss_denom', opt['batch_size'])
         else:
             train_model.set_default_feed('dec.train_loss_denom', opt['batch_size'])
+
+        if 'eps' in __nodes:
+            train_model.set_default_feed('eps', ngram_stat_data())
+
         lr = tf.placeholder(tf.float32, shape=[], name='learning_rate')
         if pg:
             return_ph = tf.placeholder(tf.float32, shape=(None, None), name='return')
