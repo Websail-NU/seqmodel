@@ -682,11 +682,11 @@ class AutoSeqModel(Seq2SeqModel):
     ATTN_LOGIT = True
     ATTN_FINE = False
     TRANS_ENC_VEC = True
-    SPLIT_ENC_VEC = True
+    SPLIT_ENC_VEC = False
     VARIATIONAL = False
     BLOCK_ENC_STATE = True
     E_SD = 1.0
-    EMB_CONTEXT = True
+    EMB_CONTEXT = False
     EMB_FILE = ('/home/northanapon/editor_sync/seqmodel'
                 '/data/wn_lemma_senses/enc_emb_norm.npy')
     USE_MASK = True

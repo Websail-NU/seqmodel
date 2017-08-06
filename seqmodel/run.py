@@ -15,7 +15,7 @@ from seqmodel import dstruct as ds
 __all__ = ['_no_run', 'default_training_opt', 'update_learning_rate',
            'is_done_training_early', 'run_epoch', 'train', 'decode_epoch',
            'default_decoding_opt', 'run_sampling_epoch', 'policy_gradient_opt',
-           'run_collecting_epoch']
+           'run_collecting_epoch', 'uncond_lm_decode']
 
 
 def _no_run(*args, **kwargs):
@@ -194,3 +194,16 @@ def decode_epoch(sess, model, batch_iter, greedy=False, num_samples=1):
             sample, __ = decode_fn(sess, batch.features)
             samples.append(sample)
         yield batch, samples
+
+
+def uncond_lm_decode(sess, model, feature_seed, greedy=False, vocabs=None):
+    state = None
+    feature = feature_seed
+    dec_mode = 'dec_max_id' if greedy else 'dec_sample_id'
+    while True:
+        result, __ = model.predict(sess, feature, predict_key=dec_mode,
+                                   fetch_state=True, state=state)
+        output, state = result
+        feature = feature._replace(inputs=output[[-1], :])
+        feature.seq_len[:] = 1
+        yield output, vocabs

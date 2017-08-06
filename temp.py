@@ -38,7 +38,7 @@ no = read_count(_path.format('no', '3'))
 yes = read_count(_path.format('yes', '3'))
 
 
-def show(w1):
+def direction_match(w1, verbose=False):
     a = dict(zip(vocab.i2w(C[(vocab.w2i(w1), )][0]), C[(vocab.w2i(w1), )][1]))
     correct = [0, 0]
     total = 0
@@ -49,7 +49,7 @@ def show(w1):
         if v > 0:
             direction = '>'
         count = int(pre.get(f'{w1} {k}', 0))
-        tr_count = int(train.get(f'{w1} {k}'))
+        tr_count = int(train.get(f'{w1} {k}', 0))
         compare = []
         counts = []
         for i, d in enumerate((no, yes)):
@@ -66,6 +66,9 @@ def show(w1):
         compare = ' '.join(compare)
         counts = ' '.join(counts)
         total += 1
-        print(f'{direction} {compare} \t {k}: {tr_count} {count} {counts}')
+        if verbose:
+            print(f'{direction} {compare} \t {k}: {tr_count} {count} {counts}')
     wo_c, w_c = (c / total for c in correct)
-    print(f'Match: {wo_c:.3f} vs {w_c:.3f}')
+    if verbose:
+        print(f'Match: {wo_c:.3f} vs {w_c:.3f}')
+    return wo_c, w_c

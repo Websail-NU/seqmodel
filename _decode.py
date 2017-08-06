@@ -40,16 +40,7 @@ def decode_lm(opt, model_class, model_opt, data_fn, logger, decode_opt, seed):
             return
 
         logger.info('Decoding...')
-        decode_fn = model.decode_sampling
-        if decode_opt['decode:greedy']:
-            decode_fn = model.decode_greedy
-        state = None
-        feature = seed.features
-        c = 0
-        import numpy as np
-        while True:
-            result, __ = model.predict(sess, feature, predict_key='dec_sample_id',
-                                       fetch_state=True, state=state)
-            output, state = result
-            feature.inputs[0, :] = output[0, :]
+        for output, vocabs in sq.uncond_lm_decode(sess, model, seed,
+                                                  greedy=decode_opt['decode:greedy'],
+                                                  vocabs=vocabs):
             yield output, vocabs

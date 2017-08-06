@@ -37,6 +37,8 @@ if __name__ == '__main__':
         return data, batch_iter, (vocab, vocab)
 
     if opt['command'] == 'decode':
+        if opt['sentence_level']:
+            logger.warn('sentence_level is not supported.')
         _b = opt['batch_size']
         opath = decode_opt['decode:outpath']
         tmp_paths = [f'{opath}.{i}' for i in range(_b)]
@@ -44,10 +46,9 @@ if __name__ == '__main__':
             seed_in = np.array([[0] * _b], dtype=np.int32)
             seed_len = np.array([1] * _b, dtype=np.int32)
             features = sq.SeqFeatureTuple(seed_in, seed_len)
-            seed = sq.BatchTuple(features, None, _b, not opt['sentence_level'])
             n_tokens = 0
             for b_sample, vocabs in decode_lm(
-                    opt, sq.SeqModel, model_opt, data_fn, logger, decode_opt, seed):
+                    opt, sq.SeqModel, model_opt, data_fn, logger, decode_opt, features):
                 for i in range(_b):
                     word = vocabs[-1].i2w(b_sample[0, i])
                     if word == '</s>':
@@ -61,8 +62,10 @@ if __name__ == '__main__':
             with fileinput.input(files=tmp_paths) as fin:
                 for line in fin:
                     ofp.write(line)
-        for fpath in tmp_paths:
-            os.remove(fpath)
+                    if not line.endswith('\n'):
+                        ofp.write('\n')
+        # for fpath in tmp_paths:
+        #     os.remove(fpath)
         # with open(decode_opt['decode:outpath'], 'w') as ofp:
         #     def decode_batch(batch, samples, vocabs):
         #         for b_samples in samples:
