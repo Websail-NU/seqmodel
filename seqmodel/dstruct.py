@@ -40,7 +40,7 @@ LSeq2SeqFeatureTuple = collections.namedtuple(
 
 Word2DefFeatureTuple = collections.namedtuple(
     'Word2DefFeatureTuple', ('enc_inputs', 'enc_seq_len', 'words', 'chars', 'char_len',
-                             'dec_inputs', 'dec_seq_len'))
+                             'word_masks', 'dec_inputs', 'dec_seq_len'))
 
 OutputStateTuple = collections.namedtuple('OutputStateTuple', ('output', 'state'))
 
@@ -67,6 +67,14 @@ class Vocabulary(object):
         self._i2w = []
         self._i2freq = {}
         self._vocab_size = 0
+
+    def __getitem__(self, arg):
+        if isinstance(arg, six.string_types):
+            return self._w2i[arg]
+        elif isinstance(arg, int):
+            return self._i2w[arg]
+        else:
+            raise ValueError('Only support either integer or string')
 
     @property
     def vocab_size(self):
@@ -100,6 +108,9 @@ class Vocabulary(object):
 
     def word_set(self):
         return set(self._w2i.keys())
+
+    def __len__(self):
+        return self.vocab_size
 
     @staticmethod
     def from_vocab_file(filepath):

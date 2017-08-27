@@ -142,10 +142,11 @@ def read_word2def_data(tokenized_lines, in_vocab, out_vocab, char_vocab,
     eoe_sym = ds.Vocabulary.special_symbols['end_encode']
     sod_sym = ds.Vocabulary.special_symbols['start_seq']
     eod_sym = ds.Vocabulary.special_symbols['end_seq']
-    enc_data, char_data, word_data, dec_data = [], [], [], []
+    enc_data, char_data, word_data, dec_data, mask_data = [], [], [], [], []
     freq = defaultdict(int)
     for part in tokenized_lines:
         enc_, dec_ = part[:2]
+        mask_ = out_vocab.w2i(enc_[0], unk_id=-1)
         enc_ = in_vocab.w2i(enc_ + [eoe_sym])
         if dec_ == ['']:
             dec_ = []
@@ -157,11 +158,12 @@ def read_word2def_data(tokenized_lines, in_vocab, out_vocab, char_vocab,
         dec_data.append(dec_)
         char_data.append(char_)
         word_data.append(word_)
+        mask_data.append(mask_)
     if freq_down_weight:
         seq_weight_data = [init_seq_weight / freq[w] for w in word_data]
     else:
         seq_weight_data = [init_seq_weight for __ in range(len(enc_data))]
-    return enc_data, word_data, char_data, dec_data, seq_weight_data
+    return enc_data, word_data, char_data, mask_data, dec_data, seq_weight_data
 
 
 #########################################################
@@ -307,19 +309,20 @@ def lseq2seq_batch_iter(enc_data, dec_data, label_data, mask_data,
         yield ds.BatchTuple(features, labels, num_tokens, False)
 
 
-def word2def_batch_iter(enc_data, word_data, char_data, dec_data, seq_weight_data,
-                        batch_size=1, shuffle=True):
+def word2def_batch_iter(enc_data, word_data, char_data, mask_data, dec_data,
+                        seq_weight_data, batch_size=1, shuffle=True):
     """same as seq2seq_batch_iter, just add word and character"""
-    for x, w, c, y, sw in batch_iter(batch_size, shuffle, enc_data, word_data,
-                                     char_data, dec_data, seq_weight_data,
-                                     pad=[[], 0, [], [], 0]):
-        yield _format_word2def(x, w, c, y, sw)
+    for x, w, c, m, y, sw in batch_iter(batch_size, shuffle, enc_data, word_data,
+                                        char_data, mask_data, dec_data, seq_weight_data,
+                                        pad=[[], 0, [], -1, [], 0]):
+        yield _format_word2def(x, w, c, m, y, sw)
 
 
-def _format_word2def(x, w, c, y, sw):
+def _format_word2def(x, w, c, m, y, sw):
     enc, enc_len = util.hstack_list(x)
     dec, dec_len = util.hstack_list(y)
     word = np.array(w, dtype=np.int32)
+    mask = np.array(m, dtype=np.int32)
     char, char_len = util.vstack_list(c)
     in_dec = dec[:-1, :]
     out_dec = dec[1:, :]
@@ -329,7 +332,7 @@ def _format_word2def(x, w, c, y, sw):
         out_dec, 1, num_non_padding=dec_len)
     seq_weight = seq_weight.astype(np.float32)
     features = ds.Word2DefFeatureTuple(enc, enc_len, word, char, char_len,
-                                       in_dec, dec_len)
+                                       mask, in_dec, dec_len)
     labels = ds.SeqLabelTuple(out_dec, token_weight, seq_weight)
     return ds.BatchTuple(features, labels, num_tokens, False)
 

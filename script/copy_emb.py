@@ -3,8 +3,11 @@ import sys
 import numpy as np
 from gensim.models import KeyedVectors
 
-_special_symbols = set(['<s>', '</enc>'])
-cap_words = set(['a', 'and', 'to', 'of'])
+# _special_symbols = set(['<s>', '</enc>'])
+# cap_words = set(['a', 'and', 'to', 'of'])
+
+_special_symbols = set()
+cap_words = set()
 
 w2v_path = sys.argv[1]
 binary = True
@@ -35,14 +38,14 @@ unk_words = []
 for i, corpus_word in enumerate(words):
     word = corpus_word
     # XXX: common words that are not in word2vec, but cap exists
-    if word in cap_words:
-        word = word[0].upper() + word[1:]
-    if word == '<unk>':
-        word = 'UNK'
-    if word == 'e.g.' or word == 'i.e.':
-        word = 'eg'
-    if word == "'s":
-        word = 's'
+    # if word in cap_words:
+    #     word = word[0].upper() + word[1:]
+    # if word == '<unk>':
+    #     word = 'UNK'
+    # if word == 'e.g.' or word == 'i.e.':
+    #     word = 'eg'
+    # if word == "'s":
+    #     word = 's'
     if word in w2v:
         vocab2vec[i] = w2v[word]
     elif word in _special_symbols:

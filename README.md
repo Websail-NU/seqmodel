@@ -26,6 +26,7 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 ### Model
 - [x] Fix scan_rnn to support tuple input and output
 - [x] Implement dot attention
+- [ ] Use LSTMBlockFusedCell
 - [ ] Implement Bahdanau attention
 - [ ] Beam search decoding
 - [ ] Decode with initial state

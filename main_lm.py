@@ -64,8 +64,8 @@ if __name__ == '__main__':
                     ofp.write(line)
                     if not line.endswith('\n'):
                         ofp.write('\n')
-        # for fpath in tmp_paths:
-        #     os.remove(fpath)
+        for fpath in tmp_paths:
+            os.remove(fpath)
         # with open(decode_opt['decode:outpath'], 'w') as ofp:
         #     def decode_batch(batch, samples, vocabs):
         #         for b_samples in samples:
@@ -76,5 +76,18 @@ if __name__ == '__main__':
         #     decode(opt, model_opt, decode_opt, decode_batch, logger,
         #            data_fn, sq.SeqModel)
     else:
+        # vocab = sq.Vocabulary.from_vocab_file(os.path.join(
+        #   opt['data_dir'], 'vocab.txt'))
+        # with open('tmp.txt', mode='w') as ofp:
+        #     def collect_fn(batch, collect):
+        #         labels = vocab.i2w(batch.labels.label[:, 0])
+        #         nlls = collect[0][:, 0]
+        #         for label, nll in zip(labels, nlls):
+        #             ofp.write(f'{label}\t{nll}\n')
+
+        #     eval_run_fn = partial(sq.run_collecting_epoch, collect_keys=['nll'],
+        #                           collect_fn=collect_fn)
+        #     mle(opt, model_opt, train_opt, logger, data_fn, sq.SeqModel,
+        #         eval_run_fn=eval_run_fn)
         mle(opt, model_opt, train_opt, logger, data_fn, sq.SeqModel)
     logger.info(f'Total time: {sq.time_span_str(time.time() - start_time)}')

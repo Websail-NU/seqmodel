@@ -28,7 +28,7 @@ def eval_file(lines, n_list=(1, 2, 3, 4)):
         line = line.strip()
         if not line:
             continue
-        tokens = line.split(' ')
+        tokens = line.split('\t')[-1].split(' ')
         for i, n in enumerate(n_list):
             ngram_counts, total = count_ngrams(tokens, n)
             dup = sum(map(lambda x: x - 1,

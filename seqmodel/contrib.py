@@ -1,4 +1,6 @@
 import math
+from functools import partial
+from itertools import product
 from collections import defaultdict
 import time
 
@@ -11,9 +13,130 @@ from seqmodel import graph as tfg
 
 
 __all__ = ['NGramCell', 'create_anticache_rnn', 'apply_anticache',
-           'create_decode_ac', 'progression_regularizer', 'get_sparse_scalers',
-           'compute_ngram_constraints', 'get_union_ngram_set',
-           'create_global_stat_loss']
+           'create_decode_ac', 'progression_regularizer',
+           'create_global_stat_loss', 'sample_constraints',
+           'average_constraint_sets', 'rms_constraint_sets']
+
+#######################################################
+#     ######  ########    ###    ########  ######     #
+#    ##    ##    ##      ## ##      ##    ##    ##    #
+#    ##          ##     ##   ##     ##    ##          #
+#     ######     ##    ##     ##    ##     ######     #
+#          ##    ##    #########    ##          ##    #
+#    ##    ##    ##    ##     ##    ##    ##    ##    #
+#     ######     ##    ##     ##    ##     ######     #
+#######################################################
+
+
+def create_global_stat_loss(logit, eps_idx, eps_val, eps_u=None, eps_decay=None, t=2.0):
+    eps = tf.sparse_to_dense(eps_idx, tf.shape(logit), eps_val)
+    # masking out words that are not participating in the conditions
+    # using eps == 0 as a proxy
+    # Q = tf.nn.softmax((logit / t) - 1e05 * tf.cast(tf.equal(eps, 0), tf.float32))
+    Q = tf.nn.softmax(logit / t)
+    # if eps_u is not None:
+    #     eps = (eps_u + eps)
+    if eps_decay is not None:
+        eps = eps * eps_decay
+    R = tf.reduce_sum(eps * Q, axis=-1)
+    return R
+
+
+def average_constraint_sets(C_u_list, C_list, weights, min_e=0.01, _pow=None, sort=True):
+    C_u = None
+    if C_u_list is not None:
+        C_u = np.zeros_like(C_u_list[0], dtype=np.float32)
+        for i, i_C_u in enumerate(C_u_list):
+            if _pow is not None and _pow[i]:
+                i_C_u = np.power(i_C_u, 2)
+            C_u += i_C_u * weights[i]
+    C = {}
+    mappings = {}
+    for i, i_C in enumerate(C_list):
+        for c in i_C:
+            indices, values = C.setdefault(c, [[], []])
+            mapping = mappings.setdefault(c, {})
+            for idx, val in zip(*i_C[c]):
+                if _pow is not None and _pow[i]:
+                    val = val ** 2
+                val = val * weights[i]
+                m_idx = mapping.setdefault(idx, len(indices))
+                if m_idx == len(indices):
+                    indices.append(idx)
+                    values.append(val)
+                else:
+                    values[m_idx] += val
+    if sort:
+        for k in list(C.keys()):
+            e = C[k]
+            # C[k][1] = [v / len(C_list) for v in C[k][1]]
+            filtered = list(filter(lambda x: abs(x[1]) > min_e, zip(*e)))
+            if filtered:
+                C[k] = list(zip(*sorted(filtered)))
+                C[k][0] = list(C[k][0])
+                C[k][1] = list(C[k][1])
+            else:
+                del C[k]
+    return C_u, C
+
+
+def rms_constraint_sets(C_u, C, cache=None, decay=0.5, eps=1e-4, min_e=0.1):
+    if cache is None:
+        c_C_u, c_C = average_constraint_sets(
+            [C_u, np.zeros_like(C_u, np.float32)], [C, {}], [1-decay, decay], min_e=0.0,
+            _pow=[True, False], sort=False)
+    else:
+        c_C_u, c_C = average_constraint_sets(
+            [C_u, cache[0]], [C, cache[1]], [1-decay, decay], min_e=0.0,
+            _pow=[True, False], sort=False)
+        C_u = C_u / (np.sqrt(c_C_u) + eps)
+        for c in list(C.keys()):
+            e = C[c]
+            ce = c_C.get(c, None)
+            if ce is not None:
+                for i in range(len(e[0])):
+                    idx, val = e[0][i], e[1][i]
+                    cidx = ce[0].index(idx) if idx in ce[0] else None
+                    if cidx is not None:
+                        val = val / (np.sqrt(ce[1][cidx]) + eps)
+        for k in list(C.keys()):
+            e = C[k]
+            # C[k][1] = [v / len(C_list) for v in C[k][1]]
+            filtered = list(filter(lambda x: abs(x[1]) > min_e, zip(*e)))
+            if filtered:
+                C[k] = list(zip(*sorted(filtered)))
+                C[k][0] = list(C[k][0])
+                C[k][1] = list(C[k][1])
+            else:
+                del C[k]
+    return C_u, C, (c_C_u, c_C)
+
+
+def sample_constraints(p_lm, C, vocab, num_samples=6000):
+    choices = []
+    scores = []
+    for c, p in C.items():
+        c_ngram = ' '.join(vocab.i2w(c))
+        prior = p_lm.score(c_ngram, bos=False, eos=False)
+        for i, v in zip(*p):
+            choices.append((c, i, v))
+            # scores.append(np.power(10, prior) * abs(v))
+            scores.append(abs(v))
+    scores = np.array(scores)
+    scores = scores + abs(np.min(scores))
+    scores = scores / np.sum(scores)
+    samples = np.random.choice(range(len(choices)), size=num_samples,
+                               replace=False, p=scores)
+    C = {}
+    for idx in samples:
+        c, i, v = choices[idx]
+        e = C.setdefault(c, ([], []))
+        e[0].append(i)
+        e[1].append(v)
+    for k in C:
+        e = C[k]
+        C[k] = list(zip(*sorted(zip(*e))))
+    return C
 
 
 class NGramCell(tf.nn.rnn_cell.RNNCell):
@@ -227,118 +350,3 @@ def create_seq_data_graph(in_data, out_data, prefix='decoder'):
 def prepare_model_for_data_graph(model, idx_node):
     train_model._features = (idx_node, )
     train_model._labels = ()
-
-#######################################################
-#     ######  ########    ###    ########  ######     #
-#    ##    ##    ##      ## ##      ##    ##    ##    #
-#    ##          ##     ##   ##     ##    ##          #
-#     ######     ##    ##     ##    ##     ######     #
-#          ##    ##    #########    ##          ##    #
-#    ##    ##    ##    ##     ##    ##    ##    ##    #
-#     ######     ##    ##     ##    ##     ######     #
-#######################################################
-
-
-def create_global_stat_loss(logit, eps_idx, eps_val, eps_u=None):
-    Q = tf.nn.softmax(logit)
-    # eps = tf.SparseTensor(eps_idx, eps_val, tf.cast(tf.shape(logit), tf.int64))
-    # P =  tf.nn.softmax(tf.sparse_add(tf.stop_gradient(logit), eps))
-    if eps_u is None:
-        eps = tf.sparse_to_dense(eps_idx, tf.shape(logit), eps_val)
-    else:
-        eps_u = tf.reshape(eps_u, [1, 1, -1])
-        eps = (tf.sparse_to_dense(eps_idx, tf.shape(logit), eps_val) + eps_u) / 2.0
-    # eps = tf.Print(eps, [tf.reduce_max(eps), tf.reduce_min(eps)])
-    # P = tf.stop_gradient(tf.nn.softmax(logit + tf.abs(logit) * eps))
-    # P = tf.stop_gradient(P)
-    # kld = tf.reduce_sum(P * tf.log(P / Q), axis=-1)
-    # return kld
-    R = tf.reduce_sum(eps * Q, axis=-1)
-    return R
-
-
-def get_sparse_scalers(inputs, C, max_order=1):
-    """ Create a sparse representation of 3D tensor [b, t, v], from input [b, t] and
-        a dictionary of cond:scaler. Not suitable if cond is * (everything)
-        Return idices, values """
-    e = defaultdict(lambda: [0, 0])  # val and count
-    for i in range(inputs.shape[0]):
-        for j in range(inputs.shape[1]):
-            for order in range(max_order):
-                key = tuple(inputs[(i-order):(i+1), j])
-                if not key:
-                    break
-                p = C.get(key, ([], []))
-                for idx, val in zip(*p):
-                    v_c = e[(i, j, idx)]
-                    v_c[0] += val
-                    v_c[1] += 1
-    if len(e) == 0:
-        indices = np.array([(0, 0, 0)], dtype=np.int32)
-        values = np.array([0], dtype=np.float32)
-        return indices, values
-    indices = np.array(tuple(e.keys()), dtype=np.int32)
-    values = np.array(tuple(e.values()), dtype=np.float32)
-    return indices, values[:, 0] / values[:, 1]
-
-
-def get_union_ngram_set(count_files, min_count=50):
-    ngram_set = set()
-    for count_file in count_files:
-        with open(count_file) as lines:
-            for line in lines:
-                part = line.strip().split('\t')
-                count = int(part[1])
-                if count < min_count:
-                    continue
-                ngram = part[0].split(' ')
-                ngram_set.add(tuple(ngram))
-    return ngram_set
-
-
-def compute_ngram_constraints(ngram_set, f_lm, p_lm, vocab):
-
-    def lm_distribution(lm, state):
-        score = np.zeros((vocab.vocab_size, ), dtype=np.float32)
-        for w, i in vocab._w2i.items():
-            score[i] = lm.BaseScore(state, w, kenlm.State())
-        return score
-
-    def get_state(context_tokens, lm):
-        if context_tokens is None or len(context_tokens) == 0:
-            return kenlm.State()
-        instate = kenlm.State()
-        outstate = kenlm.State()
-        for w in context_tokens:
-            __ = lm.BaseScore(instate, w, outstate)
-            instate = outstate
-        return outstate
-
-    f_u = lm_distribution(f_lm, kenlm.State())
-    p_u = lm_distribution(p_lm, kenlm.State())
-    C_u = (f_u - p_u) / np.log10(np.e)
-    C = {}
-    _state = kenlm.State()
-    for ngram in ngram_set:
-        if len(ngram) == 1:
-            continue  # unigram is already accounted for.
-        context, w = list(ngram[:-1]), ngram[-1]
-        state = get_state(context, f_lm)
-        f = f_lm.BaseScore(state, w, _state)
-        p = p_lm.BaseScore(state, w, _state)
-        ew = (f - p) / np.log10(np.e)
-        # if abs(ew) < 1.0:
-        #     continue
-        thre = 0.5
-        if abs(ew) > thre:
-            ew = np.sign(ew) * thre
-        if context[0] == '<s>':
-            context[0] = '</s>'  # overloading '</s>'
-        key = tuple(vocab.w2i(context))
-        e = C.setdefault(key, ([], []))
-        e[0].append(vocab.w2i(w))
-        e[1].append(ew)
-    for k in C:  # sort so that we don't need to sort later when feeding to GPU
-        e = C[k]
-        C[k] = list(zip(*sorted(zip(*e))))
-    return C_u, C

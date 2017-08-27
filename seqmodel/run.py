@@ -24,10 +24,9 @@ def _no_run(*args, **kwargs):
 
 def default_training_opt():
     return {'train:max_epoch': 10, 'train:init_lr': 0.001, 'train:clip_gradients': 10.0,
-            'train:optim_class': 'tensorflow.train.AdamOptimizer',
-            'optim:epsilon': 1e-8, 'lr:min_lr': 1e-6, 'lr:start_decay_at': 1,
-            'lr:decay_every': 1, 'lr:decay_factor': 1.0, 'lr:imp_ratio_threshold': 0.0,
-            'lr:imp_wait': 2}
+            'train:optim_class': 'tensorflow.train.AdamOptimizer', 'lr:min_lr': 1e-6,
+            'lr:start_decay_at': 1, 'lr:decay_every': 1, 'lr:decay_factor': 1.0,
+            'lr:imp_ratio_threshold': 0.0, 'lr:imp_wait': 2}
 
 
 def policy_gradient_opt():
@@ -60,7 +59,7 @@ def update_learning_rate(set_lr_fn, train_state, min_lr=1e-6, start_decay_at=1,
             train_state.imp_wait = 0
         else:
             train_state.imp_wait += 1
-            if train_state.imp_wait > imp_wait:
+            if train_state.imp_wait >= imp_wait:
                 new_lr = old_lr * decay_factor
                 if decay_factor < 1.0 and new_lr > min_lr:
                     train_state.imp_wait = 0
@@ -70,11 +69,12 @@ def update_learning_rate(set_lr_fn, train_state, min_lr=1e-6, start_decay_at=1,
     return new_lr
 
 
-def is_done_training_early(train_state, imp_wait=2):
-    return train_state.imp_wait >= imp_wait
+def is_done_training_early(train_state, imp_wait=2, min_lr=1e-04):
+    return train_state.imp_wait >= imp_wait and train_state.learning_rate <= min_lr
 
 
-def run_epoch(sess, model, batch_iter, train_op=None):
+def run_epoch(sess, model, batch_iter, train_op=None, train_state=None,
+              begin_step_fn=None, end_step_fn=None):
     info = ds.RunningInfo()
     if train_op:
         run_fn = partial(model.train, sess, train_op=train_op)
@@ -82,19 +82,23 @@ def run_epoch(sess, model, batch_iter, train_op=None):
         run_fn = partial(model.evaluate, sess)
     state = None
     for batch in batch_iter():
+        if begin_step_fn is not None:
+            begin_step_fn(step_info=info, train_state=train_state)
         result, __ = run_fn(batch.features, batch.labels, state=state,
                             fetch_state=batch.keep_state)
         if batch.keep_state:
             result, state = result  # ds.OutputStateTuple
         else:
             state = None
+        if end_step_fn is not None:
+            end_step_fn(step_info=info, train_state=train_state)
         info.update_step(result, batch.num_tokens)
     info.end()
     return info
 
 
 def run_collecting_epoch(sess, model, batch_iter, collect_keys, collect_fn,
-                         train_op=None):
+                         train_op=None, train_state=None):
     info = ds.RunningInfo()
     if train_op:
         run_fn = partial(model.train, sess, train_op=train_op, extra_fetch=collect_keys)
@@ -126,7 +130,7 @@ def _acc_discounted_rewards(rewards, discount_factor, baseline=1e-4):
 def run_sampling_epoch(sess, model, batch_iter, train_op=None, reward_fn=None,
                        greedy=False, discount_factor=0.9, pack_data_fn=None,
                        return_fn=_acc_discounted_rewards, with_score=False,
-                       return_feed_fn=None):
+                       return_feed_fn=None, train_state=None):
     if pack_data_fn is None:
         def pack_data_fn(batch, sample, ret):
             # assume seq2seq data
@@ -161,22 +165,25 @@ def run_sampling_epoch(sess, model, batch_iter, train_op=None, reward_fn=None,
     return info
 
 
-def train(train_run_epoch_fn, logger, max_epoch=1, train_state=None, init_lr=None,
-          valid_run_epoch_fn=None, begin_epoch_fn=_no_run, end_epoch_fn=_no_run):
-    train_state = ds.TrainingState() if train_state is None else train_state
-    if init_lr:
+def train(train_run_epoch_fn, logger, max_epoch=1, train_state=None, init_lr=1.0,
+          valid_run_epoch_fn=None, begin_epoch_fn=None, end_epoch_fn=None):
+    if train_state is None:
+        train_state = ds.TrainingState()
         train_state.learning_rate = init_lr
+    stop_early = False
     for epoch in range(max_epoch):
-        begin_epoch_fn(train_state)
+        if begin_epoch_fn is not None:
+            begin_epoch_fn(train_state)
         logger.info(train_state.summary(mode='train'))
-        state_info = train_run_epoch_fn()
+        state_info = train_run_epoch_fn(train_state=train_state)
         logger.info(state_info.summary(mode='train'))
         if valid_run_epoch_fn is not None:
             valid_info = valid_run_epoch_fn()
             logger.info(valid_info.summary(mode='valid'))
             state_info = valid_info
         train_state.update_epoch(state_info)
-        stop_early = end_epoch_fn(train_state)
+        if end_epoch_fn is not None:
+            stop_early = end_epoch_fn(train_state)
         if stop_early:
             break
     else:

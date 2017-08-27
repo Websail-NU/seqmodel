@@ -129,7 +129,8 @@ def create_cells(num_units, num_layers, cell_class=tf.nn.rnn_cell.BasicLSTMCell,
     for layer in range(num_layers):
         if isinstance(cell_class, six.string_types):
             cell_class = locate(cell_class)
-        cell = cell_class(num_units, reuse=reuse, **cell_kwargs)
+        # cell = cell_class(num_units, reuse=reuse, **cell_kwargs)
+        cell = cell_class(num_units, **cell_kwargs)
         if layer == num_layers - 1 and not dropout_last_output:
             out_keep_prob = 1.0
         any_drop = any(kp < 1.0 for kp in [in_keep_prob, out_keep_prob, state_keep_prob])

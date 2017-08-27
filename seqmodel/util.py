@@ -15,8 +15,17 @@ from seqmodel import dstruct as ds
 __all__ = ['dict_with_key_startswith', 'dict_with_key_endswith', 'get_with_dot_key',
            'hstack_list', 'masked_full_like', 'get_logger', 'get_common_argparser',
            'parse_set_args', 'add_arg_group_defaults', 'ensure_dir', 'time_span_str',
-           'init_exp_opts', 'save_exp', 'load_exp', 'hstack_with_padding',
-           'vstack_with_padding', 'group_data', 'find_first_min_zero']
+           'init_exp_opts', 'save_exp', 'load_exp', 'hstack_with_padding', 'chunks',
+           'vstack_with_padding', 'group_data', 'find_first_min_zero',
+           'get_recursive_dict']
+
+
+def chunks(alist, num_chunks):
+    """Yield successive n-sized chunks from l."""
+    idx = np.array_split(range(0, len(alist)), num_chunks)
+    for r in idx:
+        if len(r) > 0:
+            yield alist[r[0]:r[-1]+1]
 
 
 def time_span_str(seconds):
@@ -99,6 +108,16 @@ def dict_with_key_startswith(d, prefix):
 
 def dict_with_key_endswith(d, suffix):
     return {k[:-len(suffix)]: v for k, v in d.items() if k.endswith(suffix)}
+
+
+def get_recursive_dict(d, key):
+    values = []
+    for k, v in d.items():
+        if k == key:
+            values.append(v)
+        elif isinstance(v, dict):
+            values.extend(get_recursive_dict(v, key))
+    return values
 
 
 def get_with_dot_key(d, key):
@@ -352,6 +371,9 @@ def init_exp_opts(opt, groups, group_default):
     if 'pg' in groups:
         pg_opt = ChainMap(groups['pg'], group_default['pg'])
         all_opt.append(pg_opt)
+    if 'gns' in groups:
+        gns_opt = ChainMap(groups['gns'], group_default['gns'])
+        all_opt.append(gns_opt)
 
     epath = partial(os.path.join, opt['exp_dir'])
     init_only = opt['command'] == 'init'
@@ -363,6 +385,9 @@ def init_exp_opts(opt, groups, group_default):
         json.dump(dict(model_opt), ofp, indent=2, sort_keys=True)
     with open(epath('train_opt.json'), 'w') as ofp:
         json.dump(dict(train_opt), ofp, indent=2, sort_keys=True)
+    if 'gns' in groups:
+        with open(epath('gns_opt.json'), 'w') as ofp:
+            json.dump(dict(gns_opt), ofp, indent=2, sort_keys=True)
 
     logger = get_logger(epath(opt['log_file']), 'exp_log', opt['log_level'])
 

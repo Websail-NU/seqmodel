@@ -129,9 +129,13 @@ class Model(object):
         result = sess.run(fetch, feed)
         return result
 
-    def set_default_feed(self, key, value):
+    def set_default_feed(self, key, value, set_all=False):
         if isinstance(key, six.string_types):
-            self._default_feed[util.get_with_dot_key(self._nodes, key)] = value
+            if set_all:
+                for node in util.get_recursive_dict(self._nodes, key):
+                    self._default_feed[node] = value
+            else:
+                self._default_feed[util.get_with_dot_key(self._nodes, key)] = value
         else:
             self._default_feed[key] = value
 
@@ -258,6 +262,8 @@ class _SeqModel(Model):
         reuse_scope = {} if reuse_scope is None else reuse_scope
         reuse_scope = defaultdict(lambda: None, **reuse_scope)
         self._name = name
+        initializer = tf.random_uniform_initializer(minval=-0.05, maxval=0.05)
+        # with tf.variable_scope(name, reuse=reuse, initializer=initializer):
         with tf.variable_scope(name, reuse=reuse) as scope:
             nodes, graph_args = self._build(
                 chain_opt, reuse_scope, initial_state, reuse, collect_key, **kwargs)
@@ -288,7 +294,10 @@ class _SeqModel(Model):
         # input and embedding
         input_, seq_len_ = tfg.get_seq_input_placeholders(**collect_kwargs)
         emb_opt = util.dict_with_key_startswith(opt, 'emb:')
-        with tfg.maybe_scope(reuse_scope[self._RSK_EMB_], reuse=True) as scope:
+        _emb_scope = reuse_scope[self._RSK_EMB_]
+        if 'global_emb_scope' in kwargs:
+            _emb_scope = kwargs['global_emb_scope']
+        with tfg.maybe_scope(_emb_scope, reuse=True) as scope:
             lookup_, emb_vars_ = tfg.create_lookup(input_, **emb_opt)
         batch_size = self._get_batch_size(input_)
         # cell rnn
@@ -485,7 +494,8 @@ class _SeqModel(Model):
 
 class SeqModel(_SeqModel):
 
-    BUILD_GLOBAL_STAT = True
+    BUILD_GLOBAL_STAT = False
+    GLOBAL_STAT_W = 1.0
 
     def _build_loss(self, opt, logit, label, weight, seq_weight, nodes,
                     collect_key, add_to_collection):
@@ -514,12 +524,22 @@ class SeqModel(_SeqModel):
                 train_loss_ += self._EMB_DIS
 
             if self.BUILD_GLOBAL_STAT:
+                eps_u = tf.get_variable('eps_u', shape=(logit.get_shape()[-1],),
+                                        dtype=tf.float32, trainable=False)
+                eps_u_ = tf.placeholder(tf.float32, shape=(logit.get_shape()[-1],),
+                                        name='eps_u_input')
+                eps_u_assign_ = tf.assign(eps_u, eps_u_)
+                eps_decay_ = tf.placeholder(tf.float32, shape=None, name='eps_decay')
                 eps_idx_ = tf.placeholder(tf.int32, shape=(None, 3), name='eps_idx')
                 eps_val_ = tf.placeholder(tf.float32, shape=(None, ), name='eps_val')
-                ngram_kld = tfg_ct.create_global_stat_loss(logit, eps_idx_, eps_val_)
+                ngram_kld = tfg_ct.create_global_stat_loss(
+                    logit, eps_idx_, eps_val_, eps_u, eps_decay_,
+                    opt['_gns_stat_temperature'])
                 ngram_loss = tf.reduce_sum(ngram_kld * weight) / train_loss_denom_
-                ngram_loss = tf.Print(ngram_loss, [train_loss_, ngram_loss])
-                train_loss_ = train_loss_ - ngram_loss
+                ngram_loss = self.GLOBAL_STAT_W * ngram_loss
+                # ngram_loss = tf.Print(ngram_loss, [train_loss_, ngram_loss])
+                train_loss_ = train_loss_ + ngram_loss
+                eps_ = (eps_idx_, eps_val_)
             # XXX: (- -)a
 
             train_fetch = {'train_loss': train_loss_, 'eval_loss': mean_loss_}
@@ -530,11 +550,6 @@ class SeqModel(_SeqModel):
         nodes = util.dict_with_key_endswith(locals(), '_')
         return train_fetch, eval_fetch, nodes
 
-    def build_graph(self, *args, **kwargs):
-        nodes = super().build_graph(*args, **kwargs)
-        if self.BUILD_GLOBAL_STAT:
-            nodes['eps'] = (nodes['eps_idx'], nodes['eps_val'])
-        return nodes
 
 ###########################################################################
 #     ######  ########  #######   #######   ######  ########  #######     #
@@ -598,7 +613,7 @@ class Seq2SeqModel(SeqModel):
         with tf.variable_scope('enc', reuse=reuse) as enc_scope:
             enc_nodes, enc_graph_args = super()._build(
                 enc_opt, reuse_scope, reuse=reuse, collect_key=f'{collect_key}_enc',
-                prefix=f'{prefix}_enc')
+                prefix=f'{prefix}_enc', **kwargs)
         # remove input dependency when decoding
         self._batch_size = tf.shape(enc_nodes['input'])[1]
         # sharing (is caring)
@@ -609,7 +624,7 @@ class Seq2SeqModel(SeqModel):
         # bridging
         if bridge_fn is not None:
             dec_initial_state, b_nodes = bridge_fn(
-                opt, reuse, enc_nodes, enc_scope, collect_key)
+                opt, reuse, enc_nodes, enc_scope, collect_key, **kwargs)
         else:
             dec_initial_state, b_nodes = enc_nodes['final_state'], {}
         # attention
@@ -623,7 +638,8 @@ class Seq2SeqModel(SeqModel):
         with tf.variable_scope('dec', reuse=reuse) as dec_scope:
             dec_nodes, dec_graph_args = super()._build(
                 dec_opt, reuse_scope, initial_state=dec_initial_state,
-                reuse=reuse, collect_key=f'{collect_key}_dec', prefix=f'{prefix}_dec')
+                reuse=reuse, collect_key=f'{collect_key}_dec', prefix=f'{prefix}_dec',
+                **kwargs)
         # prepare output
         graph_args = dec_graph_args  # rename for visual
         graph_args['feature_feed'] = dstruct.Seq2SeqFeatureTuple(
@@ -844,7 +860,7 @@ class AutoSeqModel(Seq2SeqModel):
 
 class Word2DefModel(Seq2SeqModel):
 
-    _ENC_FEA_LEN_ = 5
+    _ENC_FEA_LEN_ = 6
 
     @classmethod
     def default_opt(cls):
@@ -885,19 +901,25 @@ class Word2DefModel(Seq2SeqModel):
             _b = nodes['bridge']
             graph_args['feature_feed'] = dstruct.Word2DefFeatureTuple(
                 *_f[0:2], _b['wbdef_word'], _b['wbdef_char'], _b['wbdef_char_len'],
-                *_f[2:])
+                _b['wbdef_mask'], *_f[2:])
             self.set_graph(**graph_args)
             return nodes
 
-    def _build_wbdef(self, opt, reuse, enc_nodes, enc_scope, collect_key):
+    def _build_wbdef(self, opt, reuse, enc_nodes, enc_scope, collect_key,
+                     global_emb_scope=None):
         prefix = 'wbdef'
         wbdef_opt = util.dict_with_key_startswith(opt, 'wbdef:')
         with tf.variable_scope('wbdef', reuse=reuse) as wbdef_scope:
             with tfg.tfph_collection(f'{collect_key}_wbdef', True) as get:
                 wbdef_word_ = get(f'{prefix}_word', tf.int32, (None,))
+                wbdef_mask_ = get(f'{prefix}_mask', tf.int32, (None,))
                 wbdef_char_ = get(f'{prefix}_char', tf.int32, (None, None))
                 wbdef_char_len_ = get(f'{prefix}_char_len', tf.int32, (None,))
             word_emb_scope = enc_scope   # if opt['share:enc_word_emb'] else None
+            if global_emb_scope is not None:
+                word_emb_scope = global_emb_scope
+            self._logit_mask = tf.one_hot(wbdef_mask_, opt['dec:logit:output_size'],
+                                          on_value=-1e5, off_value=0.0, dtype=tf.float32)
             word_emb_opt = util.dict_with_key_startswith(opt, 'enc:emb:')
             with tfg.maybe_scope(word_emb_scope, True):
                 wbdef_word_lookup_, _e = tfg.create_lookup(

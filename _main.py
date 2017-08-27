@@ -30,7 +30,7 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
     if is_training:
         train_batch_iter = partial(batch_iter, *data[0])
         valid_batch_iter = partial(batch_iter, *data[1])
-        train_model = model_class(check_feed_dict=True)
+        train_model = model_class()
         init_lr = train_opt['train:init_lr']
         lr = tf.placeholder(tf.float32, shape=[], name='learning_rate')
         __nodes = train_model.build_graph(model_opt)
@@ -64,7 +64,7 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
 
     with tf.Session(config=sess_config) as sess:
         sess.run(tf.global_variables_initializer())
-        saver = tf.train.Saver()
+        saver = tf.train.Saver(tf.trainable_variables())
         if is_training:
             logger.info('Training...')
             success, train_state = sq.load_exp(sess, saver, opt['exp_dir'], latest=True,
@@ -91,7 +91,8 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
 
             def end_epoch_fn(train_state):
                 sq.save_exp(sess, saver, opt['exp_dir'], train_state)
-                return sq.is_done_training_early(train_state, train_opt['lr:imp_wait'])
+                return sq.is_done_training_early(train_state, train_opt['lr:imp_wait'],
+                                                 train_opt['lr:min_lr'])
 
             # import numpy as np
             # for v in tf.trainable_variables():
