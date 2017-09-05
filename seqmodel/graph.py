@@ -120,10 +120,10 @@ def _tf_shape_of_tensor_or_tuple(inputs, dim=1):
     return batch_size
 
 
-def create_cells(num_units, num_layers, cell_class=tf.nn.rnn_cell.BasicLSTMCell,
-                 reuse=False, in_keep_prob=1.0, out_keep_prob=1.0, state_keep_prob=1.0,
-                 variational=False, input_size=None, dropout_last_output=True,
-                 **cell_kwargs):
+def create_cells(
+        num_units, num_layers, cell_class=tf.nn.rnn_cell.BasicLSTMCell, reuse=False,
+        in_keep_prob=1.0, out_keep_prob=1.0, state_keep_prob=1.0, variational=False,
+        input_size=None, dropout_last_output=True, **cell_kwargs):
     """return an RNN cell with optionally DropoutWrapper and MultiRNNCell."""
     cells = []
     for layer in range(num_layers):
@@ -149,8 +149,9 @@ def create_cells(num_units, num_layers, cell_class=tf.nn.rnn_cell.BasicLSTMCell,
     return final_cell
 
 
-def scan_rnn(cell, inputs, sequence_length, initial_state=None, dtype=tf.float32,
-             scope='rnn', mask_output=True, **_kwargs):
+def scan_rnn(
+        cell, inputs, sequence_length, initial_state=None, dtype=tf.float32, scope='rnn',
+        mask_output=True, **_kwargs):
     """dynamically unroll cell to max(len(inputs)), and select last relevant state.
     IMPORTANT sequence_length shoule be at least 1, otherwise this function will return
     the first state even thought it is not relevant."""
@@ -166,16 +167,16 @@ def scan_rnn(cell, inputs, sequence_length, initial_state=None, dtype=tf.float32
             # XXX: does not support nested structure
             output_init = []
             for size in cell.output_size:
-                output_init.append(tf.zeros((batch_size, size),
-                                            dtype=dtype, name='scan_rnn_init'))
+                output_init.append(
+                    tf.zeros((batch_size, size), dtype=dtype, name='scan_rnn_init'))
             init = (tuple(output_init), initial_state)
         else:
-            init = (tf.zeros((batch_size, cell.output_size),
-                             dtype=dtype, name='scan_rnn_init'),
-                    initial_state)
+            init = (
+                tf.zeros(
+                    (batch_size, cell.output_size), dtype=dtype, name='scan_rnn_init'),
+                initial_state)
         output, states = tf.scan(
-            step, inputs, name='scan_rnn',
-            initializer=init)
+            step, inputs, name='scan_rnn', initializer=init)
         final_state = select_nested_rnn(states, tf.nn.relu(sequence_length - 1))
         if mask_output:
             max_len = _tf_shape_of_tensor_or_tuple(inputs, dim=0)
@@ -188,8 +189,9 @@ def scan_rnn(cell, inputs, sequence_length, initial_state=None, dtype=tf.float32
 scan_rnn_no_mask = partial(scan_rnn, mask_output=False)
 
 
-def create_rnn(cell, inputs, sequence_length=None, initial_state=None,
-               rnn_fn=tf.nn.dynamic_rnn, batch_size=None):
+def create_rnn(
+        cell, inputs, sequence_length=None, initial_state=None, rnn_fn=tf.nn.dynamic_rnn,
+        batch_size=None):
     """return output (all time steps), initial state, and final state in time major."""
     if isinstance(rnn_fn, six.string_types):
         rnn_fn = locate(rnn_fn)
@@ -221,8 +223,9 @@ def select_rnn(tensor, time_step):
     return tf.gather_nd(tensor, idx)
 
 
-def create_tdnn(inputs, sequence_length=None, filter_widths=[2, 3, 4, 5, 6],
-                num_filters=[10, 30, 40, 40, 40], activation_fn=tf.tanh):
+def create_tdnn(
+        inputs, sequence_length=None, filter_widths=[2, 3, 4, 5, 6],
+        num_filters=[10, 30, 40, 40, 40], activation_fn=tf.tanh):
     """return time-delayed network as a tensor of [batch, sum num_filters].
     This function expects batch major input."""
     if isinstance(activation_fn, six.string_types):
@@ -257,8 +260,8 @@ def create_tdnn(inputs, sequence_length=None, filter_widths=[2, 3, 4, 5, 6],
 ###################################################################
 
 
-def create_gated_layer(carried, extra, carried_keep_prob=1.0, extra_keep_prob=1.0,
-                       fine_grain=False):
+def create_gated_layer(
+        carried, extra, carried_keep_prob=1.0, extra_keep_prob=1.0, fine_grain=False):
     out_size = int(carried.get_shape()[-1]) if fine_grain else 1
     _carried, _extra = carried, extra
     if carried_keep_prob < 1.0:
@@ -283,8 +286,8 @@ def create_highway_layer(transform, extra, carried):
     gate_w = tf.get_variable('gate_w', [in_size, out_size])
     _arr = np.zeros((out_size))
     _arr[:] = -1
-    gate_b = tf.get_variable('gate_b', initializer=tf.constant(
-        _arr, dtype=tf.float32))
+    gate_b = tf.get_variable(
+        'gate_b', initializer=tf.constant(_arr, dtype=tf.float32))
     z = matmul(tf.concat([transform, extra], -1), gate_w) + gate_b
     t = tf.sigmoid(tf.slice(z, [0, 0, 0], [-1, -1, carried_dim]))
     h = tf.tanh(tf.slice(z, [0, 0, carried_dim], [-1, -1, -1]))
@@ -302,15 +305,17 @@ def create_gru_layer(carried, extra, carried_keep_prob=1.0, extra_keep_prob=1.0)
     c_dim = int(carried.get_shape()[-1])
     x_dim = int(extra.get_shape()[-1])
     out_size = c_dim + x_dim
-    zr = tf.layers.dense(tf.concat([_carried, _extra], -1), out_size,
-                         activation=tf.sigmoid, name='gate_zr')
+    zr = tf.layers.dense(
+        tf.concat(
+            [_carried, _extra], -1), out_size, activation=tf.sigmoid, name='gate_zr')
     _begin = [0] * (len(carried.get_shape()) - 1)
     _size = [-1] * (len(carried.get_shape()) - 1)
     z = tf.slice(zr, _begin + [0], _size + [c_dim])
     r = tf.slice(zr, _begin + [c_dim], _size + [-1])
     _scaled_extra = tf.multiply(r, _extra)
-    h = tf.layers.dense(tf.concat([_scaled_extra, _carried], -1), c_dim,
-                        activation=tf.tanh, name='transform')
+    h = tf.layers.dense(
+        tf.concat([_scaled_extra, _carried], -1), c_dim, activation=tf.tanh,
+        name='transform')
     return tf.multiply(h - carried, z) + carried, zr
 
 
@@ -325,16 +330,18 @@ def create_gru_layer(carried, extra, carried_keep_prob=1.0, extra_keep_prob=1.0)
 ##################################################################
 
 
-def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial_finish,
-                  logit_b=None, logit_temperature=None, min_len=1, max_len=40, end_id=0,
-                  cell_scope=None, reuse_cell=True, back_prop=False, select_fn=None,
-                  late_attn_fn=None):
+def create_decode(
+        emb_var, cell, logit_w, initial_state, initial_inputs, initial_finish,
+        logit_b=None, logit_temperature=None, min_len=1, max_len=40, end_id=0,
+        cell_scope=None, reuse_cell=True, back_prop=False, select_fn=None,
+        late_attn_fn=None):
     select_fn = select_fn or greedy_decode_select
     gen_ta = tf.TensorArray(dtype=tf.int32, size=min_len, dynamic_size=True)
     logp_ta = tf.TensorArray(dtype=tf.float32, size=min_len, dynamic_size=True)
     len_ta = tf.TensorArray(dtype=tf.int32, size=min_len, dynamic_size=True)
-    init_values = (tf.constant(0), initial_inputs, initial_state, gen_ta, logp_ta,
-                   len_ta, initial_finish)
+    init_values = (
+        tf.constant(0), initial_inputs, initial_state, gen_ta, logp_ta, len_ta,
+        initial_finish)
 
     def cond(t, _inputs, _state, _out_ta, _score_ta, _end_ta, finished):
         return tf.logical_and(t < max_len, tf.logical_not(tf.reduce_all(finished)))
@@ -441,8 +448,8 @@ def attn_dot(q, k, v, time_major=True):
 # global collection
 
 
-def get_seq_input_placeholders(prefix='decoder', add_to_collection=True,
-                               collect_key='model_inputs'):
+def get_seq_input_placeholders(
+        prefix='decoder', add_to_collection=True, collect_key='model_inputs'):
     """return input and sequence length placeholders,
     create if not existed in collection. If add_to_collection is True, this function
     adds placeholders to tensorflow collection."""
@@ -455,8 +462,9 @@ def get_seq_input_placeholders(prefix='decoder', add_to_collection=True,
     return input_, seq_len_
 
 
-def get_seq_label_placeholders(label_dtype=tf.int32, prefix='decoder',
-                               add_to_collection=True, collect_key='model_inputs'):
+def get_seq_label_placeholders(
+        label_dtype=tf.int32, prefix='decoder', add_to_collection=True,
+        collect_key='model_inputs'):
     """return label, token weight, and sequence weight placeholders,
     create if not existed in collection. If add_to_collection is True, this function
     adds placeholders to tensorflow collection."""
@@ -470,9 +478,10 @@ def get_seq_label_placeholders(label_dtype=tf.int32, prefix='decoder',
     return label, tk_w, seq_w
 
 
-def create_lookup(inputs, emb_vars=None, onehot=False, vocab_size=None, dim=None,
-                  add_project=False, project_size=-1, project_act=tf.tanh,
-                  trainable=True, init=None, prefix='input', emb_name='embedding'):
+def create_lookup(
+        inputs, emb_vars=None, onehot=False, vocab_size=None, dim=None, add_project=False,
+        project_size=-1, project_act=tf.tanh, trainable=True, init=None, prefix='input',
+        emb_name='embedding'):
     """return lookup, and embedding variable (None if onehot)"""
     if onehot:
         assert vocab_size is not None, 'onehot needs vocab_size to be set.'
@@ -498,20 +507,21 @@ def create_lookup(inputs, emb_vars=None, onehot=False, vocab_size=None, dim=None
     return lookup, emb_vars
 
 
-def get_logit_layer(inputs, logit_w=None, logit_b=None, output_size=None,
-                    use_bias=True, temperature=None, trainable=True,
-                    init=None, add_project=False, project_size=-1, project_act=tf.tanh,
-                    prefix='output', add_to_collection=True, collect_key='model_inputs'):
+def get_logit_layer(
+        inputs, logit_w=None, logit_b=None, output_size=None, use_bias=True,
+        temperature=None, trainable=True, init=None, add_project=False, project_size=-1,
+        project_act=tf.tanh, prefix='output', add_to_collection=True,
+        collect_key='model_inputs'):
     """return logit with temperature layer and variables"""
     if logit_w is None:
         input_dim = int(inputs.get_shape()[-1])
-        logit_w = create_2d_tensor(output_size, input_dim, trainable, init=init,
-                                   name=f'logit_w')
+        logit_w = create_2d_tensor(
+            output_size, input_dim, trainable, init=init, name=f'logit_w')
     if add_project:
         logit_dim = logit_w.get_shape()[-1]
         project_size = project_size if project_size > 0 else logit_dim
-        proj_w = tf.get_variable(f'logit_proj', shape=(logit_dim, project_size),
-                                 dtype=tf.float32)
+        proj_w = tf.get_variable(
+            f'logit_proj', shape=(logit_dim, project_size), dtype=tf.float32)
         logit_w = tf.matmul(logit_w, proj_w)
         if isinstance(project_act, six.string_types):
             project_act = locate(project_act)
@@ -520,8 +530,8 @@ def get_logit_layer(inputs, logit_w=None, logit_b=None, output_size=None,
     logit = matmul(inputs, logit_w, transpose_b=True)
     if use_bias:
         if logit_b is None:
-            logit_b = tf.get_variable(f'logit_b', [output_size],
-                                      dtype=tf.float32)
+            logit_b = tf.get_variable(
+                f'logit_b', [output_size], dtype=tf.float32)
         logit = logit + logit_b
     if temperature is None:
         with tfph_collection(collect_key, add_to_collection) as get:
@@ -641,8 +651,9 @@ def create_l2_loss(var_list):
     return l2_loss
 
 
-def create_train_op(loss, optim_class=tf.train.AdamOptimizer, learning_rate=0.001,
-                    clip_gradients=5.0, **optim_kwarg):
+def create_train_op(
+        loss, optim_class=tf.train.AdamOptimizer, learning_rate=0.001,
+        clip_gradients=5.0, **optim_kwarg):
     """return train operation graph"""
     if isinstance(optim_class, six.string_types):
         optim_class = locate(optim_class)
@@ -659,8 +670,9 @@ def create_train_op(loss, optim_class=tf.train.AdamOptimizer, learning_rate=0.00
     return train_op
 
 
-def create_pg_train_op(nll, return_ph, optim_class=tf.train.AdamOptimizer,
-                       learning_rate=0.001, clip_gradients=5.0, **optim_kwarg):
+def create_pg_train_op(
+        nll, return_ph, optim_class=tf.train.AdamOptimizer, learning_rate=0.001,
+        clip_gradients=5.0, **optim_kwarg):
     """return train operation graph"""
     if isinstance(optim_class, six.string_types):
         optim_class = locate(optim_class)

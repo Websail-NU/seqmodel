@@ -163,16 +163,16 @@ def group_data(data_iter, key=None, entry=None, first_entry=None):
 
 
 def hstack_with_padding(x, y, pad_with=0):
-    z = np.full((max(x.shape[0], y.shape[0]), x.shape[1] + y.shape[1]),
-                pad_with, dtype=x.dtype)
+    z = np.full(
+        (max(x.shape[0], y.shape[0]), x.shape[1] + y.shape[1]), pad_with, dtype=x.dtype)
     z[:x.shape[0], :x.shape[1]] = x
     z[:y.shape[0], x.shape[1]:] = y
     return z
 
 
 def vstack_with_padding(x, y, pad_with=0):
-    z = np.full((x.shape[0] + y.shape[0], (max(x.shape[1], y.shape[1]))),
-                pad_with, dtype=x.dtype)
+    z = np.full(
+        (x.shape[0] + y.shape[0], (max(x.shape[1], y.shape[1]))), pad_with, dtype=x.dtype)
     z[:x.shape[0], :x.shape[1]] = x
     z[x.shape[0]:, :y.shape[1]] = y
     return z
@@ -405,7 +405,7 @@ def save_exp(sess, saver, exp_dir, train_state):
         json.dump(vars(train_state), ofp, indent=2, sort_keys=True)
 
 
-def load_exp(sess, saver, exp_dir, latest=False, checkpoint=None):
+def load_exp(sess, saver, exp_dir, latest=False, checkpoint=None, logger=None):
     restore_success = False
     if checkpoint is not None:
         saver.restore(sess, checkpoint)
@@ -419,4 +419,11 @@ def load_exp(sess, saver, exp_dir, latest=False, checkpoint=None):
         if not restore_success:
             saver.restore(sess, checkpoint)
             restore_success = True
+    if logger is not None:
+        if restore_success:
+            logger.info('Loaded model from checkpoint.')
+        if train_state is None:
+            logger.info('No experiment to resume.')
+        else:
+            logger.info('Resume experiment.')
     return restore_success, train_state

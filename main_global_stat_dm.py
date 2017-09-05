@@ -26,10 +26,15 @@ def load_data(opt):
     data = [read_fn(line_fn(dpath(f)), freq_down_weight=i != 2)
             for i, f in enumerate(file_list)]
     batch_iter = partial(sq.word2def_batch_iter, batch_size=opt['batch_size'])
-    return data, batch_iter, (enc_vocab, dec_vocab, char_vocab)
+    return data, batch_iter, (enc_vocab, dec_vocab, char_vocab), dpath('dec_vocab.txt')
 
 
-def decode(opt, gns_opt, vocabs, model, sess, data, state, out_filename, num_tokens):
+def load_only_data(opt, vocabs, text_filepath):
+    pass
+
+
+def decode(opt, gns_opt, vocabs, model, sess, data, state,
+           out_filename, num_tokens):
     _b = gns_opt['dec_batch_size']
     temperature = gns_opt['dec_temperature']
     if 'batch_data' not in state:
@@ -50,6 +55,8 @@ def decode(opt, gns_opt, vocabs, model, sess, data, state, out_filename, num_tok
     decode_dir = os.path.join(opt['exp_dir'], 'decode')
     sq.ensure_dir(decode_dir)
     opath = os.path.join(decode_dir, out_filename)
+    if gns_opt['use_model_prob']:
+        return opath
     dec_tokens = 0
     model.set_default_feed('temperature', temperature, set_all=True)
     with open(opath, 'w') as dofp, open(opath + '.words', 'w') as wofp:
@@ -72,4 +79,4 @@ def decode(opt, gns_opt, vocabs, model, sess, data, state, out_filename, num_tok
 
 
 if __name__ == '__main__':
-    main('main_global_stat_dm.py', sq.Word2DefModel, load_data, decode)
+    main('main_global_stat_dm.py', sq.Word2DefModel, load_data, decode, load_only_data)

@@ -42,6 +42,9 @@ if __name__ == '__main__':
         _b = opt['batch_size']
         opath = decode_opt['decode:outpath']
         tmp_paths = [f'{opath}.{i}' for i in range(_b)]
+        max_tokens = 887521 + 42068
+        if 'wikitext' in opt['data_dir']:
+            max_tokens = 2051910 + 36718
         with sq.open_files(tmp_paths, mode='w') as ofps:
             seed_in = np.array([[0] * _b], dtype=np.int32)
             seed_len = np.array([1] * _b, dtype=np.int32)
@@ -56,7 +59,8 @@ if __name__ == '__main__':
                     else:
                         ofps[i].write(f'{word} ')
                     n_tokens += 1
-                if n_tokens >= (887521 + 42068):
+                # if n_tokens >= (887521 + 42068):
+                if n_tokens >= max_tokens:
                     break
         with open(opath, mode='w') as ofp:
             with fileinput.input(files=tmp_paths) as fin:

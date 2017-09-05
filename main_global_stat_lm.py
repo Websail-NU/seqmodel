@@ -22,15 +22,27 @@ def load_data(opt):
 
     batch_iter = partial(sq.seq_batch_iter, batch_size=opt['batch_size'],
                          shuffle=False, keep_sentence=False)
-    return data, batch_iter, (vocab, vocab)
+    return data, batch_iter, (vocab, vocab), dpath('vocab.txt')
 
 
-def decode(opt, gns_opt, vocabs, model, sess, _data, _state, out_filename, num_tokens):
+def load_only_data(opt, vocabs, text_filepath):
+    data = sq.read_seq_data(sq.read_lines(text_filepath, token_split=' '),
+                            *vocabs, keep_sentence=False, seq_len=opt['seq_len'])
+    batch_iter = sq.seq_batch_iter(*data, batch_size=opt['batch_size'],
+                                   shuffle=False, keep_sentence=False)
+    return batch_iter
+
+
+def decode(
+        opt, gns_opt, vocabs, model, sess, _data, _state, out_filename, num_tokens,
+        force=False):
     vocab = vocabs[-1]
     _b = gns_opt['dec_batch_size']  # opt['batch_size']
     decode_dir = os.path.join(opt['exp_dir'], 'decode')
     sq.ensure_dir(decode_dir)
     opath = os.path.join(decode_dir, out_filename)
+    if gns_opt['use_model_prob'] and not force:
+        return opath
     # start with empty seed
     seed_in = np.array([[0] * _b], dtype=np.int32)
     seed_len = np.array([1] * _b, dtype=np.int32)
@@ -62,4 +74,4 @@ def decode(opt, gns_opt, vocabs, model, sess, _data, _state, out_filename, num_t
 
 
 if __name__ == '__main__':
-    main('main_global_stat_lm.py', sq.SeqModel, load_data, decode)
+    main('main_global_stat_lm.py', sq.SeqModel, load_data, decode, load_only_data)

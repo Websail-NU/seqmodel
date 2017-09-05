@@ -15,14 +15,16 @@ def _run(obj, model_class, rnn_fn, mode='seq', build_opt={}):
         if mode == 'seq2seq':
             features = (seq, seq_len, seq, seq_len)
         elif mode == 'word2def':
-            features = (seq, seq_len, np.ones((3,)), seq.T, seq_len, seq, seq_len)
+            features = (
+                seq, seq_len, np.ones((3,)), seq.T, seq_len,
+                np.full((3,), -1), seq, seq_len)
         else:
             features = (seq, seq_len)
             pk, pkn = '', ''
         m = model_class(check_feed_dict=False)
         n = m.build_graph({'rnn:fn': rnn_fn, f'{pk}logit:output_size': 2}, **build_opt)
 
-        optimizer = tf.train.AdamOptimizer()
+        optimizer = tf.train.AdamOptimizer(learning_rate=0.01)
         train_op = optimizer.minimize(m.training_loss)
         sess.run(tf.global_variables_initializer())
         # prediction

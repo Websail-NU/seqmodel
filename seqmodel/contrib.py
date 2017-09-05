@@ -14,8 +14,7 @@ from seqmodel import graph as tfg
 
 __all__ = ['NGramCell', 'create_anticache_rnn', 'apply_anticache',
            'create_decode_ac', 'progression_regularizer',
-           'create_global_stat_loss', 'sample_constraints',
-           'average_constraint_sets', 'rms_constraint_sets']
+           'create_global_stat_loss']
 
 #######################################################
 #     ######  ########    ###    ########  ######     #
@@ -28,115 +27,35 @@ __all__ = ['NGramCell', 'create_anticache_rnn', 'apply_anticache',
 #######################################################
 
 
-def create_global_stat_loss(logit, eps_idx, eps_val, eps_u=None, eps_decay=None, t=2.0):
-    eps = tf.sparse_to_dense(eps_idx, tf.shape(logit), eps_val)
-    # masking out words that are not participating in the conditions
-    # using eps == 0 as a proxy
-    # Q = tf.nn.softmax((logit / t) - 1e05 * tf.cast(tf.equal(eps, 0), tf.float32))
-    Q = tf.nn.softmax(logit / t)
-    # if eps_u is not None:
-    #     eps = (eps_u + eps)
-    if eps_decay is not None:
-        eps = eps * eps_decay
-    R = tf.reduce_sum(eps * Q, axis=-1)
-    return R
+def _distributed_missing_mass(logp, total_mass):
+    missings = tf.cast(tf.equal(logp, 0.0), tf.float32)
+    total_missings = tf.reduce_sum(missings, axis=-1)
+    defined_mass = tf.reduce_sum(tf.exp(logp) * (1 - missings), axis=-1)
+    dist_mass = (total_mass - defined_mass) / total_missings
+    return logp + tf.expand_dims(tf.log(dist_mass + 1e-8), -1) * missings
 
 
-def average_constraint_sets(C_u_list, C_list, weights, min_e=0.01, _pow=None, sort=True):
-    C_u = None
-    if C_u_list is not None:
-        C_u = np.zeros_like(C_u_list[0], dtype=np.float32)
-        for i, i_C_u in enumerate(C_u_list):
-            if _pow is not None and _pow[i]:
-                i_C_u = np.power(i_C_u, 2)
-            C_u += i_C_u * weights[i]
-    C = {}
-    mappings = {}
-    for i, i_C in enumerate(C_list):
-        for c in i_C:
-            indices, values = C.setdefault(c, [[], []])
-            mapping = mappings.setdefault(c, {})
-            for idx, val in zip(*i_C[c]):
-                if _pow is not None and _pow[i]:
-                    val = val ** 2
-                val = val * weights[i]
-                m_idx = mapping.setdefault(idx, len(indices))
-                if m_idx == len(indices):
-                    indices.append(idx)
-                    values.append(val)
-                else:
-                    values[m_idx] += val
-    if sort:
-        for k in list(C.keys()):
-            e = C[k]
-            # C[k][1] = [v / len(C_list) for v in C[k][1]]
-            filtered = list(filter(lambda x: abs(x[1]) > min_e, zip(*e)))
-            if filtered:
-                C[k] = list(zip(*sorted(filtered)))
-                C[k][0] = list(C[k][0])
-                C[k][1] = list(C[k][1])
-            else:
-                del C[k]
-    return C_u, C
+def _missing_mass(logp, total_mass):
+    missings = tf.cast(tf.equal(logp, 0.0), tf.float32)
+    defined_mass = tf.reduce_sum(tf.exp(logp) * (1 - missings), axis=-1)
+    return total_mass - defined_mass
 
 
-def rms_constraint_sets(C_u, C, cache=None, decay=0.5, eps=1e-4, min_e=0.1):
-    if cache is None:
-        c_C_u, c_C = average_constraint_sets(
-            [C_u, np.zeros_like(C_u, np.float32)], [C, {}], [1-decay, decay], min_e=0.0,
-            _pow=[True, False], sort=False)
+def create_global_stat_loss(logit, eps_idx, logp, logp0, eps_u=None, eps_decay=None,
+                            t=1.0, clip=5.0, use_model_prob=False):
+    p = tf.nn.softmax(logit / t)
+    logp0 = tf.sparse_to_dense(eps_idx, tf.shape(logit), logp0)
+    # logp0 = _distributed_missing_mass(logp0, 3.0)
+    if use_model_prob:
+        logp = tf.log(p) * tf.cast(tf.not_equal(logp0, 0), tf.float32)
     else:
-        c_C_u, c_C = average_constraint_sets(
-            [C_u, cache[0]], [C, cache[1]], [1-decay, decay], min_e=0.0,
-            _pow=[True, False], sort=False)
-        C_u = C_u / (np.sqrt(c_C_u) + eps)
-        for c in list(C.keys()):
-            e = C[c]
-            ce = c_C.get(c, None)
-            if ce is not None:
-                for i in range(len(e[0])):
-                    idx, val = e[0][i], e[1][i]
-                    cidx = ce[0].index(idx) if idx in ce[0] else None
-                    if cidx is not None:
-                        val = val / (np.sqrt(ce[1][cidx]) + eps)
-        for k in list(C.keys()):
-            e = C[k]
-            # C[k][1] = [v / len(C_list) for v in C[k][1]]
-            filtered = list(filter(lambda x: abs(x[1]) > min_e, zip(*e)))
-            if filtered:
-                C[k] = list(zip(*sorted(filtered)))
-                C[k][0] = list(C[k][0])
-                C[k][1] = list(C[k][1])
-            else:
-                del C[k]
-    return C_u, C, (c_C_u, c_C)
-
-
-def sample_constraints(p_lm, C, vocab, num_samples=6000):
-    choices = []
-    scores = []
-    for c, p in C.items():
-        c_ngram = ' '.join(vocab.i2w(c))
-        prior = p_lm.score(c_ngram, bos=False, eos=False)
-        for i, v in zip(*p):
-            choices.append((c, i, v))
-            # scores.append(np.power(10, prior) * abs(v))
-            scores.append(abs(v))
-    scores = np.array(scores)
-    scores = scores + abs(np.min(scores))
-    scores = scores / np.sum(scores)
-    samples = np.random.choice(range(len(choices)), size=num_samples,
-                               replace=False, p=scores)
-    C = {}
-    for idx in samples:
-        c, i, v = choices[idx]
-        e = C.setdefault(c, ([], []))
-        e[0].append(i)
-        e[1].append(v)
-    for k in C:
-        e = C[k]
-        C[k] = list(zip(*sorted(zip(*e))))
-    return C
+        logp = tf.sparse_to_dense(eps_idx, tf.shape(logit), logp)
+        # logp = _distributed_missing_mass(logp, 3.0)
+    # p = tf.nn.softmax((logit / t) - 1e5 * tf.cast(tf.equal(logp, 0), tf.float32))
+    eps = tf.clip_by_value(logp - logp0, -clip, clip)
+    # eps = tf.Print(eps, [tf.reduce_min(eps), tf.reduce_mean(eps), tf.reduce_max(eps)])
+    R = tf.reduce_sum(p * eps, axis=-1) * eps_decay
+    return R
 
 
 class NGramCell(tf.nn.rnn_cell.RNNCell):

@@ -15,7 +15,8 @@ from seqmodel import dstruct as ds
 __all__ = ['_no_run', 'default_training_opt', 'update_learning_rate',
            'is_done_training_early', 'run_epoch', 'train', 'decode_epoch',
            'default_decoding_opt', 'run_sampling_epoch', 'policy_gradient_opt',
-           'run_collecting_epoch', 'uncond_lm_decode']
+           'run_collecting_epoch', 'uncond_lm_decode', 'describe_variables',
+           'get_tfsession_config']
 
 
 def _no_run(*args, **kwargs):
@@ -38,9 +39,9 @@ def default_decoding_opt():
             'decode:num_samples': 1}
 
 
-def update_learning_rate(set_lr_fn, train_state, min_lr=1e-6, start_decay_at=1,
-                         decay_every=1, decay_factor=1.0, imp_ratio_threshold=0,
-                         imp_wait=2):
+def update_learning_rate(
+        set_lr_fn, train_state, min_lr=1e-6, start_decay_at=1, decay_every=1,
+        decay_factor=1.0, imp_ratio_threshold=0, imp_wait=2):
     old_lr = train_state.learning_rate
     new_lr = old_lr
     if train_state.cur_epoch < start_decay_at or train_state.cur_epoch == 0:
@@ -73,8 +74,9 @@ def is_done_training_early(train_state, imp_wait=2, min_lr=1e-04):
     return train_state.imp_wait >= imp_wait and train_state.learning_rate <= min_lr
 
 
-def run_epoch(sess, model, batch_iter, train_op=None, train_state=None,
-              begin_step_fn=None, end_step_fn=None):
+def run_epoch(
+        sess, model, batch_iter, train_op=None, train_state=None, begin_step_fn=None,
+        end_step_fn=None, _extra_data=None):
     info = ds.RunningInfo()
     if train_op:
         run_fn = partial(model.train, sess, train_op=train_op)
@@ -84,6 +86,8 @@ def run_epoch(sess, model, batch_iter, train_op=None, train_state=None,
     for batch in batch_iter():
         if begin_step_fn is not None:
             begin_step_fn(step_info=info, train_state=train_state)
+        if _extra_data is not None:
+            batch = _extra_data.pop(0)
         result, __ = run_fn(batch.features, batch.labels, state=state,
                             fetch_state=batch.keep_state)
         if batch.keep_state:
@@ -97,8 +101,9 @@ def run_epoch(sess, model, batch_iter, train_op=None, train_state=None,
     return info
 
 
-def run_collecting_epoch(sess, model, batch_iter, collect_keys, collect_fn,
-                         train_op=None, train_state=None):
+def run_collecting_epoch(
+        sess, model, batch_iter, collect_keys, collect_fn, train_op=None,
+        train_state=None):
     info = ds.RunningInfo()
     if train_op:
         run_fn = partial(model.train, sess, train_op=train_op, extra_fetch=collect_keys)
@@ -106,8 +111,8 @@ def run_collecting_epoch(sess, model, batch_iter, collect_keys, collect_fn,
         run_fn = partial(model.evaluate, sess, extra_fetch=collect_keys)
     state = None
     for batch in batch_iter():
-        result, collect = run_fn(batch.features, batch.labels, state=state,
-                                 fetch_state=batch.keep_state)
+        result, collect = run_fn(
+            batch.features, batch.labels, state=state, fetch_state=batch.keep_state)
         collect_fn(batch, collect)
         if batch.keep_state:
             result, state = result  # ds.OutputStateTuple
@@ -127,15 +132,15 @@ def _acc_discounted_rewards(rewards, discount_factor, baseline=1e-4):
     return R - baseline
 
 
-def run_sampling_epoch(sess, model, batch_iter, train_op=None, reward_fn=None,
-                       greedy=False, discount_factor=0.9, pack_data_fn=None,
-                       return_fn=_acc_discounted_rewards, with_score=False,
-                       return_feed_fn=None, train_state=None):
+def run_sampling_epoch(
+        sess, model, batch_iter, train_op=None, reward_fn=None, greedy=False,
+        discount_factor=0.9, pack_data_fn=None, return_fn=_acc_discounted_rewards,
+        with_score=False, return_feed_fn=None, train_state=None):
     if pack_data_fn is None:
         def pack_data_fn(batch, sample, ret):
             # assume seq2seq data
-            pg_batch = bgt.get_batch_data(batch, sample, input_key='dec_inputs',
-                                          seq_len_key='dec_seq_len')
+            pg_batch = bgt.get_batch_data(
+                batch, sample, input_key='dec_inputs', seq_len_key='dec_seq_len')
             return pg_batch, ret
     assert reward_fn is not None, 'reward_fn must not be None.'
     decode_fn = model.decode_sampling
@@ -165,13 +170,14 @@ def run_sampling_epoch(sess, model, batch_iter, train_op=None, reward_fn=None,
     return info
 
 
-def train(train_run_epoch_fn, logger, max_epoch=1, train_state=None, init_lr=1.0,
-          valid_run_epoch_fn=None, begin_epoch_fn=None, end_epoch_fn=None):
+def train(
+        train_run_epoch_fn, logger, max_epoch=1, train_state=None, init_lr=1.0,
+        valid_run_epoch_fn=None, begin_epoch_fn=None, end_epoch_fn=None):
     if train_state is None:
         train_state = ds.TrainingState()
         train_state.learning_rate = init_lr
     stop_early = False
-    for epoch in range(max_epoch):
+    for epoch in range(train_state.cur_epoch, max_epoch):
         if begin_epoch_fn is not None:
             begin_epoch_fn(train_state)
         logger.info(train_state.summary(mode='train'))
@@ -208,9 +214,23 @@ def uncond_lm_decode(sess, model, feature_seed, greedy=False, vocabs=None):
     feature = feature_seed
     dec_mode = 'dec_max_id' if greedy else 'dec_sample_id'
     while True:
-        result, __ = model.predict(sess, feature, predict_key=dec_mode,
-                                   fetch_state=True, state=state)
+        result, __ = model.predict(
+            sess, feature, predict_key=dec_mode, fetch_state=True, state=state)
         output, state = result
         feature = feature._replace(inputs=output[[-1], :])
         feature.seq_len[:] = 1
         yield output, vocabs
+
+
+def describe_variables(variables):
+    var_desc = []
+    total_params = 0
+    for v in variables:
+        var_desc.append(f'- {v.name}, {v.shape}')
+        total_params += int(np.prod(v.shape))
+    var_desc.append(f'Total parameters: {total_params:5E}')
+    return '\n'.join(var_desc)
+
+
+def get_tfsession_config(is_gpu):
+    return tf.ConfigProto() if is_gpu else tf.ConfigProto(device_count={'GPU': 0})

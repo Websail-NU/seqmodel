@@ -59,8 +59,9 @@ IndexScoreTuple = collections.namedtuple('IndexScoreTuple', ('index', 'score'))
 
 class Vocabulary(object):
 
-    special_symbols = {'end_seq': '</s>', 'start_seq': '<s>',
-                       'end_encode': '</enc>', 'unknown': '<unk>'}
+    special_symbols = {
+        'end_seq': '</s>', 'start_seq': '<s>', 'end_encode': '</enc>',
+        'unknown': '<unk>'}
 
     def __init__(self):
         self._w2i = {}
@@ -164,10 +165,10 @@ class Vocabulary(object):
 
 
 class TrainingState(object):
-    def __init__(self, learning_rate=1e-4, cur_epoch=0,
-                 cur_eval=float('inf'), last_imp_eval=float('inf'),
-                 best_eval=float('inf'), best_epoch=-1, last_imp_epoch=-1,
-                 imp_wait=0, best_checkpoint_epoch=-1):
+    def __init__(
+            self, learning_rate=1e-4, cur_epoch=0, cur_eval=float('inf'),
+            last_imp_eval=float('inf'), best_eval=float('inf'), best_epoch=-1,
+            last_imp_epoch=-1, imp_wait=0, best_checkpoint_epoch=-1):
         self.learning_rate = learning_rate
         self.cur_epoch = cur_epoch
         self.cur_eval = cur_eval
@@ -194,9 +195,9 @@ class TrainingState(object):
 
 
 class RunningInfo(object):
-    def __init__(self, start_time=None, end_time=None,
-                 eval_loss=0.0, train_loss=0.0,
-                 num_tokens=0, step=0):
+    def __init__(
+            self, start_time=None, end_time=None, eval_loss=0.0, train_loss=0.0,
+            num_tokens=0, step=0):
         self._start_time = start_time or time.time()
         self._end_time = end_time
         self._eval_loss = eval_loss
