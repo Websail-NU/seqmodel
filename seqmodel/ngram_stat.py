@@ -166,6 +166,25 @@ def get_ngrams(ngram_count):
     return ngram_count.keys()
 
 
+def get_unigram_count(ngram_count):
+    ucount = FreqDist()
+    for ngram, count in ngram_count.items():
+        if len(ngram) == 1:
+            ucount[ngram[0]] = count
+    return ucount
+
+
+def get_unigram_logprob(
+        unigram_count, word_set=None, tokens2ids=default_tokens2ids, num_vocab=1e4):
+    if word_set is None:
+        word_set = set(unigram_count.keys())
+    unigram_dist = WittenBellProbDist(unigram_count, bins=num_vocab+1)
+    u_logprob = defaultdict(_no_info)
+    for word in word_set:
+        u_logprob[tokens2ids(word)] = (unigram_count[word], unigram_dist.logprob(word))
+    return u_logprob
+
+
 def get_lm_cond_logprob(
         lms, ngram_count, ngram_set=None, tokens2ids=default_tokens2ids, num_vocab=1e4):
     if isinstance(lms, kenlm.Model):
@@ -273,6 +292,10 @@ if __name__ == '__main__':
 
     # read ngram count (this will be used over)
     ngram_count = read_ngram_count_file(count_path)
+    unigram_count = get_unigram_count(ngram_count)
+    # get unigram count  XXX: ideally we want condition prob
+    ulogprob = get_unigram_logprob(
+        unigram_count, word_set=unigram_count.keys(), num_vocab=1e4)
 
     # get conditional probability from ARPA file from SRILM_ngram_count
     lms = read_ngram_lm_files(lm_filepaths)

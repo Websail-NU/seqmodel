@@ -20,7 +20,7 @@ sq.SeqModel.GLOBAL_STAT_W = 1.0
 
 
 def _main(opt, model_opt, logger, train_opt, gns_opt, pool, model_class,
-          load_data_fn, decode_fn, load_data_only_fn):
+          load_data_fn, decode_fn, load_data_only_fn, _prefix):
     logger.info('Loading data...')
     data, batch_iter, vocabs, dec_vocab_path = load_data_fn(opt)
     if opt['set_vocab_size']:
@@ -85,7 +85,7 @@ def _main(opt, model_opt, logger, train_opt, gns_opt, pool, model_class,
                          f'tokens and compute new stat in {tot_time:.1f}s'))
                 s_time = time.time()
 
-                C = gns.update_C(cur_p_stat, step)
+                C, p_u, p0_u = gns.update_C(cur_p_stat, step)
                 start, end = gns.update_C_batches(C, epoch, step)
                 if start == -1 and end == -1:
                     return
@@ -96,6 +96,13 @@ def _main(opt, model_opt, logger, train_opt, gns_opt, pool, model_class,
                 logger.info((
                     f'(P) @ep{epoch:02d}.{step:04d} processing for {_c} constraints of '
                     f'batch: {start} to {end}, in {tot_time:.1f}s'))
+                if _prefix == '':
+                    _dec_nodes = _tnodes
+                else:
+                    _dec_nodes = _tnodes['dec']
+                sess.run(
+                        _dec_nodes['u_assign'],
+                        {_dec_nodes['eps_u']: p_u, _dec_nodes['eps_u0']: p0_u})
 
         train_model.set_default_feed('eps', gns.cur_C_batch, set_all=True)
         train_model.set_default_feed('eps_decay', 1.0, set_all=True)
@@ -122,7 +129,7 @@ def _main(opt, model_opt, logger, train_opt, gns_opt, pool, model_class,
         logger.info(info.summary('eval'))
 
         logger.info('Final decoding...')
-        decode_fn('final.txt', gns_opt['dec_total_tokens'])
+        decode_fn('final.txt', gns_opt['dec_total_tokens'], force=True)
 
 
 def main(main_filename, model_class, load_data_fn, decode_fn, load_data_only_fn):
@@ -148,7 +155,7 @@ def main(main_filename, model_class, load_data_fn, decode_fn, load_data_only_fn)
     try:
         with Pool(processes=gns_opt['num_processes']) as pool:
             _main(opt, model_opt, logger, train_opt, gns_opt, pool, model_class,
-                  load_data_fn, decode_fn, load_data_only_fn)
+                  load_data_fn, decode_fn, load_data_only_fn, _prefix)
     finally:
         if os.path.lexists(gns_opt['temp_C_path']):
             os.remove(gns_opt['temp_C_path'])

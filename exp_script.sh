@@ -224,4 +224,16 @@
 # --gns:alpha 0.5
 
 
+RUN='wn-lemma'
+V='5'
+source prep_exp_dir.sh $RUN m$V
+python main_global_stat_dm.py train data/wn_lemma_senses explm/stat/$RUN-m$V --gpu \
+--log_level debug --batch_size 64 \
+--load_model_opt explm/stat/dm-config/model_opt.json \
+--load_train_opt explm/stat/dm-config/train_opt.json \
+--gns:ref_text_path data/wn_lemma_senses/train_defs.txt --gns:dec_batch_size 256 \
+--gns:ngram_max_order 4 --gns:ngram_min_order 2 --gns:use_rep \
+--gns:precompute_after_steps 100 --gns:percent_new_tokens 0.10 --gns:dec_total_tokens 1000000 \
+--gns:min_p0_count 2 --gns:min_p_count 2 --gns:clip_ratio 2.0 \
+--gns:alpha 0.25
 

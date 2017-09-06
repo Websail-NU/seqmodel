@@ -41,21 +41,22 @@ def _missing_mass(logp, total_mass):
     return total_mass - defined_mass
 
 
-def create_global_stat_loss(logit, eps_idx, logp, logp0, eps_u=None, eps_decay=None,
-                            t=1.0, clip=5.0, use_model_prob=False):
+def create_global_stat_loss(
+        logit, eps_idx, logp, logp0, logup=None, logup0=None, t=1.0, clip=5.0,
+        use_model_prob=False):
     p = tf.nn.softmax(logit / t)
     logp0 = tf.sparse_to_dense(eps_idx, tf.shape(logit), logp0)
-    # logp0 = _distributed_missing_mass(logp0, 3.0)
+    active_tokens = tf.cast(tf.not_equal(logp0, 0), tf.float32)
     if use_model_prob:
-        logp = tf.log(p) * tf.cast(tf.not_equal(logp0, 0), tf.float32)
+        logp = tf.log(p) * active_tokens
     else:
         logp = tf.sparse_to_dense(eps_idx, tf.shape(logit), logp)
-        # logp = _distributed_missing_mass(logp, 3.0)
-    # p = tf.nn.softmax((logit / t) - 1e5 * tf.cast(tf.equal(logp, 0), tf.float32))
     eps = tf.clip_by_value(logp - logp0, -clip, clip)
-    # eps = tf.Print(eps, [tf.reduce_min(eps), tf.reduce_mean(eps), tf.reduce_max(eps)])
-    R = tf.reduce_sum(p * eps, axis=-1) * eps_decay
-    return R
+    R = tf.reduce_sum(p * eps, axis=-1)
+    epsu = tf.expand_dims(tf.expand_dims(
+        tf.clip_by_value(logup - logup0, -clip, clip), axis=0), axis=0)
+    Ru = tf.reduce_sum(p * epsu, axis=-1)
+    return R, Ru
 
 
 class NGramCell(tf.nn.rnn_cell.RNNCell):

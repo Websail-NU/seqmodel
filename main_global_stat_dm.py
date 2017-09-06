@@ -34,7 +34,7 @@ def load_only_data(opt, vocabs, text_filepath):
 
 
 def decode(opt, gns_opt, vocabs, model, sess, data, state,
-           out_filename, num_tokens):
+           out_filename, num_tokens, force=False):
     _b = gns_opt['dec_batch_size']
     temperature = gns_opt['dec_temperature']
     if 'batch_data' not in state:
@@ -55,7 +55,7 @@ def decode(opt, gns_opt, vocabs, model, sess, data, state,
     decode_dir = os.path.join(opt['exp_dir'], 'decode')
     sq.ensure_dir(decode_dir)
     opath = os.path.join(decode_dir, out_filename)
-    if gns_opt['use_model_prob']:
+    if gns_opt['use_model_prob'] and not force:
         return opath
     dec_tokens = 0
     model.set_default_feed('temperature', temperature, set_all=True)

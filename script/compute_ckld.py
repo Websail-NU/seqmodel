@@ -59,11 +59,17 @@ def format_clogprob(clogprob_fn, ngram_set_fn, vocab_size, p_pr, p0_pr, p_fr, p0
 def cKLD(C):
     pq_ckld = defaultdict(float)
     qp_ckld = defaultdict(float)
+    cjsd = defaultdict(float)
     for context, dist in C.items():
         for w, plogp, qlogp, pcount, qcount in zip(*dist):
             qp_ckld[context] += math.exp(qlogp) * (qlogp - plogp)
             pq_ckld[context] += math.exp(plogp) * (plogp - qlogp)
-    return pq_ckld, qp_ckld
+            mp = (math.exp(plogp) + math.exp(qlogp)) / 2
+            mlogp = math.log(mp)
+            pm_kld = math.exp(plogp) * (plogp - mlogp)
+            qm_kld = math.exp(qlogp) * (qlogp - mlogp)
+            cjsd[context] += (pm_kld + qm_kld) / 2
+    return pq_ckld, qp_ckld, cjsd
 
 
 def sum_condition_margin_count(m_count):
@@ -85,18 +91,34 @@ def sum_condition_count(clp):
     return sum_count, total
 
 
-def weighted_average(ckld, c_count):
+def weighted_average(ckld, c_count, c2_count=None):
     average = defaultdict(float)
     total = defaultdict(float)
+    total_c = defaultdict(float)
+    total_c2 = defaultdict(float)
     for context, kld in ckld.items():
         if isinstance(context, int):
             context_len = -context  # for efficiency, repetition encoded as -k
         else:
             context_len = len(context)
-        average[context_len] += kld * c_count[context]
+        total_c[context_len] += c_count[context]
         total[context_len] += c_count[context]
-    for context_len, avg in average.items():
-        average[context_len] = avg / total[context_len]
+        if c2_count is not None:
+            total_c2[context_len] += c2_count[context]
+            total[context_len] += c2_count[context]
+    for context, kld in ckld.items():
+        if isinstance(context, int):
+            context_len = -context
+        else:
+            context_len = len(context)
+        weight = c_count[context] / total_c[context_len]
+        if c2_count is not None:
+            weight += c2_count[context] / total_c2[context_len]
+            weight /= 2
+        average[context_len] += kld * weight
+    if c2_count is not None:
+        for context_len, s in total.items():
+            total[context_len] = s / 2
     return average, total
 
 
@@ -172,13 +194,17 @@ if __name__ == '__main__':
             get_repk_cond_logprob_cpdist, get_repk_conditions, vocab_size,
             p_rep_dist, q_rep_dist, p_repk_count, q_repk_count)
 
-    pq_ckld, qp_ckld = cKLD(C)
+    pq_ckld, qp_ckld, cjsd = cKLD(C)
     pcounts, ptotal = sum_condition_count(p_clp)
     qcounts, qtotal = sum_condition_count(q_clp)
 
-    print('p(c) KLD(p|q):\n{}'.format(
-        avg_ckld_to_string(weighted_average(pq_ckld, pcounts))))
+    print('0.5(p(c)+q(c)) JSD(p|q):\n{}'.format(
+        avg_ckld_to_string(weighted_average(cjsd, pcounts, qcounts))))
+    print('0.5(p(c)+q(c)) KLD(p|q):\n{}'.format(
+        avg_ckld_to_string(weighted_average(pq_ckld, pcounts, qcounts))))
     if args.other_directions:
+        print('p(c) KLD(p|q):\n{}'.format(
+            avg_ckld_to_string(weighted_average(pq_ckld, pcounts))))
         print('q(c) KLD(p|q):\n{}'.format(
             avg_ckld_to_string(weighted_average(pq_ckld, qcounts))))
         print('p(c) KLD(q|p):\n{}'.format(

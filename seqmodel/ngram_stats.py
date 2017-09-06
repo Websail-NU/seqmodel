@@ -24,11 +24,36 @@ def _tuple_C(C):
 
 
 def format_clogprob(
-        clogprob_fn, ngram_set_fn, vocab, p_pr, p0_pr, p_fr, p0_fr,
+        clogprob_fn, ngram_set_fn, vocab, p_pr, p0_pr, p_fr, p0_fr, p_u, p0_u,
         min_p_count=-1, min_p0_count=-1, min_ratio=-1, replace_sos='</s>'):
     use_p = p_pr is not None and p_fr is not None
+
+    p_udist_arr = np.zeros((vocab.vocab_size), dtype=np.float32)
+    p0_udist_arr = np.zeros((vocab.vocab_size), dtype=np.float32)
     C = {}
     w2i = partial(default_tokens2ids, vocab=vocab, replace_sos=replace_sos)
+
+    p_udist = get_unigram_logprob(
+        p_u, word_set=vocab.word_set(), tokens2ids=w2i,
+        num_vocab=vocab.vocab_size)
+    p0_udist = get_unigram_logprob(
+        p0_u, word_set=vocab.word_set(), tokens2ids=w2i,
+        num_vocab=vocab.vocab_size)
+
+    for wid in p_udist:
+        count0, p0 = p0_udist[wid]
+        if use_p:
+            count, p = p_udist[wid]
+        if ((count < min_p_count and count0 < min_p0_count) or
+                abs(p - p0) < min_ratio):
+            continue
+        else:
+            if count0 < min_p0_count:
+                continue
+        p0_udist_arr[wid] = p0
+        if use_p:
+            p_udist_arr[wid] = p
+
     ngram_set = set(ngram_set_fn(p0_fr))
     if use_p:
         ngram_set.update(tuple(ngram_set_fn(p_fr)))
@@ -54,7 +79,7 @@ def format_clogprob(
         e = C.setdefault(context, ([], [], []))
         for c, v in zip(e, data):
             c.append(v)
-    return _tuple_C(C)
+    return _tuple_C(C), p_udist_arr, p0_udist_arr
 
 
 def merge_clogprobs(Cs, min_ratio=0.1, average=True, count=None):
@@ -184,6 +209,7 @@ class GNS(object):
         self.cur_dec_path = None
         self.cur_p_stat = None
         self.C_history = deque(maxlen=gns_opt['avg_C_size'])
+        self.U_history = deque(maxlen=gns_opt['avg_C_size'])
         self.cur_C = None
         self.p0_stat = self._build_ngram_stat(gns_opt['ref_text_path'])
         self._precompute_batch_constraint = partial(
@@ -207,7 +233,7 @@ class GNS(object):
                'dec_total_tokens': 929589, 'loss_temperature': 1.0,
                'clip_ratio': 2.0, 'min_ratio': 0.1, 'num_constraints_per_token': -1,
                'ref_text_path': 'data/ptb/train.txt',
-               'dec_temperature': 1.0, 'avg_C_size': 50, 'text_history_size': 50,
+               'dec_temperature': 1.0, 'avg_C_size': 50, 'text_history_size': 25,
                'use_model_prob': False, 'alpha': 1.0, 'uniq_dec_text': False}
         return {f'gns:{k}': v for k, v in opt.items()}
 
@@ -221,6 +247,7 @@ class GNS(object):
         count = read_ngram_count_file(
             count_filepath, max_order=max_order,
             remove_unk=self.opt['remove_unk'], remove_sentence=self.opt['remove_sen'])
+        ucount = get_unigram_count(count)
         lm, repk_count, repk_dist = None, None, None
         if self.use_lm:
             lm_filepaths = SRILM_ngram_lm(
@@ -235,7 +262,7 @@ class GNS(object):
             count, min_count=self.opt['min_p_count'],
             min_order=min_order,
             max_order=max_order)
-        return filtered_count, lm, repk_count, repk_dist
+        return ucount, filtered_count, lm, repk_count, repk_dist
 
     def _fake_estimate_stat(self, epoch=0, step=0):
         self.cur_p_stat = None
@@ -292,29 +319,30 @@ class GNS(object):
         return self.cur_p_stat, num_tokens
 
     def update_C(self, p_stat, step, pickle_path=None):
-        p0_count, p0_lm, p0_repk_count, p0_repk_dist = self.p0_stat
+        p0_ucount, p0_count, p0_lm, p0_repk_count, p0_repk_dist = self.p0_stat
         pc_rate = self.opt['precompute_after_steps']
         if pc_rate == -1 and step != 0:
             return self.cur_C
         if pc_rate > -1 and step % pc_rate != 0:
             return self.cur_C
         if self.opt['use_model_prob']:
-            p_count, p_lm, p_repk_count, p_repk_dist = None, None, None, None,
+            p_ucount, p_count = None, None
+            p_lm, p_repk_count, p_repk_dist = None, None, None
         else:
-            p_count, p_lm, p_repk_count, p_repk_dist = p_stat
+            p_ucount, p_count, p_lm, p_repk_count, p_repk_dist = p_stat
         format_kwargs = {'replace_sos': self.opt['replace_sos'],
                          'min_p_count': self.opt['min_p_count'],
                          'min_p0_count': self.opt['min_p0_count']}
         C_lm, C_rep = None, None
         if self.use_lm:
-            C_lm = format_clogprob(
+            C_lm, p_u, p0_u = format_clogprob(
                 get_lm_cond_logprob, get_ngrams, self.vocab,
-                p_lm, p0_lm, p_count, p0_count, **format_kwargs)
+                p_lm, p0_lm, p_count, p0_count, p_ucount, p0_ucount, **format_kwargs)
         if self.use_rep:
-            C_rep = format_clogprob(
+            C_rep, p_u, p0_u = format_clogprob(
                 get_repk_cond_logprob_cpdist, get_repk_conditions, self.vocab,
                 p_repk_dist, p0_repk_dist,
-                p_repk_count, p0_repk_count, **format_kwargs)
+                p_repk_count, p0_repk_count, p_ucount, p0_ucount, **format_kwargs)
         C = None
         if C_rep is not None and C_lm is not None:
             C = merge_clogprobs([C_lm, C_rep], average=False)
@@ -322,7 +350,7 @@ class GNS(object):
             C = C_rep
         elif C_lm is not None:
             C = C_lm
-        C = self._update_C(C)
+        C, p_u = self._update_C(C, p_u)
         if pickle_path is None:
             pickle_path = os.path.splitext(self.cur_dec_path)[0] + '.pkl'
         with open(pickle_path, 'wb') as ofp:
@@ -331,15 +359,17 @@ class GNS(object):
         if os.path.lexists(temp_C_path):
             os.remove(temp_C_path)
         os.symlink(os.path.abspath(pickle_path), temp_C_path)
-        return C
+        return C, p_u, p0_u
 
-    def _update_C(self, C):
+    def _update_C(self, C, p_u):
         maxlen = self.opt['avg_C_size']
-        self.C_history.appendleft(C)
+        self.C_history.append(C)
         self.cur_C = merge_clogprobs(
             self.C_history, min_ratio=self.opt['min_ratio'],
             average=True, count=len(self.C_history))
-        return self.cur_C
+        self.U_history.append(p_u)
+        stack_u = np.stack(self.U_history)
+        return self.cur_C, stack_u.mean(axis=0)
 
     def update_C_batches(self, C, epoch=0, step=0):
         pc_rate = self.opt['precompute_after_steps']

@@ -508,22 +508,31 @@ class SeqModel(_SeqModel):
                                         dtype=tf.float32, trainable=False)
                 eps_u_ = tf.placeholder(tf.float32, shape=(logit.get_shape()[-1],),
                                         name='eps_u_input')
-                eps_u_assign_ = tf.assign(eps_u, eps_u_)
+                eps_u_assign = tf.assign(eps_u, eps_u_)
+                eps_u0 = tf.get_variable('eps_u0', shape=(logit.get_shape()[-1],),
+                                         dtype=tf.float32, trainable=False)
+                eps_u0_ = tf.placeholder(tf.float32, shape=(logit.get_shape()[-1],),
+                                         name='eps_u0_input')
+                eps_u0_assign = tf.assign(eps_u0, eps_u0_)
+                u_assign_ = (eps_u_assign, eps_u0_assign)
                 eps_decay_ = tf.placeholder(tf.float32, shape=None, name='eps_decay')
                 eps_idx_ = tf.placeholder(tf.int32, shape=(None, 3), name='eps_idx')
                 eps_val_ = tf.placeholder(tf.float32, shape=(None, ), name='eps_val')
                 eps_val0_ = tf.placeholder(tf.float32, shape=(None, ), name='eps_val0')
-                ngram_kld = tfg_ct.create_global_stat_loss(
-                    logit, eps_idx_, eps_val_, eps_val0_, eps_u, eps_decay_,
+                ngram_kld, u_kld = tfg_ct.create_global_stat_loss(
+                    logit, eps_idx_, eps_val_, eps_val0_, eps_u, eps_u0,
                     opt['gns:loss_temperature'], opt['gns:clip_ratio'],
                     opt['gns:use_model_prob'])
                 # ngram_kld = tf.Print(ngram_kld, [tf.reduce_min(ngram_kld),
                 #                                  tf.reduce_max(ngram_kld)])
-                ngram_loss = tf.reduce_sum(ngram_kld * weight)
+                ngram_loss = tf.reduce_sum(ngram_kld * weight) * eps_decay_
                 ngram_loss = ngram_loss / tf.cast(tf.shape(ngram_kld)[1], tf.float32)
                 ngram_loss = opt['gns:alpha'] * ngram_loss
+                unigram_loss = tf.reduce_sum(ngram_kld * weight) * eps_decay_
+                unigram_loss = unigram_loss / tf.reduce_sum(weight)
+                unigram_loss = opt['gns:alpha'] * unigram_loss
                 # ngram_loss = tf.Print(ngram_loss, [train_loss_, ngram_loss])
-                train_loss_ = train_loss_ + ngram_loss
+                train_loss_ = train_loss_ + ngram_loss + unigram_loss
                 eps_ = (eps_idx_, eps_val_, eps_val0_)
             # XXX: (- -)a
 
