@@ -112,15 +112,97 @@
 
 
 
-RUN='wn-lemma'
-V='5'
-source prep_exp_dir.sh $RUN m$V
-python main_global_stat_dm.py train data/wn_lemma_senses explm/stat/$RUN-m$V --gpu \
---log_level debug --batch_size 64 \
---load_model_opt explm/stat/dm-config/model_opt.json \
---load_train_opt explm/stat/dm-config/train_opt.json \
---gns:ref_text_path data/wn_lemma_senses/train_defs.txt --gns:dec_batch_size 256 \
---gns:ngram_max_order 4 --gns:ngram_min_order 2 --gns:use_rep \
---gns:precompute_after_steps 100 --gns:percent_new_tokens 0.10 --gns:dec_total_tokens 1000000 \
---gns:min_p0_count 2 --gns:min_p_count 2 --gns:clip_ratio 2.0 \
---gns:alpha 0.5
+# RUN='wn-lemma'
+# V='5'
+# source prep_exp_dir.sh $RUN m$V
+# python main_global_stat_dm.py train data/wn_lemma_senses explm/stat/$RUN-m$V --gpu \
+# --log_level debug --batch_size 64 \
+# --load_model_opt explm/stat/dm-config/model_opt.json \
+# --load_train_opt explm/stat/dm-config/train_opt.json \
+# --gns:ref_text_path data/wn_lemma_senses/train_defs.txt --gns:dec_batch_size 64 \
+# --gns:ngram_max_order 4 --gns:ngram_min_order 2 --gns:use_rep \
+# --gns:precompute_after_steps 100 --gns:percent_new_tokens 0.10 --gns:dec_total_tokens 1000000 \
+# --gns:min_p0_count 2 --gns:min_p_count 2 --gns:clip_ratio 2.0 \
+# --gns:alpha 0.5
+
+# RUN='wn-lemma'
+# V='11'
+# source prep_exp_dir.sh $RUN m$V
+# python main_global_stat_dm.py train data/wn_lemma_senses explm/stat/$RUN-m$V --gpu \
+# --log_level debug --batch_size 64 \
+# --load_model_opt explm/stat/dm-config/model_opt.json \
+# --load_train_opt explm/stat/dm-config/train_opt.json \
+# --gns:ref_text_path data/wn_lemma_senses/train_defs.txt --gns:dec_batch_size 64 \
+# --gns:ngram_max_order 4 --gns:ngram_min_order 2 --gns:use_repm \
+# --gns:precompute_after_steps 100 --gns:percent_new_tokens 0.10 --gns:dec_total_tokens 1000000 \
+# --gns:min_p0_count 2 --gns:min_p_count 1 --gns:clip_ratio 2.0 \
+# --gns:alpha 1.0
+
+# RUN='wn-lemma'
+# V='12'
+# source prep_exp_dir.sh $RUN m$V
+# python main_global_stat_dm.py train data/wn_lemma_senses explm/stat/$RUN-m$V --gpu \
+# --log_level debug --batch_size 64 \
+# --load_model_opt explm/stat/dm-config/model_opt.json \
+# --load_train_opt explm/stat/dm-config/train_opt.json \
+# --gns:ref_text_path data/wn_lemma_senses/train_defs.txt --gns:dec_batch_size 64 \
+# --gns:ngram_max_order 4 --gns:ngram_min_order 2 --gns:use_repm \
+# --gns:precompute_after_steps 100 --gns:percent_new_tokens 0.10 --gns:dec_total_tokens 1000000 \
+# --gns:min_p0_count 2 --gns:min_p_count 1 --gns:clip_ratio 2.0 \
+# --gns:alpha 0.5
+
+# RUN='wn-lemma'
+# V='13'
+# source prep_exp_dir.sh $RUN m$V
+# python main_global_stat_dm.py train data/wn_lemma_senses explm/stat/$RUN-m$V --gpu \
+# --log_level debug --batch_size 64 \
+# --load_model_opt explm/stat/dm-config/model_opt.json \
+# --load_train_opt explm/stat/dm-config/train_opt.json \
+# --gns:ref_text_path data/wn_lemma_senses/train_defs.txt --gns:dec_batch_size 64 \
+# --gns:ngram_max_order 4 --gns:ngram_min_order 2 --gns:use_repm \
+# --gns:precompute_after_steps 100 --gns:percent_new_tokens 0.10 --gns:dec_total_tokens 1000000 \
+# --gns:min_p0_count 2 --gns:min_p_count 1 --gns:clip_ratio 5.0 \
+# --gns:alpha 1.0
+
+# RUN='wn-lemma'
+# V='14'
+# source prep_exp_dir.sh $RUN m$V
+# python main_global_stat_dm.py train data/wn_lemma_senses explm/stat/$RUN-m$V --gpu \
+# --log_level debug --batch_size 64 \
+# --load_model_opt explm/stat/dm-config/model_opt.json \
+# --load_train_opt explm/stat/dm-config/train_opt.json \
+# --gns:ref_text_path data/wn_lemma_senses/train_defs.txt --gns:dec_batch_size 64 \
+# --gns:ngram_max_order 4 --gns:ngram_min_order 2 --gns:use_repm \
+# --gns:precompute_after_steps 100 --gns:percent_new_tokens 0.10 --gns:dec_total_tokens 1000000 \
+# --gns:min_p0_count 2 --gns:min_p_count 1 --gns:clip_ratio 5.0 \
+# --gns:alpha 0.5
+
+
+# DATA='ptb'
+# V='32'
+# source prep_exp_dir.sh $DATA m$V
+# python main_global_stat_lm.py train data/$DATA explm/stat/$DATA-m$V --gpu \
+# --log_level debug --batch_size 20 --seq_len 35 \
+# --load_model_opt explm/stat/$DATA-config/model_opt.json \
+# --load_train_opt explm/stat/$DATA-config/train_opt.json \
+# --gns:ref_text_path data/$DATA/train.txt \
+# --gns:ngram_max_order 2 --gns:ngram_min_order 2 --gns:use_lm \
+# --gns:precompute_after_steps 200 --gns:percent_new_tokens 0.15 --gns:dec_total_tokens 929589 \
+# --gns:min_p0_count 2 --gns:min_p_count 2 --gns:alpha 0.0  \
+# --gns:avg_C_size 20 --gns:avg_unigram_size 20  --gns:clip_ratio 5.0 \
+# --gns:text_history_size 1 --gns:add_unigram_kld
+
+
+DATA='ptb'
+V='42'
+source prep_exp_dir.sh $DATA m$V
+python main_global_stat_lm.py train data/$DATA explm/stat/$DATA-m$V --gpu \
+--log_level debug --batch_size 20 --seq_len 35 \
+--load_model_opt explm/stat/$DATA-config/model_opt.json \
+--load_train_opt explm/stat/$DATA-config/train_opt.json \
+--gns:ref_text_path data/$DATA/train_fake.txt \
+--gns:ngram_max_order 2 --gns:ngram_min_order 2 --gns:use_lm \
+--gns:precompute_after_steps 200 --gns:percent_new_tokens 0.15 --gns:dec_total_tokens 929589 \
+--gns:min_p0_count 2 --gns:min_p_count 2 --gns:alpha 5.0  \
+--gns:avg_C_size 50 --gns:avg_unigram_size 50  --gns:clip_ratio 5.0 \
+--gns:text_history_size 50 --gns:add_unigram_kld --train:max_epoch 15

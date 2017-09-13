@@ -324,7 +324,7 @@ class _SeqModel(Model):
         if opt['out:loss'] and opt['out:logit']:
             train_fetch, eval_fetch, loss_nodes = self._build_loss(
                 opt, logit, *label_feed, nodes, collect_key,
-                collect_kwargs['add_to_collection'])
+                collect_kwargs['add_to_collection'], inputs=input_)
             nodes.update(loss_nodes)
             graph_args.update(train_fetch=train_fetch, eval_fetch=eval_fetch)
         elif not opt['out:logit'] and opt['out:loss']:
@@ -369,7 +369,7 @@ class _SeqModel(Model):
         return logit_, label_feed, predict_fetch, nodes
 
     def _build_loss(self, opt, logit, label, weight, seq_weight, nodes,
-                    collect_key, add_to_collection):
+                    collect_key, add_to_collection, inputs=None):
         if opt['loss:type'] == 'xent':
             with tfg.tfph_collection(collect_key, add_to_collection) as get:
                 name = 'train_loss_denom'
@@ -483,7 +483,7 @@ class SeqModel(_SeqModel):
 
     def _build_loss(
             self, opt, logit, label, weight, seq_weight, nodes, collect_key,
-            add_to_collection):
+            add_to_collection, inputs=None):
         if opt['loss:type'] == 'xent':
             with tfg.tfph_collection(collect_key, add_to_collection) as get:
                 name = 'train_loss_denom'
@@ -504,36 +504,50 @@ class SeqModel(_SeqModel):
                 train_loss_ += self._EMB_DIS
 
             if self.BUILD_GLOBAL_STAT:
-                eps_u = tf.get_variable('eps_u', shape=(logit.get_shape()[-1],),
-                                        dtype=tf.float32, trainable=False)
-                eps_u_ = tf.placeholder(tf.float32, shape=(logit.get_shape()[-1],),
-                                        name='eps_u_input')
-                eps_u_assign = tf.assign(eps_u, eps_u_)
-                eps_u0 = tf.get_variable('eps_u0', shape=(logit.get_shape()[-1],),
-                                         dtype=tf.float32, trainable=False)
-                eps_u0_ = tf.placeholder(tf.float32, shape=(logit.get_shape()[-1],),
-                                         name='eps_u0_input')
-                eps_u0_assign = tf.assign(eps_u0, eps_u0_)
-                u_assign_ = (eps_u_assign, eps_u0_assign)
-                eps_decay_ = tf.placeholder(tf.float32, shape=None, name='eps_decay')
-                eps_idx_ = tf.placeholder(tf.int32, shape=(None, 3), name='eps_idx')
-                eps_val_ = tf.placeholder(tf.float32, shape=(None, ), name='eps_val')
-                eps_val0_ = tf.placeholder(tf.float32, shape=(None, ), name='eps_val0')
-                ngram_kld, u_kld = tfg_ct.create_global_stat_loss(
-                    logit, eps_idx_, eps_val_, eps_val0_, eps_u, eps_u0,
-                    opt['gns:loss_temperature'], opt['gns:clip_ratio'],
-                    opt['gns:use_model_prob'])
-                # ngram_kld = tf.Print(ngram_kld, [tf.reduce_min(ngram_kld),
-                #                                  tf.reduce_max(ngram_kld)])
-                ngram_loss = tf.reduce_sum(ngram_kld * weight) * eps_decay_
-                ngram_loss = ngram_loss / tf.cast(tf.shape(ngram_kld)[1], tf.float32)
-                ngram_loss = opt['gns:alpha'] * ngram_loss
-                unigram_loss = tf.reduce_sum(ngram_kld * weight) * eps_decay_
-                unigram_loss = unigram_loss / tf.reduce_sum(weight)
-                unigram_loss = opt['gns:alpha'] * unigram_loss
-                # ngram_loss = tf.Print(ngram_loss, [train_loss_, ngram_loss])
-                train_loss_ = train_loss_ + ngram_loss + unigram_loss
-                eps_ = (eps_idx_, eps_val_, eps_val0_)
+                max_k = opt['gns:max_order'] - 1
+                gns_decay_ = tf.placeholder(tf.float32, shape=None, name='gns_decay')
+                # Unigram log prob
+                # XXX: need to generalize to n-gram condition
+                p_unigram = tf.get_variable(
+                    'p_unigram', shape=(logit.get_shape()[-1],), dtype=tf.float32,
+                    trainable=False)
+                p_unigram_ = tf.placeholder(
+                    tf.float32, shape=(logit.get_shape()[-1],), name='p_unigram_ph')
+                p0_unigram = tf.get_variable(
+                    'p0_unigram', shape=(logit.get_shape()[-1],), dtype=tf.float32,
+                    trainable=False)
+                p0_unigram_ = tf.placeholder(
+                    tf.float32, shape=(logit.get_shape()[-1],), name='p0_unigram_ph')
+                unigram_assign_ = (
+                    tf.assign(p_unigram, p_unigram_), tf.assign(p0_unigram, p0_unigram_))
+
+                # Repetition condition log prob
+                p_repk = tf.get_variable(
+                    'p_repk', shape=(max_k,), dtype=tf.float32, trainable=False)
+                p_repk_ = tf.placeholder(tf.float32, shape=(max_k,), name='p_repk_ph')
+                p0_repk = tf.get_variable(
+                    'p0_repk', shape=(max_k,), dtype=tf.float32, trainable=False)
+                p0_repk_ = tf.placeholder(tf.float32, shape=(max_k,), name='p0_repk_ph')
+                rep_cond_assign_ = (
+                    tf.assign(p_repk, p_repk_), tf.assign(p0_repk, p0_repk_))
+
+                # Conditional log prob
+                ckld_idx_ = tf.placeholder(tf.int32, shape=(None, 3), name='ckld_idx')
+                p_ = tf.placeholder(tf.float32, shape=(None, ), name='p')
+                p0_ = tf.placeholder(tf.float32, shape=(None, ), name='p')
+
+                stat_loss = tfg_ct.create_global_stat_loss(
+                    logit, ckld_idx_, p_, p0_, p_unigram, p0_unigram,
+                    p_repk, p0_repk, inputs, weight, train_loss_denom_,
+                    t=opt['gns:loss_temperature'], clip=opt['gns:clip_ratio'],
+                    max_k=max_k, use_model_prob=opt['gns:use_model_prob'],
+                    add_unigram=opt['gns:add_unigram_kld'],
+                    add_repk=opt['gns:add_repk_kld'],
+                    full_average=opt['gns:full_average'])
+                stat_loss = stat_loss * opt['gns:alpha'] * gns_decay_
+
+                train_loss_ = train_loss_ + stat_loss
+                log_ckld_ = (ckld_idx_, p_, p0_)
             # XXX: (- -)a
 
             train_fetch = {'train_loss': train_loss_, 'eval_loss': mean_loss_}

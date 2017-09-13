@@ -18,7 +18,7 @@ __all__ = ['_safe_div', 'tfph_collection', 'create_2d_tensor', 'matmul', 'create
            'create_slow_feature_loss', 'create_l2_loss', 'create_train_op',
            'empty_tfph_collection', 'scan_rnn_no_mask', 'create_decode',
            'create_pg_train_op', 'seeded_decode_select_fn', 'greedy_decode_select',
-           'sampling_decode_select', 'create_gated_layer']
+           'sampling_decode_select', 'create_gated_layer', 'gather_2d', 'shift']
 
 
 _global_collections = {}
@@ -563,6 +563,43 @@ def select_from_logit(logit, distribution=None):
     max_tuple = dstruct.IndexScoreTuple(max_idx, max_prob)
     sample_tuple = dstruct.IndexScoreTuple(sample_idx, sample_prob)
     return distribution, max_tuple, sample_tuple
+
+
+def gather_2d(tensor3d, idx2d, reshape_back=True):
+    tensor2d = tf.reshape(tensor3d, (-1, tf.shape(tensor3d)[-1]))
+    idx1d = tf.reshape(idx2d, (-1, 1))
+    gather_idx = tf.expand_dims(
+        tf.range(start=0, limit=tf.shape(idx1d)[0]), axis=-1)
+    gather_idx = tf.concat([gather_idx, idx1d], axis=-1)
+    out1d = tf.gather_nd(tensor2d, gather_idx)
+    if reshape_back:
+        return tf.reshape(out1d, tf.shape(idx2d))
+    else:
+        return out1d
+
+
+def shift(tensor, k, axis=0, fill=0):
+    assert k != 0, 'k must not be zero.'
+    rank = len(tensor.get_shape())
+    paddings = np.zeros((rank, 2), dtype=np.int32)
+    direction = 0 if k > 0 else 1
+    paddings[axis, direction] = abs(k)
+    padded = tf.pad(tensor, paddings, mode="CONSTANT", constant_values=fill)
+    slice_begin = tf.zeros((rank, ), dtype=tf.int32)
+    if direction == 0:
+        slice_end = tf.shape(tensor, out_type=tf.int32)
+        slice_end_offset = np.zeros((rank, ), dtype=np.int32)
+        slice_end_mask = np.ones((rank, ), dtype=np.int32)
+        slice_end_offset[axis] = -k
+        slice_end_mask[axis] = 0
+        slice_end = slice_end * slice_end_mask + slice_end_offset
+    else:
+        slice_end = tf.shape(padded, out_type=tf.int32)
+        slice_begin_offset = np.zeros((rank, ), dtype=np.int32)
+        slice_begin_offset[axis] = -k
+        slice_begin = slice_begin + slice_begin_offset
+    sliced = tf.strided_slice(padded, slice_begin, slice_end, None)
+    return sliced
 
 
 ##############################################
