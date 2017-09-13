@@ -138,33 +138,46 @@
 # python main_lm.py train data/wikitext-2 explm/stat/wikitext-2-v --gpu --log_level debug --seq_len 35 --batch_size 64 --load_model_opt explm/stat/wikitext-2-config/model_opt.json --load_train_opt explm/stat/wikitext-2-config/train_opt.json
 # python main_lm.py decode data/wikitext-2 tmp --load_checkpoint explm/stat/wikitext-2-v/checkpoint/best --gpu --log_level debug --seq_len 35 --batch_size 64 --load_model_opt explm/stat/wikitext-2-config/model_opt.json --out:decode --decode:outpath explm/stat/wikitext-2-v/decode/final.txt
 
-DATA='wikitext-2'
-V='1'
-source prep_exp_dir.sh $DATA m$V
-python main_global_stat_lm.py train data/$DATA explm/stat/$DATA-m$V --gpu \
---log_level debug --batch_size 64 --seq_len 35 \
---load_model_opt explm/stat/$DATA-config/model_opt.json \
---load_train_opt explm/stat/$DATA-config/train_opt.json \
---gns:ref_text_path data/wikitext-103/train.txt --gns:remove_sen --gns:remove_unk \
---gns:ngram_max_order 2 --gns:ngram_min_order 2 --gns:use_lm \
---gns:precompute_after_steps 200 --gns:percent_new_tokens 0.15 --gns:dec_total_tokens 2200000 \
---gns:min_p0_count 50 --gns:min_p_count 5 --gns:num_constraints_per_token 5000 \
---gns:alpha 0.5 --gns:clip_ratio 2.0 --gns:num_processes 12
+# DATA='wikitext-2'
+# V='1'
+# source prep_exp_dir.sh $DATA m$V
+# python main_global_stat_lm.py train data/$DATA explm/stat/$DATA-m$V --gpu \
+# --log_level debug --batch_size 64 --seq_len 35 \
+# --load_model_opt explm/stat/$DATA-config/model_opt.json \
+# --load_train_opt explm/stat/$DATA-config/train_opt.json \
+# --gns:ref_text_path data/wikitext-103/train.txt --gns:remove_sen --gns:remove_unk \
+# --gns:ngram_max_order 2 --gns:ngram_min_order 2 --gns:use_lm \
+# --gns:precompute_after_steps 200 --gns:percent_new_tokens 0.15 --gns:dec_total_tokens 2200000 \
+# --gns:min_p0_count 50 --gns:min_p_count 5 --gns:num_constraints_per_token 5000 \
+# --gns:alpha 0.5 --gns:clip_ratio 2.0 --gns:num_processes 12
+
+# DATA='wikitext-2'
+# V='2'
+# source prep_exp_dir.sh $DATA m$V
+# python main_global_stat_lm.py train data/$DATA explm/stat/$DATA-m$V --gpu \
+# --log_level debug --batch_size 64 --seq_len 35 \
+# --load_model_opt explm/stat/$DATA-config/model_opt.json \
+# --load_train_opt explm/stat/$DATA-config/train_opt.json \
+# --gns:ref_text_path data/wikitext-103/train.txt --gns:remove_sen --gns:remove_unk \
+# --gns:ngram_max_order 4 --gns:ngram_min_order 2 --gns:use_rep \
+# --gns:precompute_after_steps 100 --gns:percent_new_tokens 0.10 --gns:dec_total_tokens 2200000 \
+# --gns:min_p0_count 1 --gns:min_p_count 1 --gns:num_processes 12
+
+# DATA='wikitext-2'
+# V='3'
+# source prep_exp_dir.sh $DATA m$V
+# python main_global_stat_lm.py train data/$DATA explm/stat/$DATA-m$V --gpu \
+# --log_level debug --batch_size 64 --seq_len 35 \
+# --load_model_opt explm/stat/$DATA-config/model_opt.json \
+# --load_train_opt explm/stat/$DATA-config/train_opt.json \
+# --gns:ref_text_path data/wikitext-103/train.txt --gns:remove_sen --gns:remove_unk \
+# --gns:ngram_max_order 2 --gns:ngram_min_order 2 --gns:use_lm \
+# --gns:precompute_after_steps 100 --gns:percent_new_tokens 0.1 --gns:dec_total_tokens 2200000 \
+# --gns:min_p0_count 50 --gns:min_p_count 5 --gns:num_constraints_per_token 5000 \
+# --gns:alpha 0.5 --gns:clip_ratio 2.0 --gns:num_processes 12
 
 DATA='wikitext-2'
-V='2'
-source prep_exp_dir.sh $DATA m$V
-python main_global_stat_lm.py train data/$DATA explm/stat/$DATA-m$V --gpu \
---log_level debug --batch_size 64 --seq_len 35 \
---load_model_opt explm/stat/$DATA-config/model_opt.json \
---load_train_opt explm/stat/$DATA-config/train_opt.json \
---gns:ref_text_path data/wikitext-103/train.txt --gns:remove_sen --gns:remove_unk \
---gns:ngram_max_order 4 --gns:ngram_min_order 2 --gns:use_rep \
---gns:precompute_after_steps 100 --gns:percent_new_tokens 0.10 --gns:dec_total_tokens 2200000 \
---gns:min_p0_count 1 --gns:min_p_count 1 --gns:num_processes 12
-
-DATA='wikitext-2'
-V='3'
+V='6'
 source prep_exp_dir.sh $DATA m$V
 python main_global_stat_lm.py train data/$DATA explm/stat/$DATA-m$V --gpu \
 --log_level debug --batch_size 64 --seq_len 35 \
@@ -174,7 +187,22 @@ python main_global_stat_lm.py train data/$DATA explm/stat/$DATA-m$V --gpu \
 --gns:ngram_max_order 2 --gns:ngram_min_order 2 --gns:use_lm \
 --gns:precompute_after_steps 100 --gns:percent_new_tokens 0.1 --gns:dec_total_tokens 2200000 \
 --gns:min_p0_count 50 --gns:min_p_count 5 --gns:num_constraints_per_token 5000 \
---gns:alpha 0.5 --gns:clip_ratio 2.0 --gns:num_processes 12
+--gns:alpha 0.5 --gns:clip_ratio 2.0 --gns:num_processes 12 --gns:add_unigram_kld \
+--gns:avg_C_size 50 --gns:avg_unigram_size 50 --gns:text_history_size 50
+
+# DATA='wikitext-2'
+# V='5'
+# source prep_exp_dir.sh $DATA m$V
+# python main_global_stat_lm.py train data/$DATA explm/stat/$DATA-m$V --gpu \
+# --log_level debug --batch_size 64 --seq_len 35 \
+# --load_model_opt explm/stat/$DATA-config/model_opt.json \
+# --load_train_opt explm/stat/$DATA-config/train_opt.json \
+# --gns:ref_text_path data/wikitext-103/train.txt --gns:remove_sen --gns:remove_unk \
+# --gns:ngram_max_order 4 --gns:ngram_min_order 2 --gns:use_rep \
+# --gns:precompute_after_steps 200 --gns:percent_new_tokens 0.15 --gns:dec_total_tokens 2200000 \
+# --gns:min_p0_count 10 --gns:min_p_count 1 --gns:num_processes 12 --gns:clip_ratio 5.0 \
+# --gns:alpha 1.0 --gns:add_repk_kld --gns:avg_C_size 25 --gns:avg_unigram_size 25 \
+# --gns:average_repk_size 25
 
 
 # WordNet

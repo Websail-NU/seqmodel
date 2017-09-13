@@ -44,10 +44,15 @@ def decode(opt, gns_opt, vocabs, model, sess, data, state,
         state['batch_data'] = batch_data
         state['cur_pos'] = -1
 
+    if force:
+        state['cur_pos'] = -1
+
     def batch_iter():
         while True:
             state['cur_pos'] = state['cur_pos'] + 1
             if state['cur_pos'] >= len(state['batch_data']):
+                if force:
+                    break
                 random.shuffle(state['batch_data'])
                 state['cur_pos'] = 0
             yield state['batch_data'][state['cur_pos']]

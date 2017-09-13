@@ -32,7 +32,7 @@ def get_stat(
         count_filepath, max_order=max_order, remove_unk=remove_unk,
         remove_sentence=remove_sen)
     lms = read_ngram_lm_files(lm_filepaths)
-    repk_count = get_repk_count(count)
+    repk_count, total_count = get_repk_count(count)
     rep_dist = ConditionalProbDist(
         repk_count, WittenBellProbDist, vocab_size)
     filtered_count = filter_ngram_count(
@@ -132,6 +132,34 @@ def avg_ckld_to_string(average, total=None):
     return '\n'.join(str_data)
 
 
+def check_repetition(p_repk_count, q_repk_count):
+    over_set = [[], [], []]
+    under_set = [[], [], []]
+    for i in range(1, 4):
+        total = 0
+        over = 0
+        under = 0
+        uset = set(p_repk_count[i].keys())
+        uset.update(q_repk_count[i].keys())
+
+        for w in uset:
+            pc = p_repk_count[i][w]
+            qc = q_repk_count[i][w]
+            diff = abs(pc - qc)
+            if pc > qc:
+                under += diff
+                under_set[i-1].append((w, qc, pc))
+            if qc > pc:
+                over += diff
+                over_set[i-1].append((w, qc, pc))
+            total += qc
+        print(i, p_repk_count[i].N())
+        print(i, q_repk_count[i].N())
+        print(over, under, total, over/total, under/total)
+
+    return over_set, under_set
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         prog='compute_ckld', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -198,16 +226,19 @@ if __name__ == '__main__':
     pcounts, ptotal = sum_condition_count(p_clp)
     qcounts, qtotal = sum_condition_count(q_clp)
 
+    print('p(c) KLD(p|q):\n{}'.format(
+            avg_ckld_to_string(weighted_average(pq_ckld, pcounts))))
     print('0.5(p(c)+q(c)) JSD(p|q):\n{}'.format(
         avg_ckld_to_string(weighted_average(cjsd, pcounts, qcounts))))
-    print('0.5(p(c)+q(c)) KLD(p|q):\n{}'.format(
-        avg_ckld_to_string(weighted_average(pq_ckld, pcounts, qcounts))))
+    # print('0.5(p(c)+q(c)) KLD(p|q):\n{}'.format(
+    #     avg_ckld_to_string(weighted_average(pq_ckld, pcounts, qcounts))))
     if args.other_directions:
-        print('p(c) KLD(p|q):\n{}'.format(
-            avg_ckld_to_string(weighted_average(pq_ckld, pcounts))))
         print('q(c) KLD(p|q):\n{}'.format(
             avg_ckld_to_string(weighted_average(pq_ckld, qcounts))))
         print('p(c) KLD(q|p):\n{}'.format(
             avg_ckld_to_string(weighted_average(qp_ckld, pcounts))))
         print('q(c) KLD(q|p):\n{}'.format(
             avg_ckld_to_string(weighted_average(qp_ckld, qcounts))))
+
+    if args.use_rep:
+        over, under = check_repetition(p_repk_count, q_repk_count)

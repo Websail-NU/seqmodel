@@ -95,7 +95,9 @@ def read_ngram_count_file(
     return ngram_count
 
 
-def filter_ngram_count(ngram_count, min_count=-1, min_order=-1, max_order=-1):
+def filter_ngram_count(
+        ngram_count, min_count=-1, min_order=-1, max_order=-1,
+        remove_unk=False, remove_sentence=False):
     if max_order == -1:
         max_order = float('inf')
     new_ngram_count = FreqDist()
@@ -103,6 +105,10 @@ def filter_ngram_count(ngram_count, min_count=-1, min_order=-1, max_order=-1):
         if (count >= min_count and
                 len(ngram) >= min_order and len(ngram) <= max_order):
             new_ngram_count[ngram] = count
+        if remove_sentence and ('<s>' in ngram or '</s>' in ngram):
+                continue
+        if remove_unk and '<unk>' in ngram:
+            continue
     ngram_count = new_ngram_count
     return ngram_count
 
@@ -131,13 +137,15 @@ def get_margin_count(ngram_count):
 
 def get_repk_count(ngram_count):
     counts = ConditionalFreqDist()
+    total_counts = defaultdict(int)
     for ngram, count in ngram_count.items():
+        context = len(ngram) - 1
+        total_counts[context] += count
         if len(ngram) == 1:
             continue
         if ngram[0] == ngram[-1]:
-            context = len(ngram) - 1
             counts[context][ngram[-1]] += count
-    return counts
+    return counts, total_counts
 
 
 def default_tokens2ids(tokens, vocab=None, replace_sos='</s>'):
@@ -251,15 +259,10 @@ def renormalize_conditions(clp):
         __, c = key
         clp[key] = (v[0], v[1] - np.log(total_mass[c]))
 
-# Deprecated!
-
 
 def get_rep_cond_logprob(
         margin_count, condition_set=None, cpdist=None, num_vocab=1e4,
         tokens2ids=default_tokens2ids, smoothing=WittenBellProbDist):
-    warnings.warn(
-        'Deprecated method to compute repetition, use get_repk_cond_logprob',
-        DeprecationWarning)
     if condition_set is None:
         condition_set = margin_count.keys()
     logprobs = defaultdict(_no_info)
@@ -268,7 +271,7 @@ def get_rep_cond_logprob(
     for context in condition_set:
         count = margin_count[context][context[0]]
         logprob = cpdist[context].logprob(context[0]) / LOG2_e
-        key = (tokens2ids(context[0]), tokens2ids(context))
+        key = (tokens2ids(context[0]), -len(context))
         logprobs[key] = (count, logprob)
     return logprobs
 
@@ -278,6 +281,13 @@ def get_rep_cond_logprob_cpdist(
         num_vocab=1e4, smoothing=WittenBellProbDist):
     return get_rep_cond_logprob(
         margin_count, condition_set, cpdist, num_vocab, tokens2ids, smoothing)
+
+
+def file_len(fname):
+    with open(fname) as f:
+        for i, l in enumerate(f):
+            pass
+    return i + 1
 
 
 if __name__ == '__main__':
@@ -291,6 +301,7 @@ if __name__ == '__main__':
         min_order=2, max_order=4)
 
     # read ngram count (this will be used over)
+    unigram_count2 = read_ngram_count_file(count_path, min_order=1, max_order=1)
     ngram_count = read_ngram_count_file(count_path)
     unigram_count = get_unigram_count(ngram_count)
     # get unigram count  XXX: ideally we want condition prob
@@ -316,7 +327,7 @@ if __name__ == '__main__':
     print(full_clogprobs[('journal', ('wall', 'street'))])
 
     # get conditional repetition probability
-    repk_count = get_repk_count(ngram_count)
+    repk_count, total_count = get_repk_count(ngram_count)
     repk_set = get_repk_conditions(repk_count)
     rep_clogprobs = get_repk_cond_logprob(
         repk_count, condition_set=repk_set, num_vocab=1e4)
@@ -329,3 +340,7 @@ if __name__ == '__main__':
     print(rep_clogprobs[('N', -1)])  # P('N' | 'N') different than above
     print(rep_clogprobs[('N', -2)])  # P('N' | 'N *')
     print(rep_clogprobs[('N', -3)])  # P('N' | 'N * *')
+
+    margin_count = get_margin_count(ngram_count)
+    margine_set = get_ngrams(margin_count)
+    repm_clogprobs = get_rep_cond_logprob(margin_count, margine_set, num_vocab=1e4)

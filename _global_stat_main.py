@@ -85,7 +85,12 @@ def _main(opt, model_opt, logger, train_opt, gns_opt, pool, model_class,
                          f'tokens and compute new stat in {tot_time:.1f}s'))
                 s_time = time.time()
 
-                C, p_u, p0_u = gns.update_C(cur_p_stat, step)
+                C, p_u, p0_u, p_ur, p0_ur = gns.update_C(cur_p_stat, step)
+                # print(p_u)
+                # print(p0_u)
+                for _i, _j, _k in zip(*C[(23, )]):
+                    if _i == 9027:
+                        print(_i, _j, _k)
                 start, end = gns.update_C_batches(C, epoch, step)
                 if start == -1 and end == -1:
                     return
@@ -101,11 +106,12 @@ def _main(opt, model_opt, logger, train_opt, gns_opt, pool, model_class,
                 else:
                     _dec_nodes = _tnodes['dec']
                 sess.run(
-                        _dec_nodes['u_assign'],
-                        {_dec_nodes['eps_u']: p_u, _dec_nodes['eps_u0']: p0_u})
+                        [_dec_nodes['unigram_assign'], _dec_nodes['rep_cond_assign']],
+                        {_dec_nodes['p_unigram']: p_u, _dec_nodes['p0_unigram']: p0_u,
+                         _dec_nodes['p_repk']: p_ur, _dec_nodes['p0_repk']: p0_ur})
 
-        train_model.set_default_feed('eps', gns.cur_C_batch, set_all=True)
-        train_model.set_default_feed('eps_decay', 1.0, set_all=True)
+        train_model.set_default_feed('log_ckld', gns.cur_C_batch, set_all=True)
+        train_model.set_default_feed('gns_decay', 1.0, set_all=True)
         train_fn = partial(
             sq.run_epoch,
             sess, train_model, gns.train_batch_iter, train_op, begin_step_fn=begin_step)
@@ -152,6 +158,10 @@ def main(main_filename, model_class, load_data_fn, decode_fn, load_data_only_fn)
     model_opt[f'{_prefix}gns:clip_ratio'] = gns_opt['clip_ratio']
     model_opt[f'{_prefix}gns:use_model_prob'] = gns_opt['use_model_prob']
     model_opt[f'{_prefix}gns:alpha'] = gns_opt['alpha']
+    model_opt[f'{_prefix}gns:max_order'] = gns_opt['ngram_max_order']
+    model_opt[f'{_prefix}gns:add_unigram_kld'] = gns_opt['add_unigram_kld']
+    model_opt[f'{_prefix}gns:add_repk_kld'] = gns_opt['add_repk_kld']
+    model_opt[f'{_prefix}gns:full_average'] = gns_opt['full_average']
     try:
         with Pool(processes=gns_opt['num_processes']) as pool:
             _main(opt, model_opt, logger, train_opt, gns_opt, pool, model_class,
