@@ -40,8 +40,9 @@ def format_uword_logprob(
         p0_u, word_set=vocab.word_set(), tokens2ids=w2i,
         num_vocab=vocab.vocab_size)
 
-    # for wid in p0_udist:
-    for wid in (332, 35, 9027):
+    # XXX: this is for mr. robot experiment
+    # for wid in (332, 35, 9027):
+    for wid in p0_udist:
         count0, p0 = p0_udist[wid]
         if use_p:
             count, p = p_udist[wid]
@@ -92,8 +93,9 @@ def format_clogprob(
         ngram_set.update(tuple(ngram_set_fn(p_fr)))
         p_clp = clogprob_fn(p_pr, p_fr, ngram_set, w2i, vocab.vocab_size)
     p0_clp = clogprob_fn(p0_pr, p0_fr, ngram_set, w2i, vocab.vocab_size)
-    # for ngram in p0_clp:
-    for ngram in [(9027, (23, )), (92, (35, )), (460, (332, ))]:
+    # XXX: this is for mr. robot experiment
+    # for ngram in [(9027, (23, )), (92, (35, )), (460, (332, ))]:
+    for ngram in p0_clp:
         w, context = ngram
         if not (context == (23, ) or context == (35, ) or context == (332, )):
             continue
@@ -286,6 +288,7 @@ class GNS(object):
         count_filepath = SRILM_ngram_count(
             text_filepath, out_filepath, self.vocab_filepath,
             max_order=max_order)
+        # XXX: this is for wikitext data
         # ucount = read_ngram_count_file(
         #     count_filepath, min_order=1, max_order=1)
         # ucount = get_unigram_count(ucount)
