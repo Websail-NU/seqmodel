@@ -21,8 +21,6 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 
 ## TODO
 
-- [ ] Clean up experimental code (XXX: SoXC)
-
 ### Model
 - [x] Fix scan_rnn to support tuple input and output
 - [x] Implement dot attention
@@ -41,7 +39,7 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 
 ### Scripts
 - [ ] Option to select reward function from CLI
-- [ ] Fix a bug where --__: options are not saved!
+- [ ] Fix a bug where `--\_\_:` options are not saved!
 
 ### TensorFlow
 - [ ] Take advantage of tf.Session.make_callable (need benchmark)

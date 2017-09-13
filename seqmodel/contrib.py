@@ -16,16 +16,6 @@ __all__ = ['NGramCell', 'create_anticache_rnn', 'apply_anticache',
            'create_decode_ac', 'progression_regularizer',
            'create_global_stat_loss']
 
-#######################################################
-#     ######  ########    ###    ########  ######     #
-#    ##    ##    ##      ## ##      ##    ##    ##    #
-#    ##          ##     ##   ##     ##    ##          #
-#     ######     ##    ##     ##    ##     ######     #
-#          ##    ##    #########    ##          ##    #
-#    ##    ##    ##    ##     ##    ##    ##    ##    #
-#     ######     ##    ##     ##    ##     ######     #
-#######################################################
-
 
 def _distributed_missing_mass(logp, total_mass):
     missings = tf.cast(tf.equal(logp, 0.0), tf.float32)

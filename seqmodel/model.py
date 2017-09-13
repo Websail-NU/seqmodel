@@ -479,7 +479,6 @@ class _SeqModel(Model):
 class SeqModel(_SeqModel):
 
     BUILD_GLOBAL_STAT = False
-    GLOBAL_STAT_W = 1.0
 
     def _build_loss(
             self, opt, logit, label, weight, seq_weight, nodes, collect_key,
