@@ -12,84 +12,108 @@ from seqmodel import util
 from seqmodel import graph as tfg
 
 
-__all__ = ['NGramCell', 'create_anticache_rnn', 'apply_anticache',
-           'create_decode_ac', 'progression_regularizer',
-           'create_global_stat_loss']
+__all__ = ['NGramCell', 'create_anticache_rnn', 'apply_anticache', 'QStochasticRNN',
+           'create_decode_ac', 'progression_regularizer', 'StochasticRNN',
+           'sample_normal', 'kl_normal_normal']
 
 
-def _distributed_missing_mass(logp, total_mass):
-    missings = tf.cast(tf.equal(logp, 0.0), tf.float32)
-    total_missings = tf.reduce_sum(missings, axis=-1)
-    defined_mass = tf.reduce_sum(tf.exp(logp) * (1 - missings), axis=-1)
-    dist_mass = (total_mass - defined_mass) / total_missings
-    return logp + tf.expand_dims(tf.log(dist_mass + 1e-8), -1) * missings
+def clipped_lrelu(x, alpha=1/3):
+    return tf.clip_by_value(tf.maximum(x, alpha * x), -3, 3)
 
 
-def _missing_mass(logp, total_mass):
-    missings = tf.cast(tf.equal(logp, 0.0), tf.float32)
-    defined_mass = tf.reduce_sum(tf.exp(logp) * (1 - missings), axis=-1)
-    return total_mass - defined_mass
+def tensor2gaussian(
+        tensor, out_dim, residual_mu=None, residual_logvar=None,
+        activation=None, name='gaussian'):
+    if activation is None:
+        activation = clipped_lrelu
+    g_hidden = tf.layers.dense(
+        tensor, out_dim*2, activation=activation, name=f'{name}_hidden')
+    g_params = tf.layers.dense(
+        g_hidden, out_dim*2, activation=None, name=f'{name}_output')
+
+    mu = tf.slice(g_params, [0, 0], [-1, out_dim])
+    if residual_mu is not None:
+        mu += residual_mu
+    logvar = tf.slice(g_params, [0, out_dim], [-1, -1])
+    if residual_logvar is not None:
+        logvar += residual_logvar
+    logvar = tf.log(tf.exp(logvar) + 1e-6)
+    return mu, logvar
 
 
-def _mask_zero(tensor):
-    return tf.cast(tf.not_equal(tensor, 0), tf.float32)
+def sample_normal(mu, logvar):
+    epsilon = tf.random_normal(tf.shape(logvar))
+    std = tf.exp(0.5 * logvar)
+    z = mu + tf.multiply(std, epsilon)
+    return z
 
 
-def create_global_stat_loss(
-        logit, ckld_idx, logp, logp0, logp_unigram, logp0_unigram,
-        logp_repk, logp0_repk, inputs, weight, sum_denom, add_unigram=False,
-        add_repk=False, t=1.0, clip=5.0, max_k=3, use_model_prob=False,
-        full_average=False):
-    p = tf.nn.softmax(logit / t)
-    logp_model = tf.log(p)
-    total_weight = tf.reduce_sum(weight)
-    if full_average:
-        loss_denom = total_weight
-    else:
-        loss_denom = sum_denom
-    # cKLD
-    logp0 = tf.sparse_to_dense(ckld_idx, tf.shape(logit), logp0)
-    if use_model_prob:
-        logp_cond = logp_model * _mask_zero(logp0)
-    else:
-        logp_cond = tf.sparse_to_dense(ckld_idx, tf.shape(logit), logp)
-    log_ckld = tf.clip_by_value(logp_cond - logp0, -clip, clip)
-    ckld = tf.reduce_sum(tf.reduce_sum(p * log_ckld, axis=-1) * weight) / loss_denom
-    stat_loss = ckld
+def kl_normal_normal(mu1, logvar1, mu2, logvar2):
+    kld = 0.5 * logvar2 - 0.5 * logvar1 + (tf.exp(logvar1) + (mu1 - mu2) ** 2) / (2 * tf.exp(logvar2)) - 0.5  # noqa
+    return kld
 
-    if add_unigram:
-        if use_model_prob:
-            logp_unigram = logp_model * _mask_zero(logp0_unigram)
-        # _p = tf.nn.softmax(logit / t + 1e5 * (_mask_zero - 1))
-        log_ukld = tf.expand_dims(tf.expand_dims(
-            tf.clip_by_value(logp_unigram - logp0_unigram, -clip, clip), axis=0), axis=0)
-        ukld = tf.reduce_sum(
-            tf.reduce_sum(p * log_ukld, axis=-1) * weight) / loss_denom
-        stat_loss = stat_loss + ukld
 
-    if add_repk:
-        logp0_repk_mask = _mask_zero(logp0_repk)
-        log_repkld = tf.clip_by_value(logp_repk - logp0_repk, -clip, clip)
-        for k in range(max_k):
-            if k == 0:
-                idx2d = inputs
-                mask = tf.ones(tf.shape(inputs), dtype=tf.float32)
-            else:
-                idx2d = tfg.shift(inputs, k)
-                _shape = tf.shape(inputs)
-                mask_offset = tf.fill((_shape[1], ), k)
-                mask = -tf.transpose(
-                    tf.sequence_mask(mask_offset, _shape[0], dtype=tf.float32)) + 1
-            rep_p = tfg.gather_2d(p, idx2d)
-            if use_model_prob:
-                repkld = rep_p * (tf.log(rep_p) - logp0_repk[0]) * logp0_repk_mask[0]
-                repkld = repkld * mask * logp0_repk_mask[0]
-            else:
-                repkld = rep_p * log_repkld[k] * mask
-            repkld = tf.reduce_sum(repkld * weight) / loss_denom
-            # repkld = tf.Print(repkld, [log_repkld[k], repkld], message=f'{k}')
-            stat_loss = stat_loss + repkld
-    return stat_loss
+class StochasticRNN(tf.nn.rnn_cell.RNNCell):
+    def __init__(self, num_units, pcell, input_size, reuse=None):
+        super().__init__(_reuse=reuse)
+        self._reuse = reuse
+        self._pcell = pcell
+        self._dim = num_units
+        self._input_dim = input_size
+
+    @property
+    def state_size(self):
+        return self._pcell.state_size
+
+    @property
+    def output_size(self):
+        return (self._pcell.output_size, self._dim, self._dim)
+
+    def call(self, inputs, state):
+        h, new_state = self._pcell(inputs, state)
+        new_mu, new_logvar = tensor2gaussian(h, self._dim)
+        z = sample_normal(new_mu, new_logvar)
+        return (z, new_mu, new_logvar), new_state
+
+
+class QStochasticRNN(tf.nn.rnn_cell.RNNCell):
+    def __init__(self, num_units, pcell, qcell, input_size, reuse=None):
+        super().__init__(_reuse=reuse)
+        self._reuse = reuse
+        self._pcell = pcell
+        self._qcell = qcell
+        self._dim = num_units
+        self._input_dim = input_size
+
+    @property
+    def state_size(self):
+        size = [self._pcell.state_size, self._qcell.state_size]
+        # size.append(self._input_dim)
+        size.extend(tuple([self._dim] * 3))
+        return tuple(size)
+
+    @property
+    def output_size(self):
+        size = [self._dim] * 6
+        return tuple(size)
+
+    def call(self, inputs, state):
+        pstate, qstate, prev_mu, prev_logvar, prev_z = state
+        # generative
+        with tf.variable_scope('zp') as zp_scope:
+            ph, new_pstate = self._pcell(inputs, pstate)
+            p_mu, p_logvar = tensor2gaussian(tf.concat([ph, prev_z], axis=-1), self._dim)
+            # p_mu, p_logvar = tensor2gaussian(ph, self._dim)
+        # inference (time step is lacking by 1)
+        with tf.variable_scope('zq'):
+            qh, new_qstate = self._qcell(inputs, qstate)
+            q_mu, q_logvar = tensor2gaussian(
+                tf.concat([qh, prev_z], axis=-1), self._dim,
+                residual_mu=prev_mu, residual_logvar=prev_logvar)
+        z = sample_normal(q_mu, q_logvar)
+        new_state = (new_pstate, new_qstate, p_mu, p_logvar, z)
+        kld = kl_normal_normal(q_mu, q_logvar, prev_mu, prev_logvar)
+        return (z, p_mu, p_logvar, q_mu, q_logvar, kld), new_state
 
 
 class NGramCell(tf.nn.rnn_cell.RNNCell):

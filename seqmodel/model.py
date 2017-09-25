@@ -1,4 +1,5 @@
 import six
+import math
 import warnings
 from collections import ChainMap
 from collections import defaultdict
@@ -291,18 +292,27 @@ class _SeqModel(Model):
             'add_to_collection': True, 'collect_key': collect_key, 'prefix': prefix}
         # input and embedding
         input_, seq_len_ = tfg.get_seq_input_placeholders(**collect_kwargs)
+
+        inputs = tf.concat([
+            input_, tf.zeros((1, tf.shape(input_)[1]), dtype=tf.int32)], axis=0)
+        # inputs = tf.Print(inputs, [tf.shape(inputs)])
+
         emb_opt = util.dict_with_key_startswith(opt, 'emb:')
         _emb_scope = reuse_scope[self._RSK_EMB_]
         if 'global_emb_scope' in kwargs:
             _emb_scope = kwargs['global_emb_scope']
         with tfg.maybe_scope(_emb_scope, reuse=True) as scope:
-            lookup_, emb_vars_ = tfg.create_lookup(input_, **emb_opt)
+            lookup_, emb_vars_ = tfg.create_lookup(inputs, **emb_opt)
         batch_size = self._get_batch_size(input_)
         # cell rnn
         cell_opt = util.dict_with_key_startswith(opt, 'cell:')
         with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
             _reuse = reuse or scope is not None
             cell_ = tfg.create_cells(reuse=_reuse, input_size=opt['emb:dim'], **cell_opt)
+
+            qcell = tfg.create_cells(reuse=_reuse, input_size=opt['emb:dim'], **cell_opt)
+            cell_ = tfg_ct.QStochasticRNN(200, cell_, qcell, 200, reuse=_reuse)
+
         with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
             cell_output_, initial_state_, final_state_ = tfg.create_rnn(
                 cell_, lookup_, seq_len_, initial_state, rnn_fn=opt['rnn:fn'],
@@ -351,7 +361,6 @@ class _SeqModel(Model):
         with tfg.maybe_scope(reuse_scope[self._RSK_LOGIT_]) as scope:
             logit_, temperature_, logit_w_, logit_b_ = tfg.get_logit_layer(
                 cell_output, logit_w=logit_w_, **logit_opt, **collect_kwargs)
-
             # if hasattr(self, '_logit_mask'):
             #     logit_ = logit_ + self._logit_mask
 
@@ -478,7 +487,49 @@ class _SeqModel(Model):
 
 class SeqModel(_SeqModel):
 
+    def sample_normal(self, mu, logvar):
+        epsilon = tf.random_normal(tf.shape(logvar))
+        std = tf.exp(0.5 * logvar)
+        z = mu + tf.multiply(std, epsilon)
+        return z
+
     BUILD_GLOBAL_STAT = False
+
+    def _build_logit(self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output):
+        # logit
+        stcha = False
+        if isinstance(cell_output, tuple):
+            z, pmu, plogvar, qmu, qlogvar, self._KLD = cell_output
+            # z = tf.Print(z, [tf.shape(z)], message='z')
+            cell_output = self.sample_normal(pmu, plogvar)
+            cell_output = cell_output[:-1]
+            z = z[1:]
+            stcha = True
+        logit_w_ = emb_vars if opt['share:input_emb_logit'] else None
+        logit_opt = util.dict_with_key_startswith(opt, 'logit:')
+        with tfg.maybe_scope(reuse_scope[self._RSK_LOGIT_]) as scope:
+            logit_, temperature_, logit_w_, logit_b_ = tfg.get_logit_layer(
+                cell_output, logit_w=logit_w_, **logit_opt, **collect_kwargs)
+            if stcha:
+                self._qlogit, __t, __w, __b = tfg.get_logit_layer(
+                    z, logit_w=logit_w_, logit_b=logit_b_, **logit_opt,
+                    **collect_kwargs)
+
+            # if hasattr(self, '_logit_mask'):
+            #     logit_ = logit_ + self._logit_mask
+
+        dist_, dec_max_, dec_sample_ = tfg.select_from_logit(logit_)
+        # label
+        label_, token_weight_, seq_weight_ = tfg.get_seq_label_placeholders(
+            label_dtype=tf.int32, **collect_kwargs)
+        # format
+        predict_fetch = {
+            'logit': logit_, 'dist': dist_, 'dec_max': dec_max_,
+            'dec_max_id': dec_max_.index, 'dec_sample': dec_sample_,
+            'dec_sample_id': dec_sample_.index}
+        label_feed = dstruct.SeqLabelTuple(label_, token_weight_, seq_weight_)
+        nodes = util.dict_with_key_endswith(locals(), '_')
+        return logit_, label_feed, predict_fetch, nodes
 
     def _build_loss(
             self, opt, logit, label, weight, seq_weight, nodes, collect_key,
@@ -496,8 +547,19 @@ class SeqModel(_SeqModel):
                 train_loss_ = train_loss_ + minus_avg_ent_
 
             # XXX: \[T]/
+            if hasattr(self, '_qlogit'):
+                # input_weight = tfg.shift(weight, 1, axis=0, fill=0)
+                q_mean_xent, q_sum_xent, __b, __l = tfg.create_xent_loss(
+                    self._qlogit, label, weight, seq_weight, train_loss_denom_)
+
             if hasattr(self, '_KLD'):
-                train_loss_ += (tf.reduce_sum(self._KLD) / train_loss_denom_)
+                # self._KLD = tfg.shift(self._KLD, -1, axis=0)
+                self._KLD = tf.reduce_sum(self._KLD[1:], axis=-1)
+                avg_kld = tf.reduce_sum(self._KLD * weight)
+                avg_kld /= tf.reduce_sum(weight)
+                sum_kld = tf.reduce_sum(self._KLD) / train_loss_denom_
+                # mean_loss_ = q_mean_xent + avg_kld
+                train_loss_ = q_sum_xent + sum_kld
 
             if hasattr(self, '_EMB_DIS'):
                 train_loss_ += self._EMB_DIS
@@ -535,7 +597,7 @@ class SeqModel(_SeqModel):
                 p_ = tf.placeholder(tf.float32, shape=(None, ), name='p')
                 p0_ = tf.placeholder(tf.float32, shape=(None, ), name='p')
 
-                stat_loss = tfg_ct.create_global_stat_loss(
+                stat_loss = tfg.create_global_stat_loss(
                     logit, ckld_idx_, p_, p0_, p_unigram, p0_unigram,
                     p_repk, p0_repk, inputs, weight, train_loss_denom_,
                     t=opt['gns:loss_temperature'], clip=opt['gns:clip_ratio'],
