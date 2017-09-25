@@ -691,8 +691,9 @@ def create_l2_loss(var_list):
 
 
 def create_global_stat_loss(
-        inputs, logit, weight, loss_denom, max_order, loss_temperature, clip_ratio,
-        use_model_prob, add_unigram_kld, add_repk_kld, full_average, alpha):
+        inputs, logit, weight, loss_denom, max_order=4, loss_temperature=1.0,
+        clip_ratio=5.0, use_model_prob=False, add_unigram_kld=False, add_repk_kld=True,
+        full_average=False, alpha=1.0):
     max_k = max_order - 1
     gns_decay_ = tf.placeholder(tf.float32, shape=None, name='gns_decay')
     # Unigram log prob
@@ -721,12 +722,12 @@ def create_global_stat_loss(
         tf.assign(p_repk, p_repk_), tf.assign(p0_repk, p0_repk_))
 
     # Conditional log prob
-    ckld_idx_ = tf.placeholder(tf.int32, shape=(None, 3), name='ckld_idx')
-    p_ = tf.placeholder(tf.float32, shape=(None, ), name='p')
-    p0_ = tf.placeholder(tf.float32, shape=(None, ), name='p')
+    ckld_idx = tf.placeholder(tf.int32, shape=(None, 3), name='ckld_idx')
+    p = tf.placeholder(tf.float32, shape=(None, ), name='p')
+    p0 = tf.placeholder(tf.float32, shape=(None, ), name='p')
 
     stat_loss = _create_global_stat_loss(
-        logit, ckld_idx_, p_, p0_, p_unigram, p0_unigram,
+        logit, ckld_idx, p, p0, p_unigram, p0_unigram,
         p_repk, p0_repk, inputs, weight, loss_denom,
         t=loss_temperature, clip=clip_ratio,
         max_k=max_k, use_model_prob=use_model_prob,
@@ -734,7 +735,7 @@ def create_global_stat_loss(
         add_repk=add_repk_kld,
         full_average=full_average)
     stat_loss = stat_loss * alpha * gns_decay_
-    log_ckld_ = (ckld_idx_, p_, p0_)
+    log_ckld_ = (ckld_idx, p, p0)
     nodes = util.dict_with_key_endswith(locals(), '_')
     return stat_loss, nodes
 
@@ -783,12 +784,12 @@ def _create_global_stat_loss(
                 idx2d = inputs
                 mask = tf.ones(tf.shape(inputs), dtype=tf.float32)
             else:
-                idx2d = tfg.shift(inputs, k)
+                idx2d = shift(inputs, k)
                 _shape = tf.shape(inputs)
                 mask_offset = tf.fill((_shape[1], ), k)
                 mask = -tf.transpose(
                     tf.sequence_mask(mask_offset, _shape[0], dtype=tf.float32)) + 1
-            rep_p = tfg.gather_2d(p, idx2d)
+            rep_p = gather_2d(p, idx2d)
             if use_model_prob:
                 repkld = rep_p * (tf.log(rep_p) - logp0_repk[0]) * logp0_repk_mask[0]
                 repkld = repkld * mask * logp0_repk_mask[0]

@@ -236,6 +236,28 @@ class TestSeqModel(tf.test.TestCase):
             num_vars_ = len(tf.global_variables())
             self.assertEqual(num_vars, num_vars, 'no new variables when reuse is True')
 
+    def test_build_gns(self):
+        with self.test_session(config=self.sess_config) as sess:
+            m = model.SeqModel(check_feed_dict=False)
+            opt = {'emb:vocab_size': 20, 'emb:dim': 5, 'cell:num_units': 10,
+                   'cell:cell_class': 'tensorflow.nn.rnn_cell.BasicLSTMCell',
+                   'logit:output_size': 2, 'loss:add_gns': True}
+            gns_node_names = [
+                'log_ckld', 'rep_cond_assign', 'p0_repk', 'p_repk', 'unigram_assign',
+                'p0_unigram', 'p_unigram', 'gns_decay']
+            n = m.build_graph(opt, name='t')
+            for k in gns_node_names:
+                self.assertTrue(k in n, msg=f'{k} must be built.')
+
+    def test_build_entropy(self):
+        with self.test_session(config=self.sess_config) as sess:
+            m = model.SeqModel(check_feed_dict=False)
+            opt = {'emb:vocab_size': 20, 'emb:dim': 5, 'cell:num_units': 10,
+                   'cell:cell_class': 'tensorflow.nn.rnn_cell.BasicLSTMCell',
+                   'logit:output_size': 2, 'loss:add_entropy': True}
+            n = m.build_graph(opt, name='t')
+            self.assertTrue('minus_avg_ent' in n, msg='minus_avg_ent must be built.')
+
     def test_dynamic_rnn_run(self):
         _run(self, model.SeqModel, tf.nn.dynamic_rnn)
 
