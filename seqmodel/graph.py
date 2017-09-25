@@ -8,6 +8,7 @@ import numpy as np
 import tensorflow as tf
 
 from seqmodel import dstruct
+from seqmodel import util
 
 
 __all__ = ['_safe_div', 'tfph_collection', 'create_2d_tensor', 'matmul', 'create_cells',
@@ -689,40 +690,56 @@ def create_l2_loss(var_list):
     return l2_loss
 
 
-def create_train_op(
-        loss, optim_class=tf.train.AdamOptimizer, learning_rate=0.001,
-        clip_gradients=5.0, **optim_kwarg):
-    """return train operation graph"""
-    if isinstance(optim_class, six.string_types):
-        optim_class = locate(optim_class)
-    optim = optim_class(learning_rate=learning_rate, **optim_kwarg)
-    g_v_pairs = optim.compute_gradients(loss)
-    grads, tvars = [], []
-    for g, v in g_v_pairs:
-        if g is None:
-            continue
-        tvars.append(v)
-        grads.append(g)
-    clipped_grads, _norm = tf.clip_by_global_norm(grads, clip_gradients)
-    train_op = optim.apply_gradients(zip(clipped_grads, tvars))
-    return train_op
-
-
-def create_pg_train_op(
-        nll, return_ph, optim_class=tf.train.AdamOptimizer, learning_rate=0.001,
-        clip_gradients=5.0, **optim_kwarg):
-    """return train operation graph"""
-    if isinstance(optim_class, six.string_types):
-        optim_class = locate(optim_class)
-    variables = tf.trainable_variables()
-    grads = tf.gradients(nll, variables, grad_ys=return_ph)
-    optim = optim_class(learning_rate=learning_rate, **optim_kwarg)
-    clipped_grads, _norm = tf.clip_by_global_norm(grads, clip_gradients)
-    train_op = optim.apply_gradients(zip(clipped_grads, variables))
-    return train_op
-
-
 def create_global_stat_loss(
+        inputs, logit, weight, loss_denom, max_order, loss_temperature, clip_ratio,
+        use_model_prob, add_unigram_kld, add_repk_kld, full_average, alpha):
+    max_k = max_order - 1
+    gns_decay_ = tf.placeholder(tf.float32, shape=None, name='gns_decay')
+    # Unigram log prob
+    # XXX: need to generalize to n-gram condition
+    p_unigram = tf.get_variable(
+        'p_unigram', shape=(logit.get_shape()[-1],), dtype=tf.float32,
+        trainable=False)
+    p_unigram_ = tf.placeholder(
+        tf.float32, shape=(logit.get_shape()[-1],), name='p_unigram_ph')
+    p0_unigram = tf.get_variable(
+        'p0_unigram', shape=(logit.get_shape()[-1],), dtype=tf.float32,
+        trainable=False)
+    p0_unigram_ = tf.placeholder(
+        tf.float32, shape=(logit.get_shape()[-1],), name='p0_unigram_ph')
+    unigram_assign_ = (
+        tf.assign(p_unigram, p_unigram_), tf.assign(p0_unigram, p0_unigram_))
+
+    # Repetition condition log prob
+    p_repk = tf.get_variable(
+        'p_repk', shape=(max_k,), dtype=tf.float32, trainable=False)
+    p_repk_ = tf.placeholder(tf.float32, shape=(max_k,), name='p_repk_ph')
+    p0_repk = tf.get_variable(
+        'p0_repk', shape=(max_k,), dtype=tf.float32, trainable=False)
+    p0_repk_ = tf.placeholder(tf.float32, shape=(max_k,), name='p0_repk_ph')
+    rep_cond_assign_ = (
+        tf.assign(p_repk, p_repk_), tf.assign(p0_repk, p0_repk_))
+
+    # Conditional log prob
+    ckld_idx_ = tf.placeholder(tf.int32, shape=(None, 3), name='ckld_idx')
+    p_ = tf.placeholder(tf.float32, shape=(None, ), name='p')
+    p0_ = tf.placeholder(tf.float32, shape=(None, ), name='p')
+
+    stat_loss = _create_global_stat_loss(
+        logit, ckld_idx_, p_, p0_, p_unigram, p0_unigram,
+        p_repk, p0_repk, inputs, weight, loss_denom,
+        t=loss_temperature, clip=clip_ratio,
+        max_k=max_k, use_model_prob=use_model_prob,
+        add_unigram=add_unigram_kld,
+        add_repk=add_repk_kld,
+        full_average=full_average)
+    stat_loss = stat_loss * alpha * gns_decay_
+    log_ckld_ = (ckld_idx_, p_, p0_)
+    nodes = util.dict_with_key_endswith(locals(), '_')
+    return stat_loss, nodes
+
+
+def _create_global_stat_loss(
         logit, ckld_idx, logp, logp0, logp_unigram, logp0_unigram,
         logp_repk, logp0_repk, inputs, weight, sum_denom, add_unigram=False,
         add_repk=False, t=1.0, clip=5.0, max_k=3, use_model_prob=False,
@@ -781,3 +798,36 @@ def create_global_stat_loss(
             # repkld = tf.Print(repkld, [log_repkld[k], repkld], message=f'{k}')
             stat_loss = stat_loss + repkld
     return stat_loss
+
+
+def create_train_op(
+        loss, optim_class=tf.train.AdamOptimizer, learning_rate=0.001,
+        clip_gradients=5.0, **optim_kwarg):
+    """return train operation graph"""
+    if isinstance(optim_class, six.string_types):
+        optim_class = locate(optim_class)
+    optim = optim_class(learning_rate=learning_rate, **optim_kwarg)
+    g_v_pairs = optim.compute_gradients(loss)
+    grads, tvars = [], []
+    for g, v in g_v_pairs:
+        if g is None:
+            continue
+        tvars.append(v)
+        grads.append(g)
+    clipped_grads, _norm = tf.clip_by_global_norm(grads, clip_gradients)
+    train_op = optim.apply_gradients(zip(clipped_grads, tvars))
+    return train_op
+
+
+def create_pg_train_op(
+        nll, return_ph, optim_class=tf.train.AdamOptimizer, learning_rate=0.001,
+        clip_gradients=5.0, **optim_kwarg):
+    """return train operation graph"""
+    if isinstance(optim_class, six.string_types):
+        optim_class = locate(optim_class)
+    variables = tf.trainable_variables()
+    grads = tf.gradients(nll, variables, grad_ys=return_ph)
+    optim = optim_class(learning_rate=learning_rate, **optim_kwarg)
+    clipped_grads, _norm = tf.clip_by_global_norm(grads, clip_gradients)
+    train_op = optim.apply_gradients(zip(clipped_grads, variables))
+    return train_op
