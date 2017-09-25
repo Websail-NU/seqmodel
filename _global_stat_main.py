@@ -30,7 +30,8 @@ def _main(opt, model_opt, logger, train_opt, gns_opt, pool, model_class,
     logger.info('Building graph...')
     train_model = model_class(check_feed_dict=True)
     init_lr = train_opt['train:init_lr']
-    _tnodes = train_model.build_graph(model_opt)
+    _tnodes = train_model.build_graph(
+        model_opt, **{'loss:add_gns': True, 'dec:loss:add_gns': True})
     train_model.set_default_feed('train_loss_denom', opt['batch_size'], set_all=True)
     lr = tf.placeholder(tf.float32, shape=[], name='learning_rate')
     eval_model = model_class()

@@ -19,6 +19,10 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - run.py: functions to train and evaluate model (data + model -> result)
 - util.py: utility functions (dictionary, array, logging, and cmd arguments)
 
+## Under development
+- ngram_stat.py and ngram_stats.py: various functions for computing global statatistics
+- contrib.py: a collection of codes that are likely to move or change
+
 ## TODO
 
 ### Model

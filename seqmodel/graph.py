@@ -8,6 +8,7 @@ import numpy as np
 import tensorflow as tf
 
 from seqmodel import dstruct
+from seqmodel import util
 
 
 __all__ = ['_safe_div', 'tfph_collection', 'create_2d_tensor', 'matmul', 'create_cells',
@@ -18,7 +19,8 @@ __all__ = ['_safe_div', 'tfph_collection', 'create_2d_tensor', 'matmul', 'create
            'create_slow_feature_loss', 'create_l2_loss', 'create_train_op',
            'empty_tfph_collection', 'scan_rnn_no_mask', 'create_decode',
            'create_pg_train_op', 'seeded_decode_select_fn', 'greedy_decode_select',
-           'sampling_decode_select', 'create_gated_layer', 'gather_2d', 'shift']
+           'sampling_decode_select', 'create_gated_layer', 'gather_2d', 'shift',
+           'create_global_stat_loss']
 
 
 _global_collections = {}
@@ -686,6 +688,117 @@ def create_l2_loss(var_list):
     l2_loss = tf.reduce_sum(tf.add_n(
         [tf.nn.l2_loss(var) for var in var_list]))
     return l2_loss
+
+
+def create_global_stat_loss(
+        inputs, logit, weight, loss_denom, max_order=4, loss_temperature=1.0,
+        clip_ratio=5.0, use_model_prob=False, add_unigram_kld=False, add_repk_kld=True,
+        full_average=False, alpha=1.0):
+    max_k = max_order - 1
+    gns_decay_ = tf.placeholder(tf.float32, shape=None, name='gns_decay')
+    # Unigram log prob
+    # XXX: need to generalize to n-gram condition
+    p_unigram = tf.get_variable(
+        'p_unigram', shape=(logit.get_shape()[-1],), dtype=tf.float32,
+        trainable=False)
+    p_unigram_ = tf.placeholder(
+        tf.float32, shape=(logit.get_shape()[-1],), name='p_unigram_ph')
+    p0_unigram = tf.get_variable(
+        'p0_unigram', shape=(logit.get_shape()[-1],), dtype=tf.float32,
+        trainable=False)
+    p0_unigram_ = tf.placeholder(
+        tf.float32, shape=(logit.get_shape()[-1],), name='p0_unigram_ph')
+    unigram_assign_ = (
+        tf.assign(p_unigram, p_unigram_), tf.assign(p0_unigram, p0_unigram_))
+
+    # Repetition condition log prob
+    p_repk = tf.get_variable(
+        'p_repk', shape=(max_k,), dtype=tf.float32, trainable=False)
+    p_repk_ = tf.placeholder(tf.float32, shape=(max_k,), name='p_repk_ph')
+    p0_repk = tf.get_variable(
+        'p0_repk', shape=(max_k,), dtype=tf.float32, trainable=False)
+    p0_repk_ = tf.placeholder(tf.float32, shape=(max_k,), name='p0_repk_ph')
+    rep_cond_assign_ = (
+        tf.assign(p_repk, p_repk_), tf.assign(p0_repk, p0_repk_))
+
+    # Conditional log prob
+    ckld_idx = tf.placeholder(tf.int32, shape=(None, 3), name='ckld_idx')
+    p = tf.placeholder(tf.float32, shape=(None, ), name='p')
+    p0 = tf.placeholder(tf.float32, shape=(None, ), name='p')
+
+    stat_loss = _create_global_stat_loss(
+        logit, ckld_idx, p, p0, p_unigram, p0_unigram,
+        p_repk, p0_repk, inputs, weight, loss_denom,
+        t=loss_temperature, clip=clip_ratio,
+        max_k=max_k, use_model_prob=use_model_prob,
+        add_unigram=add_unigram_kld,
+        add_repk=add_repk_kld,
+        full_average=full_average)
+    stat_loss = stat_loss * alpha * gns_decay_
+    log_ckld_ = (ckld_idx, p, p0)
+    nodes = util.dict_with_key_endswith(locals(), '_')
+    return stat_loss, nodes
+
+
+def _create_global_stat_loss(
+        logit, ckld_idx, logp, logp0, logp_unigram, logp0_unigram,
+        logp_repk, logp0_repk, inputs, weight, sum_denom, add_unigram=False,
+        add_repk=False, t=1.0, clip=5.0, max_k=3, use_model_prob=False,
+        full_average=False):
+
+    def _mask_zero(tensor):
+        return tf.cast(tf.not_equal(tensor, 0), tf.float32)
+
+    p = tf.nn.softmax(logit / t)
+    logp_model = tf.log(p)
+    total_weight = tf.reduce_sum(weight)
+    if full_average:
+        loss_denom = total_weight
+    else:
+        loss_denom = sum_denom
+    # cKLD
+    logp0 = tf.sparse_to_dense(ckld_idx, tf.shape(logit), logp0)
+    if use_model_prob:
+        logp_cond = logp_model * _mask_zero(logp0)
+    else:
+        logp_cond = tf.sparse_to_dense(ckld_idx, tf.shape(logit), logp)
+    log_ckld = tf.clip_by_value(logp_cond - logp0, -clip, clip)
+    ckld = tf.reduce_sum(tf.reduce_sum(p * log_ckld, axis=-1) * weight) / loss_denom
+    stat_loss = ckld
+
+    if add_unigram:
+        if use_model_prob:
+            logp_unigram = logp_model * _mask_zero(logp0_unigram)
+        # _p = tf.nn.softmax(logit / t + 1e5 * (_mask_zero - 1))
+        log_ukld = tf.expand_dims(tf.expand_dims(
+            tf.clip_by_value(logp_unigram - logp0_unigram, -clip, clip), axis=0), axis=0)
+        ukld = tf.reduce_sum(
+            tf.reduce_sum(p * log_ukld, axis=-1) * weight) / loss_denom
+        stat_loss = stat_loss + ukld
+
+    if add_repk:
+        logp0_repk_mask = _mask_zero(logp0_repk)
+        log_repkld = tf.clip_by_value(logp_repk - logp0_repk, -clip, clip)
+        for k in range(max_k):
+            if k == 0:
+                idx2d = inputs
+                mask = tf.ones(tf.shape(inputs), dtype=tf.float32)
+            else:
+                idx2d = shift(inputs, k)
+                _shape = tf.shape(inputs)
+                mask_offset = tf.fill((_shape[1], ), k)
+                mask = -tf.transpose(
+                    tf.sequence_mask(mask_offset, _shape[0], dtype=tf.float32)) + 1
+            rep_p = gather_2d(p, idx2d)
+            if use_model_prob:
+                repkld = rep_p * (tf.log(rep_p) - logp0_repk[0]) * logp0_repk_mask[0]
+                repkld = repkld * mask * logp0_repk_mask[0]
+            else:
+                repkld = rep_p * log_repkld[k] * mask
+            repkld = tf.reduce_sum(repkld * weight) / loss_denom
+            # repkld = tf.Print(repkld, [log_repkld[k], repkld], message=f'{k}')
+            stat_loss = stat_loss + repkld
+    return stat_loss
 
 
 def create_train_op(

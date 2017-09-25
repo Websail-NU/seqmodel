@@ -10,86 +10,111 @@ import tensorflow as tf
 
 from seqmodel import util
 from seqmodel import graph as tfg
+from seqmodel.model import Seq2SeqModel
 
 
-__all__ = ['NGramCell', 'create_anticache_rnn', 'apply_anticache',
-           'create_decode_ac', 'progression_regularizer',
-           'create_global_stat_loss']
+__all__ = ['NGramCell', 'create_anticache_rnn', 'apply_anticache', 'QStochasticRNN',
+           'create_decode_ac', 'progression_regularizer', 'StochasticRNN',
+           'sample_normal', 'kl_normal_normal']
 
 
-def _distributed_missing_mass(logp, total_mass):
-    missings = tf.cast(tf.equal(logp, 0.0), tf.float32)
-    total_missings = tf.reduce_sum(missings, axis=-1)
-    defined_mass = tf.reduce_sum(tf.exp(logp) * (1 - missings), axis=-1)
-    dist_mass = (total_mass - defined_mass) / total_missings
-    return logp + tf.expand_dims(tf.log(dist_mass + 1e-8), -1) * missings
+def clipped_lrelu(x, alpha=1/3):
+    return tf.clip_by_value(tf.maximum(x, alpha * x), -3, 3)
 
 
-def _missing_mass(logp, total_mass):
-    missings = tf.cast(tf.equal(logp, 0.0), tf.float32)
-    defined_mass = tf.reduce_sum(tf.exp(logp) * (1 - missings), axis=-1)
-    return total_mass - defined_mass
+def tensor2gaussian(
+        tensor, out_dim, residual_mu=None, residual_logvar=None,
+        activation=None, name='gaussian'):
+    if activation is None:
+        activation = clipped_lrelu
+    g_hidden = tf.layers.dense(
+        tensor, out_dim*2, activation=activation, name=f'{name}_hidden')
+    g_params = tf.layers.dense(
+        g_hidden, out_dim*2, activation=None, name=f'{name}_output')
+
+    mu = tf.slice(g_params, [0, 0], [-1, out_dim])
+    if residual_mu is not None:
+        mu += residual_mu
+    logvar = tf.slice(g_params, [0, out_dim], [-1, -1])
+    if residual_logvar is not None:
+        logvar += residual_logvar
+    logvar = tf.log(tf.exp(logvar) + 1e-6)
+    return mu, logvar
 
 
-def _mask_zero(tensor):
-    return tf.cast(tf.not_equal(tensor, 0), tf.float32)
+def sample_normal(mu, logvar):
+    epsilon = tf.random_normal(tf.shape(logvar))
+    std = tf.exp(0.5 * logvar)
+    z = mu + tf.multiply(std, epsilon)
+    return z
 
 
-def create_global_stat_loss(
-        logit, ckld_idx, logp, logp0, logp_unigram, logp0_unigram,
-        logp_repk, logp0_repk, inputs, weight, sum_denom, add_unigram=False,
-        add_repk=False, t=1.0, clip=5.0, max_k=3, use_model_prob=False,
-        full_average=False):
-    p = tf.nn.softmax(logit / t)
-    logp_model = tf.log(p)
-    total_weight = tf.reduce_sum(weight)
-    if full_average:
-        loss_denom = total_weight
-    else:
-        loss_denom = sum_denom
-    # cKLD
-    logp0 = tf.sparse_to_dense(ckld_idx, tf.shape(logit), logp0)
-    if use_model_prob:
-        logp_cond = logp_model * _mask_zero(logp0)
-    else:
-        logp_cond = tf.sparse_to_dense(ckld_idx, tf.shape(logit), logp)
-    log_ckld = tf.clip_by_value(logp_cond - logp0, -clip, clip)
-    ckld = tf.reduce_sum(tf.reduce_sum(p * log_ckld, axis=-1) * weight) / loss_denom
-    stat_loss = ckld
+def kl_normal_normal(mu1, logvar1, mu2, logvar2):
+    kld = 0.5 * logvar2 - 0.5 * logvar1 + (tf.exp(logvar1) + (mu1 - mu2) ** 2) / (2 * tf.exp(logvar2)) - 0.5  # noqa
+    return kld
 
-    if add_unigram:
-        if use_model_prob:
-            logp_unigram = logp_model * _mask_zero(logp0_unigram)
-        # _p = tf.nn.softmax(logit / t + 1e5 * (_mask_zero - 1))
-        log_ukld = tf.expand_dims(tf.expand_dims(
-            tf.clip_by_value(logp_unigram - logp0_unigram, -clip, clip), axis=0), axis=0)
-        ukld = tf.reduce_sum(
-            tf.reduce_sum(p * log_ukld, axis=-1) * weight) / loss_denom
-        stat_loss = stat_loss + ukld
 
-    if add_repk:
-        logp0_repk_mask = _mask_zero(logp0_repk)
-        log_repkld = tf.clip_by_value(logp_repk - logp0_repk, -clip, clip)
-        for k in range(max_k):
-            if k == 0:
-                idx2d = inputs
-                mask = tf.ones(tf.shape(inputs), dtype=tf.float32)
-            else:
-                idx2d = tfg.shift(inputs, k)
-                _shape = tf.shape(inputs)
-                mask_offset = tf.fill((_shape[1], ), k)
-                mask = -tf.transpose(
-                    tf.sequence_mask(mask_offset, _shape[0], dtype=tf.float32)) + 1
-            rep_p = tfg.gather_2d(p, idx2d)
-            if use_model_prob:
-                repkld = rep_p * (tf.log(rep_p) - logp0_repk[0]) * logp0_repk_mask[0]
-                repkld = repkld * mask * logp0_repk_mask[0]
-            else:
-                repkld = rep_p * log_repkld[k] * mask
-            repkld = tf.reduce_sum(repkld * weight) / loss_denom
-            # repkld = tf.Print(repkld, [log_repkld[k], repkld], message=f'{k}')
-            stat_loss = stat_loss + repkld
-    return stat_loss
+class StochasticRNN(tf.nn.rnn_cell.RNNCell):
+    def __init__(self, num_units, pcell, input_size, reuse=None):
+        super().__init__(_reuse=reuse)
+        self._reuse = reuse
+        self._pcell = pcell
+        self._dim = num_units
+        self._input_dim = input_size
+
+    @property
+    def state_size(self):
+        return self._pcell.state_size
+
+    @property
+    def output_size(self):
+        return (self._pcell.output_size, self._dim, self._dim)
+
+    def call(self, inputs, state):
+        h, new_state = self._pcell(inputs, state)
+        new_mu, new_logvar = tensor2gaussian(h, self._dim)
+        z = sample_normal(new_mu, new_logvar)
+        return (z, new_mu, new_logvar), new_state
+
+
+class QStochasticRNN(tf.nn.rnn_cell.RNNCell):
+    def __init__(self, num_units, pcell, qcell, input_size, reuse=None):
+        super().__init__(_reuse=reuse)
+        self._reuse = reuse
+        self._pcell = pcell
+        self._qcell = qcell
+        self._dim = num_units
+        self._input_dim = input_size
+
+    @property
+    def state_size(self):
+        size = [self._pcell.state_size, self._qcell.state_size]
+        # size.append(self._input_dim)
+        size.extend(tuple([self._dim] * 3))
+        return tuple(size)
+
+    @property
+    def output_size(self):
+        size = [self._dim] * 6
+        return tuple(size)
+
+    def call(self, inputs, state):
+        pstate, qstate, prev_mu, prev_logvar, prev_z = state
+        # generative
+        with tf.variable_scope('zp') as zp_scope:
+            ph, new_pstate = self._pcell(inputs, pstate)
+            p_mu, p_logvar = tensor2gaussian(tf.concat([ph, prev_z], axis=-1), self._dim)
+            # p_mu, p_logvar = tensor2gaussian(ph, self._dim)
+        # inference (time step is lacking by 1)
+        with tf.variable_scope('zq'):
+            qh, new_qstate = self._qcell(inputs, qstate)
+            q_mu, q_logvar = tensor2gaussian(
+                tf.concat([qh, prev_z], axis=-1), self._dim,
+                residual_mu=prev_mu, residual_logvar=prev_logvar)
+        z = sample_normal(q_mu, q_logvar)
+        new_state = (new_pstate, new_qstate, p_mu, p_logvar, z)
+        kld = kl_normal_normal(q_mu, q_logvar, prev_mu, prev_logvar)
+        return (z, p_mu, p_logvar, q_mu, q_logvar, kld), new_state
 
 
 class NGramCell(tf.nn.rnn_cell.RNNCell):
@@ -303,3 +328,169 @@ def create_seq_data_graph(in_data, out_data, prefix='decoder'):
 def prepare_model_for_data_graph(model, idx_node):
     train_model._features = (idx_node, )
     train_model._labels = ()
+
+
+###########################################################################
+#       ###    ##     ## ########  #######  ######## ##    ##  ######     #
+#      ## ##   ##     ##    ##    ##     ## ##       ###   ## ##    ##    #
+#     ##   ##  ##     ##    ##    ##     ## ##       ####  ## ##          #
+#    ##     ## ##     ##    ##    ##     ## ######   ## ## ## ##          #
+#    ######### ##     ##    ##    ##     ## ##       ##  #### ##          #
+#    ##     ## ##     ##    ##    ##     ## ##       ##   ### ##    ##    #
+#    ##     ##  #######     ##     #######  ######## ##    ##  ######     #
+###########################################################################
+
+
+class AutoSeqModel(Seq2SeqModel):
+
+    ATTN_LOGIT = True
+    ATTN_FINE = False
+    TRANS_ENC_VEC = True
+    SPLIT_ENC_VEC = False
+    VARIATIONAL = False
+    BLOCK_ENC_STATE = True
+    E_SD = 1.0
+    EMB_CONTEXT = False
+    EMB_FILE = ('/home/northanapon/editor_sync/seqmodel'
+                '/data/wn_lemma_senses/enc_emb_norm.npy')
+    USE_MASK = True
+
+    def _bridge(self, opt, reuse, enc_nodes, enc_scope, collect_key):
+        nodes = {}
+        context_ = tfg.select_rnn(enc_nodes['cell_output'],
+                                  tf.nn.relu(enc_nodes['seq_len'] - 1))
+        emb_output_ = context_
+        with tf.variable_scope('bridge', reuse=reuse) as context_scope:
+            cell_dim = opt['enc:cell:num_units']
+            if self.EMB_CONTEXT:
+                (context_label_, context_lookup_,
+                    mask_label_, logit_mask_) = self._context_emb(opt, collect_key)
+                if self.USE_MASK:
+                    self._logit_mask = logit_mask_
+            if self.SPLIT_ENC_VEC:
+                z = tf.layers.dense(
+                    context_, cell_dim * 2, reuse=reuse, name='split',
+                    activation=None)
+                main_ = tf.slice(z, [0, 0], [-1, cell_dim]) + context_
+                emb_output_ = main_
+                logsigma_ = tf.tanh(tf.slice(z, [0, cell_dim], [-1, -1]))
+                context_ = main_ + (logsigma_ / 2)
+            if self.TRANS_ENC_VEC:
+                context_ = tf.layers.dense(
+                    context_, cell_dim, activation=tf.tanh,
+                    reuse=reuse, name='context') + context_
+                emb_output_ = context_
+            if self.VARIATIONAL:
+                z = tf.layers.dense(
+                    context_, cell_dim * 2, reuse=reuse, name='mu_logsigma',
+                    activation=None)
+                mu_ = tf.slice(z, [0, 0], [-1, cell_dim]) + context_
+                main_ = mu_
+                emb_output_ = main_
+                logsigma_ = tf.slice(z, [0, cell_dim], [-1, -1])
+                scale = tf.exp(logsigma_)
+                st = tf.contrib.bayesflow.stochastic_tensor
+                with st.value_type(st.SampleValue()):
+                    u = tf.contrib.distributions.Normal(loc=mu_, scale=scale)
+                    context_ = st.StochasticTensor(u)
+                p_mu = context_lookup_ if self.EMB_CONTEXT else 0.0
+                p_z = tf.contrib.distributions.Normal(loc=p_mu, scale=self.E_SD)
+                self._KLD = tf.reduce_sum(
+                    tf.contrib.distributions.kl_divergence(context_.distribution, p_z),
+                    axis=-1)
+                # self._KLD = tf.Print(self._KLD, [tf.reduce_mean(self._KLD)])
+            if self.EMB_CONTEXT:
+                _predict = context_
+                if self.SPLIT_ENC_VEC or self.VARIATIONAL:
+                    _predict = main_
+                _predict = tf.nn.l2_normalize(_predict, -1)
+                inner_prod = tf.reduce_sum(
+                    tf.multiply(_predict, context_lookup_), axis=-1)
+                # self._EMB_DIS = tf.reduce_mean(1 - tf.exp(1 - inner_prod))
+                self._EMB_DIS = tf.reduce_mean(tf.sigmoid(-inner_prod))
+                # self._EMB_DIS = tf.losses.cosine_distance(
+                #     context_lookup_, _predict, dim=-1)
+                # weights=tf.expand_dims(enc_nodes['seq_len'], -1))
+                # self._EMB_DIS = tf.Print(self._EMB_DIS, [self._EMB_DIS])
+            if self.ATTN_LOGIT:
+                self._build_logit = partial(self._build_gated_logit, context=context_,
+                                            context_scope=context_scope,
+                                            context_nodes=nodes,
+                                            full_opt=opt, reuse=reuse)
+                self._decode_late_attn = partial(self._build_dec_gated_logit,
+                                                 context=context_,
+                                                 context_scope=context_scope)
+        nodes.update(util.dict_with_key_endswith(locals(), '_'))
+        if self.BLOCK_ENC_STATE:
+            return None, nodes
+        else:
+            return enc_nodes['final_state'], nodes
+
+    def _context_emb(self, opt, collect_key):
+        import numpy as np
+        context_emb = np.load(self.EMB_FILE)
+        dim1, dim2 = context_emb.shape
+        context_emb = tfg.create_2d_tensor(
+            dim1, dim2, trainable=False, init=context_emb, name='context_emb')
+        with tfg.tfph_collection(collect_key, True) as get:
+            context_label = get('context_label', tf.int32, (None, ))
+            mask_label = get('mask_label', tf.int32, (None, ))
+        lookup = tf.nn.embedding_lookup(context_emb, context_label)
+        mask = tf.one_hot(mask_label, opt['dec:logit:output_size'],
+                          on_value=-1e5, off_value=0.0, dtype=tf.float32)
+        return context_label, lookup, mask_label, mask
+
+    def _build_gated_logit(self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output,
+                           context, context_scope, context_nodes, full_opt, reuse):
+        context_nodes = {} if context_nodes is None else context_nodes
+        with tfg.maybe_scope(context_scope, reuse):
+            _multiples = [tf.shape(cell_output)[0], 1, 1]
+            tiled_context_ = tf.tile(tf.expand_dims(context, 0), _multiples)
+            _keep_prob = full_opt['dec:cell:out_keep_prob']
+            updated_output_, attention_ = tfg.create_gated_layer(
+                cell_output, tiled_context_, carried_keep_prob=_keep_prob,
+                extra_keep_prob=_keep_prob, fine_grain=self.ATTN_FINE)
+            if _keep_prob < 1.0:
+                updated_output_ = tf.nn.dropout(updated_output_, _keep_prob)
+        context_nodes.update(util.dict_with_key_endswith(locals(), '_'))
+        context_nodes.pop('__class_', None)
+        logit_, label_feed, predict_fetch, nodes = super()._build_logit(
+            opt, reuse_scope, collect_kwargs, emb_vars, updated_output_)
+        return logit_, label_feed, predict_fetch, nodes
+
+    def _build_dec_gated_logit(self, cell_output, context, context_scope):
+        with tfg.maybe_scope(context_scope, True):
+            updated_output, __ = tfg.create_gated_layer(
+                cell_output, context, fine_grain=self.ATTN_FINE)
+        return updated_output
+
+    def _build_attn_logit(self, *args, **kwargs):
+        raise ValueError('`dec:attn_enc_output` is not supported in AE.')
+
+    def _build_dec_attn_logit(self, *args, **kwargs):
+        raise ValueError('`dec:attn_enc_output` is not supported in AE.')
+
+    def build_graph(self, opt=None, reuse=False, name='ae',
+                    collect_key='ae', no_dropout=False, **kwargs):
+        """ build encoder-decoder graph for definition modeling
+        (see default_opt() for configuration)
+        """
+        opt = opt if opt else {}
+        opt.update({'enc:out:logit': False, 'enc:out:loss': False,
+                    'enc:out:decode': False, 'dec:cell:dropout_last_output': False})
+        chain_opt = ChainMap(kwargs, opt, self.default_opt())
+        if no_dropout:
+            chain_opt = ChainMap(self._all_keep_prob_shall_be_one(chain_opt), chain_opt)
+        self._name = name
+        with tf.variable_scope(name, reuse=reuse):
+            nodes, graph_args = self._build(chain_opt, reuse, collect_key,
+                                            bridge_fn=self._bridge, **kwargs)
+            _f = graph_args['feature_feed']
+            _b = nodes['bridge']
+            if self.EMB_CONTEXT:
+                graph_args['feature_feed'] = dstruct.LSeq2SeqFeatureTuple(
+                    *_f, _b['context_label'], _b['mask_label'])
+            else:
+                graph_args['feature_feed'] = dstruct.Seq2SeqFeatureTuple(*_f)
+            self.set_graph(**graph_args)
+            return nodes
