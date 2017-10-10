@@ -353,11 +353,30 @@ class SeqModel(Model):
                 cell_output, logit_w=logit_w_, **logit_opt, **collect_kwargs)
             # if hasattr(self, '_logit_mask'):
             #     logit_ = logit_ + self._logit_mask
-
         dist_, dec_max_, dec_sample_ = tfg.select_from_logit(logit_)
+
         # label
         label_, token_weight_, seq_weight_ = tfg.get_seq_label_placeholders(
             label_dtype=tf.int32, **collect_kwargs)
+        # cache
+        # cache_size = 100
+        # ctime, cvalues, cscores, reset_cache_op_ = tfg.create_neural_cache(
+        #     cell_output, label_, 20, 650, cache_size=cache_size, back_prop=True)
+        # clogit = tfg.create_cache2logit(
+        #     ctime, cvalues, cscores, 10000, theta=0.25, alpha=1.5)
+        # clogit = tfg.create_acache2logit(
+        #     cache_size, ctime, cvalues, cscores, 10000, 11, theta=0.25, emb=logit_w_)
+        # if len(clogit) == 3:
+        #     scale, clogit, is_hit = clogit
+        # else:
+        #     scale = 1.0
+        #     clogit, is_hit = clogit
+        # my_max = tf.stop_gradient(tf.maximum(logit_, clogit))
+        # _exp_logit = tf.exp(logit_ - my_max)
+        # _exp_clogit = is_hit * scale * tf.exp(clogit - my_max)
+        # sum_logit = tf.log(tf.maximum(_exp_logit + _exp_clogit, math.exp(-20)))
+        # logit_ = (1 - is_hit) * logit_ + is_hit * (sum_logit + my_max)
+
         # format
         predict_fetch = {
             'logit': logit_, 'dist': dist_, 'dec_max': dec_max_,
@@ -379,6 +398,7 @@ class SeqModel(Model):
                 _sum_minus_ent, minus_avg_ent_ = tfg.create_ent_loss(
                     tf.nn.softmax(logit), tf.abs(weight), tf.abs(seq_weight))
                 train_loss_ = train_loss_ + minus_avg_ent_
+            # train_loss_ = tf.Print(train_loss_, [train_loss_])
             gns_nodes = {}
             if opt['loss:add_gns']:
                 gns_opt = util.dict_with_key_startswith(opt, 'gns:')

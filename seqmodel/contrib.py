@@ -285,11 +285,18 @@ def progression_regularizer(cell_output, seq_len, distance='dot'):
     return prog_reg
 
 
-def add_timing_signal_1d(x, min_timescale=1.0, max_timescale=1.0e4):
-    """ Copied from https://github.com/tensorflow/tensor2tensor
+def get_timing_signal_1d(
+        length, channels, min_timescale=1.0, max_timescale=1.0e4):
     """
-    length = tf.shape(x)[1]
-    channels = tf.shape(x)[2]
+    Args:
+    length: scalar, length of timing signal sequence.
+    channels: scalar, size of timing embeddings to create. The number of
+        different timescales is equal to channels / 2.
+    min_timescale: a float
+    max_timescale: a float
+    Returns:
+    a Tensor of timing signals [length, channels]
+    """
     position = tf.to_float(tf.range(length))
     num_timescales = channels // 2
     log_timescale_increment = (
@@ -300,8 +307,8 @@ def add_timing_signal_1d(x, min_timescale=1.0, max_timescale=1.0e4):
     scaled_time = tf.expand_dims(position, 1) * tf.expand_dims(inv_timescales, 0)
     signal = tf.concat([tf.sin(scaled_time), tf.cos(scaled_time)], axis=1)
     signal = tf.pad(signal, [[0, 0], [0, tf.mod(channels, 2)]])
-    signal = tf.reshape(signal, [1, length, channels])
-    return x + signal
+    signal = tf.reshape(signal, [length, channels])
+    return signal
 
 
 def create_seq_data_graph(in_data, out_data, prefix='decoder'):

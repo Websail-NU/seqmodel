@@ -3,6 +3,7 @@ import json
 import os
 import time
 from functools import partial
+from collections import deque
 
 import numpy as np
 import tensorflow as tf
@@ -16,7 +17,7 @@ __all__ = ['_no_run', 'default_training_opt', 'update_learning_rate',
            'is_done_training_early', 'run_epoch', 'train', 'decode_epoch',
            'default_decoding_opt', 'run_sampling_epoch', 'policy_gradient_opt',
            'run_collecting_epoch', 'uncond_lm_decode', 'describe_variables',
-           'get_tfsession_config']
+           'get_tfsession_config', 'cached_uncond_lm_decode']
 
 
 def _no_run(*args, **kwargs):
@@ -76,7 +77,7 @@ def is_done_training_early(train_state, imp_wait=2, min_lr=1e-04):
 
 def run_epoch(
         sess, model, batch_iter, train_op=None, train_state=None, begin_step_fn=None,
-        end_step_fn=None, _extra_data=None):
+        end_step_fn=None, _extra_data=None, _reset_op=None):
     info = ds.RunningInfo()
     if train_op:
         run_fn = partial(model.train, sess, train_op=train_op)
@@ -98,6 +99,8 @@ def run_epoch(
             end_step_fn(step_info=info, train_state=train_state)
         info.update_step(result, batch.num_tokens)
     info.end()
+    if _reset_op is not None:
+        sess.run(_reset_op)
     return info
 
 
@@ -222,6 +225,63 @@ def uncond_lm_decode(sess, model, feature_seed, greedy=False, vocabs=None):
         yield output, vocabs
 
 
+def cached_uncond_lm_decode(sess, model, feature_seed, greedy=False, vocabs=None):
+
+    def softmax(x):
+        e_x = np.exp(x - np.max(x, axis=-1, keepdims=True))
+        return e_x / e_x.sum(axis=-1, keepdims=True)
+
+    def logsumexp(list_x):
+        if len(list_x) == 1:
+            return list_x[0]
+        max_x = max(list_x)
+        sumexp = 0
+        for x in list_x:
+            sumexp += np.exp(x - max_x)
+        return np.log(sumexp) + max_x
+
+    def logsumexp_pair(a, b, scale):
+        max_x = max(a, b)
+        sumexp = np.exp(a - max_x) + scale * np.exp(b - max_x)
+        return np.log(max(sumexp, np.exp(-20))) + max_x
+
+    state = None
+    feature = feature_seed
+    scales = np.load('weight3.npy')
+    cache = deque(maxlen=100)
+    while True:
+        result, extra = model.predict(
+            sess, feature, predict_key='logit', fetch_state=True, state=state,
+            extra_fetch=['cell_output'])
+        logit, state = result
+        logit = np.squeeze(logit, axis=0)
+        h = np.squeeze(extra[0], axis=0)
+        hits = [{} for __ in range(len(logit))]
+        for t, (b_ch, b_cidx) in enumerate(cache):
+            for b, (ch, cidx) in enumerate(zip(b_ch, b_cidx)):
+                cur_hit = hits[b].setdefault(cidx, [[], -1])
+                cur_hit[0].append(np.dot(h[b], ch))
+                cur_hit[1] = t
+        for b, bhit in enumerate(hits):
+            for idx, hit in bhit.items():
+                hit[0] = logsumexp(hit[0])
+                hit[1] = len(cache) - hit[1]
+                scale = 1
+                if hit[1] < 10:
+                    scale = scales[idx, hit[1] - 1]
+                logit[b, idx] = logsumexp_pair(logit[b, idx], hit[0], scale)
+
+        dist = softmax(logit)
+        c = dist.cumsum(axis=-1)
+        u = np.random.rand(len(c), 1)
+        choice = (u < c).argmax(axis=-1)
+        output = np.expand_dims(choice, axis=0)
+        feature = feature._replace(inputs=output[[-1], :])
+        feature.seq_len[:] = 1
+        cache.append((h, choice))
+        yield output, vocabs
+
+
 def describe_variables(variables):
     var_desc = []
     total_params = 0
@@ -232,5 +292,13 @@ def describe_variables(variables):
     return '\n'.join(var_desc)
 
 
-def get_tfsession_config(is_gpu):
-    return tf.ConfigProto() if is_gpu else tf.ConfigProto(device_count={'GPU': 0})
+def get_tfsession_config(is_gpu, num_threads=8):
+    if is_gpu:
+        return tf.ConfigProto(
+            intra_op_parallelism_threads=num_threads,
+            inter_op_parallelism_threads=num_threads)
+    else:
+        return tf.ConfigProto(
+            device_count={'GPU': 0},
+            intra_op_parallelism_threads=num_threads,
+            inter_op_parallelism_threads=num_threads)

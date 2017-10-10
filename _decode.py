@@ -30,7 +30,7 @@ def decode_lm(opt, model_class, model_opt, data_fn, logger, decode_opt, seed):
 
     with tf.Session(config=sess_config) as sess:
         sess.run(tf.global_variables_initializer())
-        saver = tf.train.Saver()
+        saver = tf.train.Saver(tf.trainable_variables())
         checkpoint = opt['load_checkpoint']
         logger.info(f'Loading parameters from `{checkpoint}` ...')
         success, __ = sq.load_exp(sess, saver, opt['exp_dir'], latest=opt['eval_latest'],
@@ -40,7 +40,9 @@ def decode_lm(opt, model_class, model_opt, data_fn, logger, decode_opt, seed):
             return
 
         logger.info('Decoding...')
-        for output, vocabs in sq.uncond_lm_decode(sess, model, seed,
-                                                  greedy=decode_opt['decode:greedy'],
-                                                  vocabs=vocabs):
+        for output, vocabs in sq.uncond_lm_decode(
+                sess, model, seed, greedy=decode_opt['decode:greedy'], vocabs=vocabs):
             yield output, vocabs
+        # for output, vocabs in sq.cached_uncond_lm_decode(
+        #         sess, model, seed, greedy=decode_opt['decode:greedy'], vocabs=vocabs):
+        #     yield output, vocabs

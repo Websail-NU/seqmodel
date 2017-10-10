@@ -1,14 +1,15 @@
-import warnings
-from contextlib import contextmanager
 import six
+import math
+import warnings
 from pydoc import locate
 from functools import partial
+from contextlib import contextmanager
 
 import numpy as np
 import tensorflow as tf
 
-from seqmodel import dstruct
 from seqmodel import util
+from seqmodel import dstruct
 
 
 __all__ = ['_safe_div', 'tfph_collection', 'create_2d_tensor', 'matmul', 'create_cells',
@@ -20,10 +21,18 @@ __all__ = ['_safe_div', 'tfph_collection', 'create_2d_tensor', 'matmul', 'create
            'empty_tfph_collection', 'scan_rnn_no_mask', 'create_decode',
            'create_pg_train_op', 'seeded_decode_select_fn', 'greedy_decode_select',
            'sampling_decode_select', 'create_gated_layer', 'gather_2d', 'shift',
-           'create_global_stat_loss']
+           'create_global_stat_loss', 'meshgrid3d', 'mat3indices', 'create_neural_cache',
+           'create_cache2logit', 'create_acache2logit']
 
 
 _global_collections = {}
+
+
+def _tfprint_info(tensor, message=None):
+    return tf.Print(
+        tensor,
+        [tf.reduce_min(tensor), tf.reduce_mean(tensor),
+         tf.reduce_max(tensor)], message=message)
 
 
 @contextmanager
@@ -68,6 +77,24 @@ def maybe_scope(scope=None, reuse=False):
         yield None
 
 
+def _safe_div(numerator, denominator, name='safe_div'):
+    """Computes a safe divide which returns 0 if the denominator is zero."""
+    return tf.where(tf.equal(denominator, 0),
+                    tf.zeros_like(numerator),
+                    tf.div(numerator, denominator),
+                    name=name)
+
+###############################################################
+#    ##     ##    ###    ######## ########  #### ##     ##    #
+#    ###   ###   ## ##      ##    ##     ##  ##   ##   ##     #
+#    #### ####  ##   ##     ##    ##     ##  ##    ## ##      #
+#    ## ### ## ##     ##    ##    ########   ##     ###       #
+#    ##     ## #########    ##    ##   ##    ##    ## ##      #
+#    ##     ## ##     ##    ##    ##    ##   ##   ##   ##     #
+#    ##     ## ##     ##    ##    ##     ## #### ##     ##    #
+###############################################################
+
+
 def create_2d_tensor(dim1, dim2, trainable=True, init=None, name='tensor'):
     if init is None:
         return tf.get_variable(name, [dim1, dim2], trainable=trainable)
@@ -77,12 +104,58 @@ def create_2d_tensor(dim1, dim2, trainable=True, init=None, name='tensor'):
             name, trainable=trainable, initializer=tf.constant(init, dtype=tf.float32))
 
 
-def _safe_div(numerator, denominator, name='safe_div'):
-    """Computes a safe divide which returns 0 if the denominator is zero."""
-    return tf.where(tf.equal(denominator, 0),
-                    tf.zeros_like(numerator),
-                    tf.div(numerator, denominator),
-                    name=name)
+def gather_2d(tensor3d, idx2d, reshape_back=True):
+    tensor2d = tf.reshape(tensor3d, (-1, tf.shape(tensor3d)[-1]))
+    idx1d = tf.reshape(idx2d, (-1, 1))
+    gather_idx = tf.expand_dims(
+        tf.range(start=0, limit=tf.shape(idx1d)[0]), axis=-1)
+    gather_idx = tf.concat([gather_idx, idx1d], axis=-1)
+    out1d = tf.gather_nd(tensor2d, gather_idx)
+    if reshape_back:
+        return tf.reshape(out1d, tf.shape(idx2d))
+    else:
+        return out1d
+
+
+def shift(tensor, k, axis=0, fill=0):
+    assert k != 0, 'k must not be zero.'
+    rank = len(tensor.get_shape())
+    paddings = np.zeros((rank, 2), dtype=np.int32)
+    direction = 0 if k > 0 else 1
+    paddings[axis, direction] = abs(k)
+    padded = tf.pad(tensor, paddings, mode="CONSTANT", constant_values=fill)
+    slice_begin = tf.zeros((rank, ), dtype=tf.int32)
+    if direction == 0:
+        slice_end = tf.shape(tensor, out_type=tf.int32)
+        slice_end_offset = np.zeros((rank, ), dtype=np.int32)
+        slice_end_mask = np.ones((rank, ), dtype=np.int32)
+        slice_end_offset[axis] = -k
+        slice_end_mask[axis] = 0
+        slice_end = slice_end * slice_end_mask + slice_end_offset
+    else:
+        slice_end = tf.shape(padded, out_type=tf.int32)
+        slice_begin_offset = np.zeros((rank, ), dtype=np.int32)
+        slice_begin_offset[axis] = -k
+        slice_begin = slice_begin + slice_begin_offset
+    sliced = tf.strided_slice(padded, slice_begin, slice_end, None)
+    return sliced
+
+
+def meshgrid3d(a, b, c, indexing='ij'):
+    aa, bb, cc = tf.meshgrid(a, b, c, indexing=indexing)
+    shape = (-1, )
+    mesh = tf.stack(
+        [tf.reshape(aa, shape), tf.reshape(bb, shape), tf.reshape(cc, shape)], axis=1)
+    return mesh
+
+
+def mat3indices(mat):
+    shape = tf.shape(mat)
+    a = tf.range(shape[0])
+    b = tf.range(shape[1])
+    c = tf.range(shape[2])
+    mesh = meshgrid3d(a, b, c, 'ij')
+    return tf.concat([mesh, tf.reshape(mat, (-1, 1))], axis=-1)
 
 
 def matmul(mat, mat2d, transpose_b=False):
@@ -101,6 +174,7 @@ def matmul(mat, mat2d, transpose_b=False):
     flat_mat3d = tf.reshape(mat3d, [-1, mat3d_dim])
     outputs = tf.matmul(flat_mat3d, mat2d, transpose_b=transpose_b)
     return tf.reshape(outputs, output_shape)
+
 
 #####################################
 #     ######  ########  #######     #
@@ -249,6 +323,167 @@ def create_tdnn(
         max_pool = tf.squeeze(tf.reduce_max(conv2d, 2), axis=1)
         layers.append(max_pool)
     return tf.concat(layers, axis=1) if len(layers) > 1 else layers[0]
+
+
+def create_neural_cache(
+        keys, values, batch_size, key_dim, cache_size=50, back_prop=False,
+        scope=None, reuse=False, default_v=0):
+    if scope is None:
+        scope = 'cache'
+    with tf.variable_scope(scope, reuse=reuse):
+        init_ct = tf.constant(0)
+        init_tp = np.full((cache_size, batch_size), -1, dtype=np.int32)
+        init_cv = np.full((cache_size, batch_size), default_v, dtype=np.int32)
+        init_ck = np.zeros((cache_size, batch_size, key_dim), dtype=np.float32)
+        cur_time = tf.get_variable(
+            'cur_time', initializer=init_ct, dtype=tf.int32, trainable=False)
+        time_pointer = tf.get_variable(
+            'timer_pointer', dtype=tf.int32, trainable=False, initializer=init_tp)
+        cached_v = tf.get_variable(
+            'cached_v', dtype=tf.int32, trainable=False, initializer=init_cv)
+        cached_k = tf.get_variable(
+            'cached_k', dtype=tf.float32, trainable=False, initializer=init_ck)
+        reset = tuple((tf.assign(tensor, init) for tensor, init in zip(
+            (cur_time, time_pointer, cached_v, cached_k),
+            (init_ct, init_tp, init_cv, init_ck))))
+        steps = tf.shape(keys)[0]
+
+        times = tf.TensorArray(tf.int32, size=steps, dynamic_size=False)
+        indices = tf.TensorArray(tf.int32, size=steps, dynamic_size=False)
+        scores = tf.TensorArray(tf.float32, size=steps, dynamic_size=False)
+
+        def body(t, ltimes, lindices, lscores):
+            # XXX: force dependency
+            _t = time_pointer * 1
+            _v = cached_v * 1
+            _k = cached_k * 1
+            _s = tf.reduce_sum(
+                tf.multiply(_k, tf.expand_dims(keys[t], axis=0)), axis=-1)
+            ltimes = ltimes.write(t, _t)
+            lindices = lindices.write(t, _v)
+            lscores = lscores.write(t, _s)
+            with tf.control_dependencies([_t, _v, _k]):
+                cached_pos = (cur_time + t) % cache_size
+                ltime_pointer = tf.scatter_update(
+                    time_pointer, [cached_pos], [[cur_time + t] * batch_size])
+                lcached_v = tf.scatter_update(cached_v, [cached_pos], [values[t]])
+                lcached_k = tf.scatter_update(cached_k, [cached_pos], [keys[t]])
+            with tf.control_dependencies([ltime_pointer, lcached_v, lcached_k]):
+                return t + 1, ltimes, lindices, lscores
+
+        final_t, ctime, cidx, cs = tf.while_loop(
+            lambda t, _a, _b, _c: tf.less(t, steps),
+            body, [tf.constant(0), times, indices, scores],
+            parallel_iterations=1, back_prop=back_prop)
+        cur_time = tf.assign_add(cur_time, final_t)
+        with tf.control_dependencies([cur_time]):
+            ctime = ctime.stack()
+            cvalues = cidx.stack()
+            cscores = cs.stack()
+            return ctime, cvalues, cscores, reset
+
+
+def create_cache2logit(
+        ctime, cvalues, cscores, output_size, theta=0.25, alpha=1.5,
+        scope=None, reuse=False):
+    if scope is None:
+        scope = 'cache2logit'
+    with tf.variable_scope(scope, reuse=reuse):
+        shape = tf.shape(ctime, out_type=tf.int64)
+        cmask = tf.cast(tf.not_equal(ctime, -1), tf.float32)
+        sp_idx = tf.cast(mat3indices(cvalues), dtype=tf.int64)
+        distance = tf.cast(
+            ctime - tf.reduce_max(ctime, axis=1, keep_dims=True) - 1, tf.float32)
+        cscores = theta * cscores + alpha
+        my_max = tf.stop_gradient(tf.reduce_max(cscores))
+        sp_v_score = tf.reshape(tf.exp(cscores - my_max) * cmask, (-1, ))
+        sp_v_time = tf.reshape(distance * cmask, (-1, ))
+        sp_shape = tf.concat([shape, [output_size]], axis=0)
+        sp_scores = tf.SparseTensor(sp_idx, sp_v_score, sp_shape)
+        sp_times = tf.SparseTensor(sp_idx, sp_v_time, sp_shape)
+        times = tf.sparse_reduce_max(sp_times, axis=1) * -1
+        is_hit = tf.stop_gradient(tf.cast(tf.not_equal(times, 0), tf.float32))
+        scores = tf.sparse_reduce_sum(sp_scores, axis=1)
+        return tf.log(scores) + my_max, is_hit
+
+
+def clipped_lrelu(x, alpha=1/3, clip=50):
+    return tf.clip_by_value(tf.maximum(x, alpha * x), -clip, clip)
+
+
+clipped_lrelu_20 = partial(clipped_lrelu, clip=20)
+clipped_lrelu_10 = partial(clipped_lrelu, clip=10)
+clipped_lrelu_3 = partial(clipped_lrelu, clip=3)
+
+
+def get_timing_signal_1d(
+        length, channels, min_timescale=1.0, max_timescale=1.0e4):
+    """
+    Args:
+    length: scalar, length of timing signal sequence.
+    channels: scalar, size of timing embeddings to create. The number of
+        different timescales is equal to channels / 2.
+    min_timescale: a float
+    max_timescale: a float
+    Returns:
+    a Tensor of timing signals [length, channels]
+    """
+    position = tf.to_float(tf.range(length))
+    num_timescales = channels // 2
+    log_timescale_increment = (
+        math.log(float(max_timescale) / float(min_timescale)) /
+        (tf.to_float(num_timescales) - 1))
+    inv_timescales = min_timescale * tf.exp(
+        tf.to_float(tf.range(num_timescales)) * -log_timescale_increment)
+    scaled_time = tf.expand_dims(position, 1) * tf.expand_dims(inv_timescales, 0)
+    signal = tf.concat([tf.sin(scaled_time), tf.cos(scaled_time)], axis=1)
+    signal = tf.pad(signal, [[0, 0], [0, tf.mod(channels, 2)]])
+    signal = tf.reshape(signal, [length, channels])
+    return signal
+
+
+def create_acache2logit(
+        cache_size, ctime, cvalues, cscores, output_size, output_dim,
+        theta=0.25, alpha=1.5, scope=None, reuse=None, emb=None, mode='lookup'):
+    if scope is None:
+        scope = 'acache2logit'
+    with tf.variable_scope(scope, reuse=reuse):
+        if mode == 'lookup':
+            val_emb = tf.get_variable(
+                'kernel', dtype=tf.float32, shape=(output_size, output_dim - 2))
+        else:
+            val_emb = tf.layers.dense(
+                tf.nn.dropout(emb, 0.5), output_dim - 2, activation=tf.nn.tanh,
+                use_bias=True, reuse=reuse)
+        val_emb = tf.concat(
+            [val_emb, np.full((output_size, 1), 1, dtype=np.float32)], -1)
+        # val_emb = tf.concat(
+        #     [np.full((output_size, output_dim - 2), 1, dtype=np.float32),
+        #      np.full((output_size, 1), 1, dtype=np.float32)], -1)
+        # val_emb = tf.concat(
+        #     [np.load('weight3.npy'),
+        #      np.full((output_size, 1), 1, dtype=np.float32)], -1)
+        shape = tf.shape(ctime, out_type=tf.int64)
+        cmask = tf.cast(tf.not_equal(ctime, -1), tf.float32)
+        distance = tf.cast(
+            ctime - tf.reduce_max(ctime, axis=1, keep_dims=True) - 1, tf.float32)
+        sp_idx = tf.cast(mat3indices(cvalues), dtype=tf.int64)
+        cscores = theta * cscores + alpha
+        my_max = tf.stop_gradient(tf.reduce_max(cscores))
+        sp_v_score = tf.reshape(tf.exp(cscores - my_max) * cmask, (-1, ))
+        sp_v_time = tf.reshape(distance * cmask, (-1, ))
+        sp_shape = tf.concat([shape, [output_size]], axis=0)
+        sp_scores = tf.SparseTensor(sp_idx, sp_v_score, sp_shape)
+        sp_times = tf.SparseTensor(sp_idx, sp_v_time, sp_shape)
+        scores = tf.stop_gradient(tf.sparse_reduce_sum(sp_scores, axis=1))
+        times = tf.sparse_reduce_max(sp_times, axis=1) * -1
+        is_hit = tf.cast(tf.not_equal(times, -1), tf.float32)
+        times = tf.clip_by_value(times, 0, output_dim - 1)
+        times = tf.stop_gradient(tf.cast(times, tf.int32))
+        times = tf.one_hot(times - 1, output_dim - 1, dtype=tf.float32)
+        ac_output = tf.reduce_sum(times * val_emb, axis=-1)
+        ac_output = ac_output * is_hit
+        return ac_output, tf.log(scores) + my_max, is_hit
 
 
 ###################################################################
@@ -403,17 +638,6 @@ def sampling_decode_select(_t, logit):
     return idx, score
 
 
-##############################################
-#       ###    ######## ######## ##    ##    #
-#      ## ##      ##       ##    ###   ##    #
-#     ##   ##     ##       ##    ####  ##    #
-#    ##     ##    ##       ##    ## ## ##    #
-#    #########    ##       ##    ##  ####    #
-#    ##     ##    ##       ##    ##   ###    #
-#    ##     ##    ##       ##    ##    ##    #
-##############################################
-
-
 def attn_dot(q, k, v, time_major=True):
     q_is_2d = len(q.get_shape()) == 2
     with tf.variable_scope('dot_product_attn'):
@@ -565,44 +789,6 @@ def select_from_logit(logit, distribution=None):
     max_tuple = dstruct.IndexScoreTuple(max_idx, max_prob)
     sample_tuple = dstruct.IndexScoreTuple(sample_idx, sample_prob)
     return distribution, max_tuple, sample_tuple
-
-
-def gather_2d(tensor3d, idx2d, reshape_back=True):
-    tensor2d = tf.reshape(tensor3d, (-1, tf.shape(tensor3d)[-1]))
-    idx1d = tf.reshape(idx2d, (-1, 1))
-    gather_idx = tf.expand_dims(
-        tf.range(start=0, limit=tf.shape(idx1d)[0]), axis=-1)
-    gather_idx = tf.concat([gather_idx, idx1d], axis=-1)
-    out1d = tf.gather_nd(tensor2d, gather_idx)
-    if reshape_back:
-        return tf.reshape(out1d, tf.shape(idx2d))
-    else:
-        return out1d
-
-
-def shift(tensor, k, axis=0, fill=0):
-    assert k != 0, 'k must not be zero.'
-    rank = len(tensor.get_shape())
-    paddings = np.zeros((rank, 2), dtype=np.int32)
-    direction = 0 if k > 0 else 1
-    paddings[axis, direction] = abs(k)
-    padded = tf.pad(tensor, paddings, mode="CONSTANT", constant_values=fill)
-    slice_begin = tf.zeros((rank, ), dtype=tf.int32)
-    if direction == 0:
-        slice_end = tf.shape(tensor, out_type=tf.int32)
-        slice_end_offset = np.zeros((rank, ), dtype=np.int32)
-        slice_end_mask = np.ones((rank, ), dtype=np.int32)
-        slice_end_offset[axis] = -k
-        slice_end_mask[axis] = 0
-        slice_end = slice_end * slice_end_mask + slice_end_offset
-    else:
-        slice_end = tf.shape(padded, out_type=tf.int32)
-        slice_begin_offset = np.zeros((rank, ), dtype=np.int32)
-        slice_begin_offset[axis] = -k
-        slice_begin = slice_begin + slice_begin_offset
-    sliced = tf.strided_slice(padded, slice_begin, slice_end, None)
-    return sliced
-
 
 ##############################################
 #    ##        #######   ######   ######     #

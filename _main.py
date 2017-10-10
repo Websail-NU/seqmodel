@@ -27,6 +27,7 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
         model_opt = ChainMap(model_vocab_opt, model_opt)
 
     logger.info('Building graph...')
+    reset_op = None
     if is_training:
         train_batch_iter = partial(batch_iter, *data[0])
         valid_batch_iter = partial(batch_iter, *data[1])
@@ -34,6 +35,7 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
         init_lr = train_opt['train:init_lr']
         lr = tf.placeholder(tf.float32, shape=[], name='learning_rate')
         __nodes = train_model.build_graph(model_opt)
+        reset_op = __nodes['reset_cache_op']
         if model_class == sq.SeqModel:
             train_model.set_default_feed('train_loss_denom', opt['batch_size'])
         else:
@@ -83,8 +85,12 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
                                    greedy=True)
                 eval_run_fn = partial(eval_run_fn, greedy=True)
             else:
-                train_fn = partial(run_fn, sess, train_model, train_batch_iter, train_op)
-                valid_fn = partial(run_fn, sess, eval_model, valid_batch_iter)
+                train_fn = partial(
+                    run_fn, sess, train_model, train_batch_iter, train_op,
+                    _reset_op=reset_op)
+                valid_fn = partial(
+                    run_fn, sess, eval_model, valid_batch_iter,
+                    _reset_op=reset_op)
             begin_epoch_fn = partial(
                 sq.update_learning_rate, partial(train_model.set_default_feed, lr),
                 **sq.dict_with_key_startswith(train_opt, 'lr:'))
@@ -93,17 +99,6 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
                 sq.save_exp(sess, saver, opt['exp_dir'], train_state)
                 return sq.is_done_training_early(train_state, train_opt['lr:imp_wait'],
                                                  train_opt['lr:min_lr'])
-
-            # import numpy as np
-            # for v in tf.trainable_variables():
-            #     if 'AC_e' in v.name:
-            #         np.save('tmp', sess.run(v))
-            #     if 'mem_wrapper' in v.name:
-            #         name = 'kernel' if 'kernel' in v.name else 'bias'
-            #         np.save(name, sess.run(v))
-            #     if 'embedding' in v.name:
-            #         np.save('emb', sess.run(v))
-            # return
 
             sq.train(train_fn, logger, max_epoch=train_opt['train:max_epoch'],
                      train_state=train_state, init_lr=init_lr,
@@ -120,6 +115,12 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
                                   checkpoint=checkpoint)
         if not success:
             logger.warn('Loading model from checkpoint failed.')
+
+        # import numpy as np
+        # for v in tf.trainable_variables():
+        #     if 'acache2logit' in v.name:
+        #         np.save('weight3.npy', sess.run(v))
+        # return
 
         if is_decoding:
             logger.info('Decoding...')
