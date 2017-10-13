@@ -15,7 +15,7 @@ from seqmodel.model import Seq2SeqModel
 
 __all__ = ['NGramCell', 'create_anticache_rnn', 'apply_anticache', 'QStochasticRNN',
            'create_decode_ac', 'progression_regularizer', 'StochasticRNN',
-           'sample_normal', 'kl_normal_normal']
+           'sample_normal', 'kl_normal_normal', 'FWIRNN']
 
 
 def clipped_lrelu(x, alpha=1/3):
@@ -50,7 +50,8 @@ def sample_normal(mu, logvar):
 
 
 def kl_normal_normal(mu1, logvar1, mu2, logvar2):
-    kld = 0.5 * logvar2 - 0.5 * logvar1 + (tf.exp(logvar1) + (mu1 - mu2) ** 2) / (2 * tf.exp(logvar2)) - 0.5  # noqa
+    kld = 0.5 * logvar2 - 0.5 * logvar1
+    kld += (tf.exp(logvar1) + (mu1 - mu2) ** 2) / (2 * tf.exp(logvar2)) - 0.5
     return kld
 
 
@@ -336,6 +337,62 @@ def prepare_model_for_data_graph(model, idx_node):
     train_model._features = (idx_node, )
     train_model._labels = ()
 
+
+class FWIRNN(tf.nn.rnn_cell.RNNCell):
+
+    def __init__(self, num_units, decay=0.80, learn=0.5, inner_loops=2, max_history=20):
+        self.num_units = num_units
+        self.eta = learn
+        self.lambda_ = decay
+        self.S = inner_loops
+        self.T = max_history
+
+    @property
+    def output_size(self):
+        return self.num_units
+
+    @property
+    def state_size(self):
+        return (self.num_units, self.T * self.num_units)
+
+    def __call__(self, inputs, state, scope=None):
+        with tf.variable_scope(scope or type(self).__name__):
+            state, history = state
+            # init
+            init_h2h_w = np.diag([1.0] * self.num_units)
+            _fan_in = int(inputs.get_shape()[-1])
+            _scale = max(1.0, (_fan_in + self.num_units) / 2)
+            init_h2x_w = np.random.rand(_fan_in, self.num_units) * np.sqrt(3.0 * _scale)
+            _w = np.concatenate([init_h2h_w, init_h2x_w], axis=0)
+            init_w = tf.constant_initializer(_w)
+            self.lambda_list = tf.reshape(
+                tf.constant(
+                    [self.lambda_ ** _t for _t in range(self.T, 0, -1)],
+                    dtype=tf.float32),
+                (1, self.T, 1))
+            # transition
+            cond_input = tf.concat([state, inputs], axis=-1)
+            cond = tf.layers.dense(cond_input, self.num_units, kernel_initializer=init_w)
+            cond = tf.expand_dims(cond, -1)
+            # cond = tf.Print(cond, [tf.reduce_mean(cond)], message='c')
+            h0 = tf.nn.relu(tf.contrib.layers.layer_norm(cond))
+            # h0 = tf.nn.tanh(cond)
+            history = tf.reshape(history, [-1, self.T, self.num_units])
+            hs = h0
+            # hs = tf.Print(hs, [tf.reduce_mean(hs)], message='h0')
+            for __ in range(self.S):
+                ahs = tf.reduce_sum(
+                    self.lambda_list * history * tf.matmul(history, hs), axis=1)
+                ahs = tf.expand_dims(ahs, axis=-1)
+                # ahs = tf.Print(ahs, [tf.reduce_mean(ahs)], message='ah')
+                hs = tf.nn.relu(tf.contrib.layers.layer_norm(cond + self.eta * ahs))
+                # hs = tf.nn.tanh(cond + self.eta * ahs)
+            # change history
+            hs = tf.squeeze(hs, axis=-1)
+            # hs = tf.Print(hs, [tf.reduce_mean(hs)], message='hs')
+            history = tf.concat([history, tf.expand_dims(hs, axis=1)], axis=1)[:, 1:, :]
+            history = tf.reshape(history, [-1, self.T*self.num_units])
+            return hs, (hs, history)
 
 ###########################################################################
 #       ###    ##     ## ########  #######  ######## ##    ##  ######     #

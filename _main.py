@@ -35,7 +35,7 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
         init_lr = train_opt['train:init_lr']
         lr = tf.placeholder(tf.float32, shape=[], name='learning_rate')
         __nodes = train_model.build_graph(model_opt)
-        reset_op = __nodes['reset_cache_op']
+        # reset_op = __nodes['reset_cache_op']
         if model_class == sq.SeqModel:
             train_model.set_default_feed('train_loss_denom', opt['batch_size'])
         else:
