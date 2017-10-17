@@ -97,8 +97,8 @@ def format_clogprob(
     # for ngram in [(9027, (23, )), (92, (35, )), (460, (332, ))]:
     for ngram in p0_clp:
         w, context = ngram
-        if not (context == (23, ) or context == (35, ) or context == (332, )):
-            continue
+        # if not (context == (23, ) or context == (35, ) or context == (332, )):
+        #     continue
         if isinstance(context, int):
             context = (w, context)
         if context == BLANK:
