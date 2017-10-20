@@ -89,9 +89,6 @@ def _main(opt, model_opt, logger, train_opt, gns_opt, pool, model_class,
                 C, p_u, p0_u, p_ur, p0_ur = gns.update_C(cur_p_stat, step)
                 # print(p_u)
                 # print(p0_u)
-                for _i, _j, _k in zip(*C[(23, )]):
-                    if _i == 9027:
-                        print(_i, _j, _k)
                 start, end = gns.update_C_batches(C, epoch, step)
                 if start == -1 and end == -1:
                     return

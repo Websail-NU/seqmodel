@@ -93,8 +93,6 @@ def format_clogprob(
     p0_clp = clogprob_fn(p0_pr, p0_fr, ngram_set, w2i, vocab.vocab_size)
     for ngram in p0_clp:
         w, context = ngram
-        if not (context == (23, ) or context == (35, ) or context == (332, )):
-            continue
         if isinstance(context, int):
             context = (w, context)
         if context == BLANK:
@@ -350,7 +348,7 @@ class GNS(object):
                     with fileinput.input(files=selected_files) as lines:
                         for line in lines:
                             ofp.write(line)
-                elif self.cur_dec_path is not None:
+                elif self.cur_dec_path is not None and percent_new_tokens > -1:
                     max_copy = int(total_dec_tokens * (1 - percent_new_tokens))
                     num_copied = 0
                     with open(self.cur_dec_path, 'r') as ifp:
