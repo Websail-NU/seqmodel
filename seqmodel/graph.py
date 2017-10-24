@@ -205,11 +205,7 @@ def create_cells(
     for layer in range(num_layers):
         if isinstance(cell_class, six.string_types):
             cell_class = locate(cell_class)
-        # cell = cell_class(num_units, reuse=reuse, **cell_kwargs)
-        if layer == 0:
-            cell = cell_class(num_units, **cell_kwargs)
-        else:
-            cell = locate('seqmodel.contrib.FWCell')(num_units)
+        cell = cell_class(num_units, **cell_kwargs)
         if layer == num_layers - 1 and not dropout_last_output:
             out_keep_prob = 1.0
         any_drop = any(kp < 1.0 for kp in [in_keep_prob, out_keep_prob, state_keep_prob])

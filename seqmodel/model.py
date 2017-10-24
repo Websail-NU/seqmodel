@@ -297,22 +297,17 @@ class SeqModel(Model):
             _emb_scope = kwargs['global_emb_scope']
         with tfg.maybe_scope(_emb_scope, reuse=True) as scope:
             lookup_, emb_vars_ = tfg.create_lookup(input_, **emb_opt)
-        batch_size = self._get_batch_size(input_)
         # cell rnn
-        cell_opt = util.dict_with_key_startswith(opt, 'cell:')
-        with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
-            _reuse = reuse or scope is not None
-            cell_ = tfg.create_cells(reuse=_reuse, input_size=opt['emb:dim'], **cell_opt)
-        with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
-            cell_output_, initial_state_, final_state_ = tfg.create_rnn(
-                cell_, lookup_, seq_len_, initial_state, rnn_fn=opt['rnn:fn'],
-                batch_size=batch_size)
+        batch_size = self._get_batch_size(input_)
+        cell_, cell_output_, initial_state_, final_state_ = self._build_rnn(
+            opt, lookup_, seq_len_, initial_state, batch_size, reuse_scope, reuse)
         # collect nodes
-        predict_fetch = {'cell_output': cell_output_}
         nodes = util.dict_with_key_endswith(locals(), '_')
+        predict_fetch = {'cell_output': cell_output_}
         graph_args = {'feature_feed': dstruct.SeqFeatureTuple(input_, seq_len_),
                       'predict_fetch': predict_fetch, 'node_dict': nodes,
                       'state_feed': initial_state_, 'state_fetch': final_state_}
+        # optional nodes
         # output
         if opt['out:logit']:
             logit, label_feed, output_fectch, output_nodes = self._build_logit(
@@ -343,6 +338,18 @@ class SeqModel(Model):
             raise ValueError('out:logit is False, cannot build decode graph')
 
         return nodes, graph_args
+
+    def _build_rnn(
+            self, opt, lookup, seq_len, initial_state, batch_size, reuse_scope, reuse):
+        cell_opt = util.dict_with_key_startswith(opt, 'cell:')
+        with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
+            _reuse = reuse or scope is not None
+            cell_ = tfg.create_cells(reuse=_reuse, input_size=opt['emb:dim'], **cell_opt)
+        with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
+            cell_output_, initial_state_, final_state_ = tfg.create_rnn(
+                cell_, lookup, seq_len, initial_state, rnn_fn=opt['rnn:fn'],
+                batch_size=batch_size)
+        return cell_, cell_output_, initial_state_, final_state_
 
     def _build_logit(self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output):
         # logit

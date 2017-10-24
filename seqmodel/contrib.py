@@ -15,7 +15,7 @@ from seqmodel.model import Seq2SeqModel
 
 __all__ = ['NGramCell', 'create_anticache_rnn', 'apply_anticache', 'QStochasticRNN',
            'create_decode_ac', 'progression_regularizer', 'StochasticRNN',
-           'sample_normal', 'kl_normal_normal', 'FWIRNN', 'FWCell']
+           'sample_normal', 'kl_normal_normal', 'FWIRNN', 'IRNN']
 
 
 def clipped_lrelu(x, alpha=1/3):
