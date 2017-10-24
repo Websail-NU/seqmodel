@@ -361,29 +361,9 @@ class SeqModel(Model):
             # if hasattr(self, '_logit_mask'):
             #     logit_ = logit_ + self._logit_mask
         dist_, dec_max_, dec_sample_ = tfg.select_from_logit(logit_)
-
         # label
         label_, token_weight_, seq_weight_ = tfg.get_seq_label_placeholders(
             label_dtype=tf.int32, **collect_kwargs)
-        # cache
-        # cache_size = 100
-        # ctime, cvalues, cscores, reset_cache_op_ = tfg.create_neural_cache(
-        #     cell_output, label_, 20, 650, cache_size=cache_size, back_prop=True)
-        # clogit = tfg.create_cache2logit(
-        #     ctime, cvalues, cscores, 10000, theta=0.25, alpha=1.5)
-        # clogit = tfg.create_acache2logit(
-        #     cache_size, ctime, cvalues, cscores, 10000, 11, theta=0.25, emb=logit_w_)
-        # if len(clogit) == 3:
-        #     scale, clogit, is_hit = clogit
-        # else:
-        #     scale = 1.0
-        #     clogit, is_hit = clogit
-        # my_max = tf.stop_gradient(tf.maximum(logit_, clogit))
-        # _exp_logit = tf.exp(logit_ - my_max)
-        # _exp_clogit = is_hit * scale * tf.exp(clogit - my_max)
-        # sum_logit = tf.log(tf.maximum(_exp_logit + _exp_clogit, math.exp(-20)))
-        # logit_ = (1 - is_hit) * logit_ + is_hit * (sum_logit + my_max)
-
         # format
         predict_fetch = {
             'logit': logit_, 'dist': dist_, 'dec_max': dec_max_,
@@ -720,9 +700,9 @@ class Word2DefModel(Seq2SeqModel):
             word_emb_scope = enc_scope   # if opt['share:enc_word_emb'] else None
             if global_emb_scope is not None:
                 word_emb_scope = global_emb_scope
-            self._logit_mask = tf.one_hot(
-                wbdef_mask_, opt['dec:logit:output_size'], on_value=-1e5, off_value=0.0,
-                dtype=tf.float32)
+            # self._logit_mask = tf.one_hot(
+            #     wbdef_mask_, opt['dec:logit:output_size'], on_value=-1e5, off_value=0.0,
+            #     dtype=tf.float32)
             word_emb_opt = util.dict_with_key_startswith(opt, 'enc:emb:')
             with tfg.maybe_scope(word_emb_scope, True):
                 wbdef_word_lookup_, _e = tfg.create_lookup(

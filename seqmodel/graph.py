@@ -327,6 +327,26 @@ def create_tdnn(
 def create_neural_cache(
         keys, values, batch_size, key_dim, cache_size=50, back_prop=False,
         scope=None, reuse=False, default_v=0):
+    """
+    Example Usage:
+        cache_size = 100
+        ctime, cvalues, cscores, reset_cache_op_ = tfg.create_neural_cache(
+            cell_output, label_, 20, 650, cache_size=cache_size, back_prop=True)
+        clogit = tfg.create_cache2logit(
+            ctime, cvalues, cscores, 10000, theta=0.25, alpha=1.5)
+        clogit = tfg.create_acache2logit(
+            cache_size, ctime, cvalues, cscores, 10000, 11, theta=0.25, emb=logit_w_)
+        if len(clogit) == 3:
+            scale, clogit, is_hit = clogit
+        else:
+            scale = 1.0
+            clogit, is_hit = clogit
+        my_max = tf.stop_gradient(tf.maximum(logit_, clogit))
+        _exp_logit = tf.exp(logit_ - my_max)
+        _exp_clogit = is_hit * scale * tf.exp(clogit - my_max)
+        sum_logit = tf.log(tf.maximum(_exp_logit + _exp_clogit, math.exp(-20)))
+        logit_ = (1 - is_hit) * logit_ + is_hit * (sum_logit + my_max)
+    """
     if scope is None:
         scope = 'cache'
     with tf.variable_scope(scope, reuse=reuse):
