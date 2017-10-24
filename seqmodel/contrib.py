@@ -15,7 +15,7 @@ from seqmodel.model import Seq2SeqModel
 
 __all__ = ['NGramCell', 'create_anticache_rnn', 'apply_anticache', 'QStochasticRNN',
            'create_decode_ac', 'progression_regularizer', 'StochasticRNN',
-           'sample_normal', 'kl_normal_normal', 'FWIRNN']
+           'sample_normal', 'kl_normal_normal', 'FWIRNN', 'FWCell']
 
 
 def clipped_lrelu(x, alpha=1/3):
@@ -340,7 +340,7 @@ def prepare_model_for_data_graph(model, idx_node):
 
 class FWIRNN(tf.nn.rnn_cell.RNNCell):
 
-    def __init__(self, num_units, decay=0.80, learn=0.5, inner_loops=2, max_history=20):
+    def __init__(self, num_units, decay=0.80, learn=0.5, inner_loops=1, max_history=20):
         self.num_units = num_units
         self.eta = learn
         self.lambda_ = decay
@@ -393,6 +393,50 @@ class FWIRNN(tf.nn.rnn_cell.RNNCell):
             history = tf.concat([history, tf.expand_dims(hs, axis=1)], axis=1)[:, 1:, :]
             history = tf.reshape(history, [-1, self.T*self.num_units])
             return hs, (hs, history)
+
+
+class IRNN(tf.nn.rnn_cell.RNNCell):
+
+    def __init__(self, num_units, activation=None, layer_norm=False):
+        self.num_units = num_units
+        self._activation = activation
+        self._layer_norm = layer_norm
+
+    @property
+    def output_size(self):
+        return self.num_units
+
+    @property
+    def state_size(self):
+        return self.num_units
+
+    def __call__(self, inputs, state, scope=None):
+        with tf.variable_scope(scope or type(self).__name__):
+            # init
+            init_h2h_w = np.diag([1.0] * self.num_units)
+            _fan_in = int(inputs.get_shape()[-1])
+            _scale = max(1.0, (_fan_in + self.num_units) / 2)
+            init_h2x_w = np.random.rand(_fan_in, self.num_units) * np.sqrt(3.0 * _scale)
+            _w = np.concatenate([init_h2h_w, init_h2x_w], axis=0)
+            init_w = tf.constant_initializer(_w)
+            # transition
+            concat = tf.concat([state, inputs], axis=-1)
+            h = tf.layers.dense(concat, self.num_units, kernel_initializer=init_w)
+            if self._layer_norm:
+                h = tf.contrib.layers.layer_norm(h)
+            if self._activation is not None:
+                h = self._activation(h)
+            return h, h
+
+
+def layer_norm(inputs, epsilon=1e-5, max=1000, scope=None):
+    """ Layer normalizes a 2D tensor along its second axis, which corresponds to batch """
+    with tf.variable_scope(scope or 'layer_norm'):
+        s = tf.get_variable('scale', shape=1, dtype=tf.float32)
+        b = tf.get_variable('beta', shape=1, dtype=tf.float32)
+        m, v = tf.nn.moments(inputs, [1], keep_dims=True)
+        normalised_input = (inputs - m) / tf.sqrt(v + epsilon)
+        return normalised_input * s + b
 
 ###########################################################################
 #       ###    ##     ## ########  #######  ######## ##    ##  ######     #
