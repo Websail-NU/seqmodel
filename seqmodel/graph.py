@@ -22,7 +22,8 @@ __all__ = ['_safe_div', 'tfph_collection', 'create_2d_tensor', 'matmul', 'create
            'create_pg_train_op', 'seeded_decode_select_fn', 'greedy_decode_select',
            'sampling_decode_select', 'create_gated_layer', 'gather_2d', 'shift',
            'create_global_stat_loss', 'meshgrid3d', 'mat3indices', 'create_neural_cache',
-           'create_cache2logit', 'create_acache2logit']
+           'create_cache2logit', 'create_acache2logit', 'create_bidi_rnn',
+           'clipped_lrelu', 'kl_normal_normal', 'sample_normal', 'tensor2gaussian']
 
 
 _global_collections = {}
@@ -264,9 +265,34 @@ def scan_rnn(
 scan_rnn_no_mask = partial(scan_rnn, mask_output=False)
 
 
+def create_bidi_rnn(
+        cell_fw, cell_bw, inputs, sequence_length=None, initial_state=None,
+        rnn_fn=tf.nn.bidirectional_dynamic_rnn, batch_size=None,
+        reset_fw_state=False, reset_bw_state=False):
+    """return output (all time steps), initial state, and final state in time major."""
+    if isinstance(rnn_fn, six.string_types):
+        rnn_fn = locate(rnn_fn)
+    if batch_size is None:
+        batch_size = _tf_shape_of_tensor_or_tuple(inputs)
+    fw_zero_state = cell_fw.zero_state(batch_size, tf.float32)
+    bw_zero_state = cell_bw.zero_state(batch_size, tf.float32)
+    if initial_state is None:
+        initial_state = (fw_zero_state, bw_zero_state)
+    cell_output, final_state = rnn_fn(
+        cell_fw, cell_bw, inputs=inputs, sequence_length=sequence_length,
+        initial_state_fw=initial_state[0], initial_state_bw=initial_state[1],
+        time_major=True, dtype=tf.float32)
+    final_state = list(final_state)
+    if reset_fw_state:
+        final_state[0] = fw_zero_state
+    if reset_bw_state:
+        final_state[1] = bw_zero_state
+    return cell_output, initial_state, tuple(final_state)
+
+
 def create_rnn(
-        cell, inputs, sequence_length=None, initial_state=None, rnn_fn=tf.nn.dynamic_rnn,
-        batch_size=None):
+        cell, inputs, sequence_length=None, initial_state=None,
+        rnn_fn=tf.nn.dynamic_rnn, batch_size=None):
     """return output (all time steps), initial state, and final state in time major."""
     if isinstance(rnn_fn, six.string_types):
         rnn_fn = locate(rnn_fn)
@@ -843,8 +869,9 @@ def create_xent_loss(logit, label, weight, seq_weight=None, loss_denom=None):
         training_loss = sum_loss
     batch_loss = tf.reduce_sum(tf.multiply(loss, weight), axis=0)
     batch_loss = batch_loss / tf.reduce_sum(weight, axis=0)
-    # return mean_loss, mean_loss, batch_loss
-    return mean_loss, training_loss, batch_loss, nll
+
+    # return mean_loss, training_loss, batch_loss, nll
+    return mean_loss, mean_loss, batch_loss, nll
 
 
 def create_ent_loss(distribution, weight, seq_weight=None):
@@ -1037,3 +1064,50 @@ def create_pg_train_op(
     clipped_grads, _norm = tf.clip_by_global_norm(grads, clip_gradients)
     train_op = optim.apply_gradients(zip(clipped_grads, variables))
     return train_op
+
+########################################################
+#    ########     ###    ##    ## ########  ######     #
+#    ##     ##   ## ##    ##  ##  ##       ##    ##    #
+#    ##     ##  ##   ##    ####   ##       ##          #
+#    ########  ##     ##    ##    ######    ######     #
+#    ##     ## #########    ##    ##             ##    #
+#    ##     ## ##     ##    ##    ##       ##    ##    #
+#    ########  ##     ##    ##    ########  ######     #
+########################################################
+
+
+def clipped_lrelu(x, alpha=1/3):
+    return tf.clip_by_value(tf.maximum(x, alpha * x), -3, 3)
+
+
+def tensor2gaussian(
+        tensor, out_dim, residual_mu=None, residual_logvar=None,
+        activation=None, name='gaussian'):
+    if activation is None:
+        activation = clipped_lrelu
+    g_hidden = tf.layers.dense(
+        tensor, out_dim*2, activation=activation, name=f'{name}_hidden')
+    g_params = tf.layers.dense(
+        g_hidden, out_dim*2, activation=None, name=f'{name}_output')
+
+    mu = tf.slice(g_params, [0, 0], [-1, out_dim])
+    if residual_mu is not None:
+        mu += residual_mu
+    logvar = tf.slice(g_params, [0, out_dim], [-1, -1])
+    if residual_logvar is not None:
+        logvar += residual_logvar
+    logvar = tf.log(tf.exp(logvar) + 1e-6)
+    return mu, logvar
+
+
+def sample_normal(mu, logvar):
+    epsilon = tf.random_normal(tf.shape(logvar))
+    std = tf.exp(0.5 * logvar)
+    z = mu + tf.multiply(std, epsilon)
+    return z
+
+
+def kl_normal_normal(mu1, logvar1, mu2, logvar2):
+    kld = 0.5 * logvar2 - 0.5 * logvar1
+    kld += (tf.exp(logvar1) + (mu1 - mu2) ** 2) / (2 * tf.exp(logvar2)) - 0.5
+    return kld

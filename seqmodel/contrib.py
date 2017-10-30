@@ -15,7 +15,7 @@ from seqmodel.model import Seq2SeqModel
 
 __all__ = ['NGramCell', 'create_anticache_rnn', 'apply_anticache', 'QStochasticRNN',
            'create_decode_ac', 'progression_regularizer', 'StochasticRNN',
-           'sample_normal', 'kl_normal_normal', 'FWIRNN', 'IRNN']
+           'tensor2gaussian', 'sample_normal', 'kl_normal_normal', 'FWIRNN', 'IRNN']
 
 
 def clipped_lrelu(x, alpha=1/3):
@@ -438,16 +438,6 @@ def layer_norm(inputs, epsilon=1e-5, max=1000, scope=None):
         normalised_input = (inputs - m) / tf.sqrt(v + epsilon)
         return normalised_input * s + b
 
-###########################################################################
-#       ###    ##     ## ########  #######  ######## ##    ##  ######     #
-#      ## ##   ##     ##    ##    ##     ## ##       ###   ## ##    ##    #
-#     ##   ##  ##     ##    ##    ##     ## ##       ####  ## ##          #
-#    ##     ## ##     ##    ##    ##     ## ######   ## ## ## ##          #
-#    ######### ##     ##    ##    ##     ## ##       ##  #### ##          #
-#    ##     ## ##     ##    ##    ##     ## ##       ##   ### ##    ##    #
-#    ##     ##  #######     ##     #######  ######## ##    ##  ######     #
-###########################################################################
-
 
 class AutoSeqModel(Seq2SeqModel):
 
@@ -602,3 +592,59 @@ class AutoSeqModel(Seq2SeqModel):
                 graph_args['feature_feed'] = dstruct.Seq2SeqFeatureTuple(*_f)
             self.set_graph(**graph_args)
             return nodes
+
+
+class BiDiSeqModel(SeqModel):
+
+    @classmethod
+    def default_opt(cls):
+        rnn_opt = super().default_opt()
+        rnn_opt['rnn:fn'] = 'tensorflow.nn.bidirectional_dynamic_rnn'
+        return rnn_opt
+
+    def _build_rnn(
+            self, opt, lookup, seq_len, initial_state, batch_size, reuse_scope, reuse):
+        cell_opt = util.dict_with_key_startswith(opt, 'cell:')
+        with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
+            _reuse = reuse or scope is not None
+            cell_fw_ = tfg.create_cells(
+                reuse=_reuse, input_size=opt['emb:dim'], **cell_opt)
+            cell_bw_ = tfg.create_cells(
+                reuse=_reuse, input_size=opt['emb:dim'], **cell_opt)
+            cell_output_, initial_state_, final_state_ = tfg.create_bidi_rnn(
+                cell_fw_, cell_bw_, lookup, seq_len, initial_state,
+                rnn_fn=opt['rnn:fn'], batch_size=batch_size, reset_bw_state=True)
+            cell_ = (cell_fw_, cell_bw_)
+        return cell_, cell_output_, initial_state_, final_state_
+
+    def _build_logit(
+            self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output,
+            initial_state=None):
+        prior = tf.concat(
+            [tf.expand_dims(tf.nn.dropout(initial_state[0].h, 0.5), 0),
+             cell_output[0]], axis=0)
+        with tf.variable_scope('variational') as scope:
+            p_mu, p_logvar = tfg.tensor2gaussian(prior[0:-1], 650)
+            scope.reuse_variables()
+            q_mu, q_logvar = tfg.tensor2gaussian(cell_output[1], 650)
+            regularizer = tfg.kl_normal_normal(p_mu, p_logvar, q_mu, q_logvar)
+            self.regularizer = tf.reduce_sum(regularizer)
+            z = tf.nn.dropout(tfg.sample_normal(q_mu, q_logvar), 0.5)
+        return super()._build_logit(
+            opt, reuse_scope, collect_kwargs, emb_vars, z)
+
+    def _build_loss(
+            self, opt, logit, label, weight, seq_weight, nodes, collect_key,
+            add_to_collection, inputs=None, cell_output=None, initial_state=None):
+        label = inputs
+        with tfg.tfph_collection(collect_key, add_to_collection) as get:
+            name = 'train_loss_denom'
+            train_loss_denom_ = get(name, tf.float32, shape=[])
+        mean_loss_, train_loss_, batch_loss_, nll_ = tfg.create_xent_loss(
+            logit, label, weight, seq_weight, train_loss_denom_)
+        train_loss_ += self.regularizer / train_loss_denom_
+        mean_loss_ += self.regularizer / tf.reduce_sum(weight)
+        train_fetch = {'train_loss': train_loss_, 'eval_loss': mean_loss_}
+        eval_fetch = {'eval_loss': mean_loss_}
+        nodes = util.dict_with_key_endswith(locals(), '_')
+        return train_fetch, eval_fetch, nodes

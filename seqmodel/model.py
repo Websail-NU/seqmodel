@@ -225,7 +225,7 @@ class SeqModel(Model):
 
     @classmethod
     def default_opt(cls):
-        opt = {'emb:vocab_size': 14, 'emb:dim': 32, 'emb:trainable': True,
+        opt = {'emb:vocab_size': 15, 'emb:dim': 32, 'emb:trainable': True,
                'emb:init': None, 'emb:add_project': False, 'emb:project_size': -1,
                'emb:project_act': 'tensorflow.tanh',
                'cell:num_units': 32, 'cell:num_layers': 1,
@@ -234,7 +234,7 @@ class SeqModel(Model):
                'cell:state_keep_prob': 1.0, 'cell:variational': False,
                'rnn:fn': 'tensorflow.nn.dynamic_rnn',
                'out:logit': True, 'out:loss': True, 'out:decode': False,
-               'logit:output_size': 14, 'logit:use_bias': True, 'logit:trainable': True,
+               'logit:output_size': 15, 'logit:use_bias': True, 'logit:trainable': True,
                'logit:init': None, 'logit:add_project': False, 'logit:project_size': -1,
                'logit:project_act': 'tensorflow.tanh', 'loss:type': 'xent',
                'loss:add_entropy': False, 'loss:add_gns': False,
@@ -291,6 +291,7 @@ class SeqModel(Model):
             'add_to_collection': True, 'collect_key': collect_key, 'prefix': prefix}
         # input and embedding
         input_, seq_len_ = tfg.get_seq_input_placeholders(**collect_kwargs)
+        self._seq_len = seq_len_
         emb_opt = util.dict_with_key_startswith(opt, 'emb:')
         _emb_scope = reuse_scope[self._RSK_EMB_]
         if 'global_emb_scope' in kwargs:
@@ -311,7 +312,8 @@ class SeqModel(Model):
         # output
         if opt['out:logit']:
             logit, label_feed, output_fectch, output_nodes = self._build_logit(
-                opt, reuse_scope, collect_kwargs, emb_vars_, cell_output_)
+                opt, reuse_scope, collect_kwargs, emb_vars_, cell_output_,
+                initial_state=initial_state_)
             predict_fetch.update(output_fectch)
             nodes.update(output_nodes)
             graph_args.update(label_feed=label_feed)
@@ -319,7 +321,8 @@ class SeqModel(Model):
         if opt['out:loss'] and opt['out:logit']:
             train_fetch, eval_fetch, loss_nodes = self._build_loss(
                 opt, logit, *label_feed, nodes, collect_key,
-                collect_kwargs['add_to_collection'], inputs=input_)
+                collect_kwargs['add_to_collection'],
+                inputs=input_, cell_output=cell_output_, initial_state=initial_state_)
             nodes.update(loss_nodes)
             graph_args.update(train_fetch=train_fetch, eval_fetch=eval_fetch)
         elif not opt['out:logit'] and opt['out:loss']:
@@ -345,13 +348,15 @@ class SeqModel(Model):
         with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
             _reuse = reuse or scope is not None
             cell_ = tfg.create_cells(reuse=_reuse, input_size=opt['emb:dim'], **cell_opt)
-        with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
             cell_output_, initial_state_, final_state_ = tfg.create_rnn(
                 cell_, lookup, seq_len, initial_state, rnn_fn=opt['rnn:fn'],
                 batch_size=batch_size)
         return cell_, cell_output_, initial_state_, final_state_
 
-    def _build_logit(self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output):
+    def _build_logit(
+            self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output,
+            initial_state=None):
+        # cell_output = tfg.select_rnn(cell_output, self._seq_len - 1)
         # logit
         logit_w_ = emb_vars if opt['share:input_emb_logit'] else None
         logit_opt = util.dict_with_key_startswith(opt, 'logit:')
@@ -373,8 +378,10 @@ class SeqModel(Model):
         nodes = util.dict_with_key_endswith(locals(), '_')
         return logit_, label_feed, predict_fetch, nodes
 
-    def _build_loss(self, opt, logit, label, weight, seq_weight, nodes,
-                    collect_key, add_to_collection, inputs=None):
+    def _build_loss(
+            self, opt, logit, label, weight, seq_weight, nodes, collect_key,
+            add_to_collection, inputs=None, cell_output=None, initial_state=None):
+        # label = tf.squeeze(label)
         if opt['loss:type'] == 'xent':
             with tfg.tfph_collection(collect_key, add_to_collection) as get:
                 name = 'train_loss_denom'
@@ -492,7 +499,6 @@ class SeqModel(Model):
             sess, features[0: self._ENC_FEA_LEN_], predict_key='decode_sampling_score',
             extra_fetch=extra_fetch, **kwargs)
 
-
 ###########################################################################
 #     ######  ########  #######   #######   ######  ########  #######     #
 #    ##    ## ##       ##     ## ##     ## ##    ## ##       ##     ##    #
@@ -605,7 +611,7 @@ class Seq2SeqModel(SeqModel):
 
     def _build_attn_logit(
             self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output, enc_output,
-            full_opt, reuse):
+            full_opt, reuse, initial_state=None):
         with tf.variable_scope('attention', reuse=reuse) as attn_scope:
             attn_context_, attn_scores_ = tfg.attn_dot(
                 q=cell_output, k=enc_output, v=enc_output, time_major=True)
@@ -727,7 +733,7 @@ class Word2DefModel(Seq2SeqModel):
 
     def _build_gated_logit(
             self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output, wbdef,
-            wbdef_scope, wbdef_nodes, full_opt, reuse):
+            wbdef_scope, wbdef_nodes, full_opt, reuse, initial_state=None):
         wbdef_nodes = {} if wbdef_nodes is None else wbdef_nodes
         # cell_output = tf.slice(cell_output, [0, 0, 100], [-1, -1, -1])
         with tfg.maybe_scope(wbdef_scope, reuse):

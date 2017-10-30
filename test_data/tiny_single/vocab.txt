@@ -2,6 +2,7 @@
 <s>
 </enc>
 <unk>
+<begin>
 a
 b
 c

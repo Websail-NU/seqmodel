@@ -206,6 +206,17 @@ def masked_full_like(np_data, value, num_non_padding=None, padding=0, dtype=np.f
     return arr, total_non_pad
 
 
+def masked_last_like(np_data, value, num_non_padding=None, padding=0, dtype=np.float32):
+    arr = np.full_like(np_data, 0, dtype=dtype)
+    total_non_pad = 0
+    if num_non_padding is not None and total_non_pad < np_data.size:
+        # is there a way to avoid this for loop?
+        for i, last in enumerate(num_non_padding):
+            arr[last - 1, i] = value
+            total_non_pad += 1
+    return arr, total_non_pad
+
+
 def find_first_min_zero(arr):
     return np.max(np.vstack(
         [np.apply_along_axis(np.argmax, 0, arr == 0),

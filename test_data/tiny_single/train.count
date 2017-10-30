@@ -1,0 +1,13233 @@
+<s>	10000
+<s> b	2565
+<s> b b	81
+<s> b b b	43
+<s> b b b </s>	9
+<s> b b b e	18
+<s> b b b f	3
+<s> b b b g	9
+<s> b b b j	1
+<s> b b b h	3
+<s> b b e	15
+<s> b b e </s>	2
+<s> b b e f	2
+<s> b b e e	9
+<s> b b e h	1
+<s> b b e g	1
+<s> b b a	9
+<s> b b a </s>	2
+<s> b b a a	1
+<s> b b a h	2
+<s> b b a g	2
+<s> b b a e	2
+<s> b b c	13
+<s> b b c </s>	1
+<s> b b c h	3
+<s> b b c g	6
+<s> b b c e	1
+<s> b b c j	1
+<s> b b c a	1
+<s> b b f	1
+<s> b b f </s>	1
+<s> b f	1313
+<s> b f b	676
+<s> b f b </s>	123
+<s> b f b b	1
+<s> b f b h	69
+<s> b f b e	282
+<s> b f b g	136
+<s> b f b d	6
+<s> b f b a	7
+<s> b f b f	17
+<s> b f b j	35
+<s> b f f	24
+<s> b f f </s>	8
+<s> b f f a	1
+<s> b f f g	5
+<s> b f f j	1
+<s> b f f h	2
+<s> b f f e	7
+<s> b f e	293
+<s> b f e </s>	53
+<s> b f e b	1
+<s> b f e f	9
+<s> b f e g	57
+<s> b f e e	109
+<s> b f e h	37
+<s> b f e j	16
+<s> b f e d	6
+<s> b f e a	4
+<s> b f e i	1
+<s> b f g	52
+<s> b f g </s>	7
+<s> b f g g	14
+<s> b f g e	19
+<s> b f g h	11
+<s> b f g j	1
+<s> b f i	5
+<s> b f i </s>	2
+<s> b f i e	1
+<s> b f i h	1
+<s> b f i g	1
+<s> b f c	186
+<s> b f c </s>	31
+<s> b f c h	22
+<s> b f c e	76
+<s> b f c g	44
+<s> b f c j	9
+<s> b f c f	2
+<s> b f c a	1
+<s> b f c d	1
+<s> b f d	6
+<s> b f d e	2
+<s> b f d j	2
+<s> b f d h	1
+<s> b f d g	1
+<s> b f a	68
+<s> b f a </s>	18
+<s> b f a e	29
+<s> b f a g	11
+<s> b f a h	7
+<s> b f a f	2
+<s> b f a j	1
+<s> b f h	1
+<s> b f h e	1
+<s> b f j	2
+<s> b f j e	1
+<s> b f j </s>	1
+<s> b a	148
+<s> b a b	72
+<s> b a b </s>	20
+<s> b a b e	27
+<s> b a b g	13
+<s> b a b h	8
+<s> b a b j	3
+<s> b a b a	1
+<s> b a f	4
+<s> b a f e	2
+<s> b a f </s>	2
+<s> b a e	41
+<s> b a e e	15
+<s> b a e </s>	7
+<s> b a e h	7
+<s> b a e g	12
+<s> b a a	7
+<s> b a a g	2
+<s> b a a h	1
+<s> b a a </s>	3
+<s> b a a e	1
+<s> b a g	6
+<s> b a g g	3
+<s> b a g e	3
+<s> b a c	16
+<s> b a c </s>	5
+<s> b a c g	4
+<s> b a c e	4
+<s> b a c j	1
+<s> b a c h	2
+<s> b a h	1
+<s> b a h f	1
+<s> b a d	1
+<s> b a d g	1
+<s> b g	635
+<s> b g b	304
+<s> b g b </s>	54
+<s> b g b h	37
+<s> b g b e	120
+<s> b g b g	64
+<s> b g b j	17
+<s> b g b a	2
+<s> b g b d	3
+<s> b g b f	7
+<s> b g f	10
+<s> b g f e	3
+<s> b g f g	4
+<s> b g f h	2
+<s> b g f </s>	1
+<s> b g g	24
+<s> b g g </s>	4
+<s> b g g e	8
+<s> b g g j	3
+<s> b g g g	7
+<s> b g g h	2
+<s> b g e	157
+<s> b g e </s>	31
+<s> b g e b	1
+<s> b g e h	15
+<s> b g e e	56
+<s> b g e g	38
+<s> b g e j	6
+<s> b g e f	9
+<s> b g e d	1
+<s> b g c	83
+<s> b g c </s>	15
+<s> b g c e	31
+<s> b g c g	18
+<s> b g c f	6
+<s> b g c j	5
+<s> b g c h	7
+<s> b g c a	1
+<s> b g a	52
+<s> b g a </s>	7
+<s> b g a e	24
+<s> b g a g	14
+<s> b g a d	1
+<s> b g a j	1
+<s> b g a h	3
+<s> b g a f	2
+<s> b g h	1
+<s> b g h e	1
+<s> b g j	1
+<s> b g j e	1
+<s> b g d	3
+<s> b g d e	1
+<s> b g d g	2
+<s> b c	334
+<s> b c b	179
+<s> b c b </s>	24
+<s> b c b b	1
+<s> b c b f	7
+<s> b c b e	78
+<s> b c b j	9
+<s> b c b g	39
+<s> b c b c	1
+<s> b c b h	18
+<s> b c b a	1
+<s> b c b d	1
+<s> b c f	10
+<s> b c f e	7
+<s> b c f h	1
+<s> b c f j	2
+<s> b c c	30
+<s> b c c </s>	4
+<s> b c c e	12
+<s> b c c g	8
+<s> b c c h	3
+<s> b c c j	2
+<s> b c c d	1
+<s> b c e	86
+<s> b c e </s>	11
+<s> b c e b	1
+<s> b c e h	7
+<s> b c e g	24
+<s> b c e e	31
+<s> b c e j	9
+<s> b c e a	2
+<s> b c e f	1
+<s> b c g	9
+<s> b c g </s>	2
+<s> b c g e	3
+<s> b c g h	2
+<s> b c g g	1
+<s> b c g j	1
+<s> b c a	19
+<s> b c a </s>	2
+<s> b c a e	8
+<s> b c a g	7
+<s> b c a j	1
+<s> b c a f	1
+<s> b c j	1
+<s> b c j e	1
+<s> b i	28
+<s> b i e	10
+<s> b i e </s>	1
+<s> b i e e	5
+<s> b i e h	1
+<s> b i e g	2
+<s> b i e a	1
+<s> b i b	14
+<s> b i b </s>	3
+<s> b i b e	2
+<s> b i b h	4
+<s> b i b g	4
+<s> b i b j	1
+<s> b i a	3
+<s> b i a e	3
+<s> b i c	1
+<s> b i c e	1
+<s> b d	13
+<s> b d b	6
+<s> b d b g	2
+<s> b d b </s>	2
+<s> b d b e	1
+<s> b d b h	1
+<s> b d f	1
+<s> b d f e	1
+<s> b d e	3
+<s> b d e e	2
+<s> b d e </s>	1
+<s> b d c	2
+<s> b d c e	1
+<s> b d c g	1
+<s> b d g	1
+<s> b d g h	1
+<s> b h	8
+<s> b h b	3
+<s> b h b g	2
+<s> b h b h	1
+<s> b h e	3
+<s> b h e </s>	1
+<s> b h e e	1
+<s> b h e g	1
+<s> b h f	1
+<s> b h f e	1
+<s> b h c	1
+<s> b h c g	1
+<s> b j	3
+<s> b j e	1
+<s> b j e h	1
+<s> b j b	2
+<s> b j b h	1
+<s> b j b g	1
+<s> b e	2
+<s> b e c	1
+<s> b e c e	1
+<s> b e g	1
+<s> b e g e	1
+<s> f	142
+<s> f b	4
+<s> f b e	2
+<s> f b e h	2
+<s> f b b	2
+<s> f b b e	2
+<s> f f	82
+<s> f f b	41
+<s> f f b </s>	5
+<s> f f b e	15
+<s> f f b g	12
+<s> f f b j	3
+<s> f f b f	1
+<s> f f b h	4
+<s> f f b a	1
+<s> f f e	21
+<s> f f e </s>	6
+<s> f f e g	4
+<s> f f e e	7
+<s> f f e j	2
+<s> f f e h	1
+<s> f f e f	1
+<s> f f c	10
+<s> f f c j	1
+<s> f f c e	4
+<s> f f c g	3
+<s> f f c </s>	2
+<s> f f a	6
+<s> f f a </s>	5
+<s> f f a e	1
+<s> f f f	1
+<s> f f f e	1
+<s> f f h	1
+<s> f f h h	1
+<s> f f g	2
+<s> f f g e	1
+<s> f f g b	1
+<s> f g	39
+<s> f g b	18
+<s> f g b </s>	2
+<s> f g b g	5
+<s> f g b e	8
+<s> f g b h	2
+<s> f g b f	1
+<s> f g a	3
+<s> f g a </s>	1
+<s> f g a e	1
+<s> f g a g	1
+<s> f g f	2
+<s> f g f e	1
+<s> f g f g	1
+<s> f g e	10
+<s> f g e e	3
+<s> f g e g	4
+<s> f g e h	2
+<s> f g e </s>	1
+<s> f g c	4
+<s> f g c g	2
+<s> f g c </s>	1
+<s> f g c h	1
+<s> f g j	1
+<s> f g j </s>	1
+<s> f g i	1
+<s> f g i d	1
+<s> f c	10
+<s> f c e	3
+<s> f c e g	1
+<s> f c e </s>	1
+<s> f c e e	1
+<s> f c b	6
+<s> f c b </s>	1
+<s> f c b h	1
+<s> f c b j	1
+<s> f c b e	2
+<s> f c b g	1
+<s> f c a	1
+<s> f c a g	1
+<s> f a	5
+<s> f a b	3
+<s> f a b e	2
+<s> f a b </s>	1
+<s> f a d	1
+<s> f a d e	1
+<s> f a c	1
+<s> f a c e	1
+<s> f d	1
+<s> f d f	1
+<s> f d f g	1
+<s> f i	1
+<s> f i c	1
+<s> f i c g	1
+<s> a	4959
+<s> a b	148
+<s> a b b	72
+<s> a b b </s>	11
+<s> a b b g	18
+<s> a b b e	32
+<s> a b b j	4
+<s> a b b h	7
+<s> a b e	41
+<s> a b e </s>	9
+<s> a b e h	5
+<s> a b e j	5
+<s> a b e e	15
+<s> a b e g	6
+<s> a b e d	1
+<s> a b g	3
+<s> a b g j	1
+<s> a b g </s>	1
+<s> a b g e	1
+<s> a b c	19
+<s> a b c </s>	3
+<s> a b c g	3
+<s> a b c e	8
+<s> a b c h	2
+<s> a b c j	3
+<s> a b a	10
+<s> a b a </s>	3
+<s> a b a e	4
+<s> a b a g	1
+<s> a b a j	1
+<s> a b a h	1
+<s> a b f	2
+<s> a b f e	1
+<s> a b f </s>	1
+<s> a b i	1
+<s> a b i h	1
+<s> a f	2547
+<s> a f b	1246
+<s> a f b </s>	203
+<s> a f b b	2
+<s> a f b h	131
+<s> a f b e	535
+<s> a f b f	35
+<s> a f b g	253
+<s> a f b j	65
+<s> a f b d	17
+<s> a f b a	4
+<s> a f b c	1
+<s> a f f	42
+<s> a f f </s>	7
+<s> a f f g	9
+<s> a f f e	19
+<s> a f f h	4
+<s> a f f a	1
+<s> a f f j	1
+<s> a f f f	1
+<s> a f g	88
+<s> a f g </s>	13
+<s> a f g g	14
+<s> a f g e	43
+<s> a f g h	9
+<s> a f g j	5
+<s> a f g d	3
+<s> a f g f	1
+<s> a f c	355
+<s> a f c </s>	65
+<s> a f c b	1
+<s> a f c h	48
+<s> a f c e	135
+<s> a f c g	66
+<s> a f c a	4
+<s> a f c f	16
+<s> a f c d	6
+<s> a f c j	14
+<s> a f a	147
+<s> a f a </s>	26
+<s> a f a h	18
+<s> a f a e	51
+<s> a f a a	4
+<s> a f a g	33
+<s> a f a j	8
+<s> a f a f	5
+<s> a f a d	2
+<s> a f e	638
+<s> a f e </s>	107
+<s> a f e h	61
+<s> a f e g	127
+<s> a f e e	258
+<s> a f e j	39
+<s> a f e a	10
+<s> a f e f	27
+<s> a f e d	8
+<s> a f e c	1
+<s> a f d	18
+<s> a f d </s>	5
+<s> a f d h	7
+<s> a f d g	3
+<s> a f d e	2
+<s> a f d f	1
+<s> a f h	5
+<s> a f h </s>	1
+<s> a f h h	2
+<s> a f h f	1
+<s> a f h g	1
+<s> a f j	5
+<s> a f j e	3
+<s> a f j g	2
+<s> a f i	3
+<s> a f i g	2
+<s> a f i e	1
+<s> a g	1245
+<s> a g b	639
+<s> a g b </s>	112
+<s> a g b b	2
+<s> a g b h	72
+<s> a g b g	137
+<s> a g b e	262
+<s> a g b j	33
+<s> a g b d	9
+<s> a g b f	10
+<s> a g b a	2
+<s> a g f	17
+<s> a g f </s>	4
+<s> a g f e	5
+<s> a g f j	1
+<s> a g f g	4
+<s> a g f h	3
+<s> a g e	302
+<s> a g e </s>	53
+<s> a g e b	1
+<s> a g e h	34
+<s> a g e e	127
+<s> a g e g	56
+<s> a g e f	6
+<s> a g e j	18
+<s> a g e d	4
+<s> a g e a	3
+<s> a g c	162
+<s> a g c </s>	20
+<s> a g c f	6
+<s> a g c g	32
+<s> a g c e	76
+<s> a g c h	17
+<s> a g c i	2
+<s> a g c j	8
+<s> a g c a	1
+<s> a g g	41
+<s> a g g </s>	11
+<s> a g g h	4
+<s> a g g g	4
+<s> a g g j	6
+<s> a g g d	1
+<s> a g g e	12
+<s> a g g a	1
+<s> a g g f	2
+<s> a g a	69
+<s> a g a </s>	13
+<s> a g a e	30
+<s> a g a g	19
+<s> a g a j	4
+<s> a g a h	3
+<s> a g j	7
+<s> a g j e	1
+<s> a g j g	4
+<s> a g j </s>	2
+<s> a g d	6
+<s> a g d </s>	1
+<s> a g d d	1
+<s> a g d j	2
+<s> a g d e	2
+<s> a g i	2
+<s> a g i e	1
+<s> a g i </s>	1
+<s> a a	296
+<s> a a b	158
+<s> a a b </s>	36
+<s> a a b e	66
+<s> a a b f	6
+<s> a a b g	29
+<s> a a b j	5
+<s> a a b h	15
+<s> a a b d	1
+<s> a a h	1
+<s> a a h e	1
+<s> a a e	66
+<s> a a e </s>	15
+<s> a a e e	21
+<s> a a e a	2
+<s> a a e h	10
+<s> a a e g	13
+<s> a a e j	4
+<s> a a e f	1
+<s> a a c	41
+<s> a a c </s>	7
+<s> a a c g	12
+<s> a a c e	17
+<s> a a c j	1
+<s> a a c h	4
+<s> a a d	6
+<s> a a d </s>	2
+<s> a a d e	3
+<s> a a d g	1
+<s> a a g	4
+<s> a a g e	3
+<s> a a g j	1
+<s> a a j	3
+<s> a a j e	2
+<s> a a j </s>	1
+<s> a a a	17
+<s> a a a </s>	2
+<s> a a a e	8
+<s> a a a h	2
+<s> a a a j	3
+<s> a a a g	2
+<s> a c	615
+<s> a c b	310
+<s> a c b </s>	38
+<s> a c b b	1
+<s> a c b f	8
+<s> a c b e	130
+<s> a c b g	71
+<s> a c b a	4
+<s> a c b j	21
+<s> a c b d	6
+<s> a c b h	30
+<s> a c b i	1
+<s> a c f	10
+<s> a c f g	4
+<s> a c f </s>	4
+<s> a c f e	2
+<s> a c e	150
+<s> a c e </s>	25
+<s> a c e b	1
+<s> a c e h	12
+<s> a c e e	59
+<s> a c e g	36
+<s> a c e j	7
+<s> a c e d	4
+<s> a c e f	6
+<s> a c c	74
+<s> a c c </s>	12
+<s> a c c h	6
+<s> a c c e	30
+<s> a c c g	16
+<s> a c c j	7
+<s> a c c d	1
+<s> a c c f	1
+<s> a c c i	1
+<s> a c a	41
+<s> a c a </s>	6
+<s> a c a e	14
+<s> a c a j	4
+<s> a c a g	10
+<s> a c a h	7
+<s> a c g	18
+<s> a c g </s>	3
+<s> a c g e	8
+<s> a c g g	5
+<s> a c g j	1
+<s> a c g f	1
+<s> a c d	6
+<s> a c d g	1
+<s> a c d h	2
+<s> a c d e	2
+<s> a c d f	1
+<s> a c i	2
+<s> a c i e	2
+<s> a c h	1
+<s> a c h g	1
+<s> a c j	3
+<s> a c j g	1
+<s> a c j h	2
+<s> a d	15
+<s> a d b	8
+<s> a d b g	6
+<s> a d b e	2
+<s> a d a	2
+<s> a d a </s>	1
+<s> a d a g	1
+<s> a d e	2
+<s> a d e e	1
+<s> a d e </s>	1
+<s> a d c	2
+<s> a d c e	1
+<s> a d c </s>	1
+<s> a d g	1
+<s> a d g g	1
+<s> a i	70
+<s> a i b	30
+<s> a i b </s>	3
+<s> a i b e	13
+<s> a i b j	4
+<s> a i b h	4
+<s> a i b g	4
+<s> a i b d	2
+<s> a i e	27
+<s> a i e </s>	5
+<s> a i e e	13
+<s> a i e d	1
+<s> a i e g	6
+<s> a i e h	2
+<s> a i c	9
+<s> a i c </s>	2
+<s> a i c e	3
+<s> a i c j	1
+<s> a i c g	2
+<s> a i c h	1
+<s> a i a	1
+<s> a i a h	1
+<s> a i f	1
+<s> a i f j	1
+<s> a i g	2
+<s> a i g </s>	1
+<s> a i g e	1
+<s> a e	9
+<s> a e b	5
+<s> a e b e	3
+<s> a e b g	2
+<s> a e e	3
+<s> a e e e	3
+<s> a e c	1
+<s> a e c e	1
+<s> a h	11
+<s> a h e	6
+<s> a h e e	3
+<s> a h e </s>	2
+<s> a h e g	1
+<s> a h b	3
+<s> a h b g	1
+<s> a h b h	1
+<s> a h b e	1
+<s> a h c	2
+<s> a h c e	2
+<s> a j	3
+<s> a j b	2
+<s> a j b </s>	2
+<s> a j e	1
+<s> a j e g	1
+<s> e	309
+<s> e b	10
+<s> e b b	4
+<s> e b b e	2
+<s> e b b j	2
+<s> e b a	1
+<s> e b a e	1
+<s> e b c	1
+<s> e b c e	1
+<s> e b e	4
+<s> e b e </s>	2
+<s> e b e h	1
+<s> e b e e	1
+<s> e f	147
+<s> e f b	73
+<s> e f b </s>	14
+<s> e f b e	28
+<s> e f b h	8
+<s> e f b g	13
+<s> e f b f	4
+<s> e f b a	3
+<s> e f b d	3
+<s> e f f	5
+<s> e f f g	1
+<s> e f f </s>	2
+<s> e f f h	1
+<s> e f f e	1
+<s> e f e	38
+<s> e f e </s>	12
+<s> e f e e	15
+<s> e f e j	3
+<s> e f e g	5
+<s> e f e h	2
+<s> e f e f	1
+<s> e f c	18
+<s> e f c </s>	2
+<s> e f c g	5
+<s> e f c e	8
+<s> e f c f	2
+<s> e f c h	1
+<s> e f g	4
+<s> e f g e	2
+<s> e f g </s>	1
+<s> e f g g	1
+<s> e f a	7
+<s> e f a </s>	2
+<s> e f a h	1
+<s> e f a j	1
+<s> e f a g	2
+<s> e f a e	1
+<s> e f j	1
+<s> e f j h	1
+<s> e f d	1
+<s> e f d e	1
+<s> e g	90
+<s> e g b	46
+<s> e g b g	14
+<s> e g b </s>	8
+<s> e g b e	22
+<s> e g b h	2
+<s> e g f	1
+<s> e g f g	1
+<s> e g e	23
+<s> e g e g	5
+<s> e g e e	9
+<s> e g e h	3
+<s> e g e </s>	6
+<s> e g g	6
+<s> e g g </s>	1
+<s> e g g f	1
+<s> e g g g	1
+<s> e g g h	1
+<s> e g g e	2
+<s> e g a	6
+<s> e g a e	4
+<s> e g a f	1
+<s> e g a j	1
+<s> e g c	6
+<s> e g c h	1
+<s> e g c e	1
+<s> e g c g	2
+<s> e g c j	1
+<s> e g c f	1
+<s> e g h	1
+<s> e g h </s>	1
+<s> e g d	1
+<s> e g d e	1
+<s> e c	41
+<s> e c b	17
+<s> e c b </s>	4
+<s> e c b e	9
+<s> e c b g	2
+<s> e c b f	1
+<s> e c b h	1
+<s> e c e	15
+<s> e c e g	4
+<s> e c e e	7
+<s> e c e </s>	3
+<s> e c e f	1
+<s> e c g	3
+<s> e c g </s>	1
+<s> e c g h	1
+<s> e c g e	1
+<s> e c c	3
+<s> e c c </s>	1
+<s> e c c j	1
+<s> e c c g	1
+<s> e c f	1
+<s> e c f e	1
+<s> e c j	1
+<s> e c j g	1
+<s> e c a	1
+<s> e c a h	1
+<s> e a	14
+<s> e a c	2
+<s> e a c e	2
+<s> e a b	11
+<s> e a b </s>	1
+<s> e a b g	3
+<s> e a b h	2
+<s> e a b e	3
+<s> e a b d	2
+<s> e a e	1
+<s> e a e e	1
+<s> e i	5
+<s> e i b	2
+<s> e i b e	2
+<s> e i a	1
+<s> e i a e	1
+<s> e i e	1
+<s> e i e e	1
+<s> e i c	1
+<s> e i c </s>	1
+<s> e h	1
+<s> e h b	1
+<s> e h b </s>	1
+<s> e j	1
+<s> e j b	1
+<s> e j b e	1
+<s> c	1260
+<s> c b	44
+<s> c b b	25
+<s> c b b </s>	6
+<s> c b b e	10
+<s> c b b g	4
+<s> c b b h	4
+<s> c b b f	1
+<s> c b e	14
+<s> c b e e	4
+<s> c b e </s>	4
+<s> c b e j	2
+<s> c b e g	4
+<s> c b d	1
+<s> c b d </s>	1
+<s> c b c	3
+<s> c b c g	1
+<s> c b c e	1
+<s> c b c </s>	1
+<s> c b a	1
+<s> c b a e	1
+<s> c f	641
+<s> c f b	303
+<s> c f b </s>	44
+<s> c f b h	35
+<s> c f b g	68
+<s> c f b e	130
+<s> c f b j	14
+<s> c f b d	3
+<s> c f b f	8
+<s> c f b a	1
+<s> c f f	12
+<s> c f f e	7
+<s> c f f g	1
+<s> c f f h	2
+<s> c f f </s>	2
+<s> c f e	159
+<s> c f e </s>	22
+<s> c f e b	1
+<s> c f e f	4
+<s> c f e e	64
+<s> c f e j	16
+<s> c f e g	32
+<s> c f e h	18
+<s> c f e a	1
+<s> c f e d	1
+<s> c f c	88
+<s> c f c </s>	11
+<s> c f c g	15
+<s> c f c j	5
+<s> c f c f	5
+<s> c f c e	39
+<s> c f c h	13
+<s> c f a	45
+<s> c f a </s>	7
+<s> c f a g	9
+<s> c f a e	19
+<s> c f a h	5
+<s> c f a j	4
+<s> c f a f	1
+<s> c f g	23
+<s> c f g </s>	7
+<s> c f g e	8
+<s> c f g g	5
+<s> c f g j	3
+<s> c f j	4
+<s> c f j e	1
+<s> c f j </s>	2
+<s> c f j g	1
+<s> c f d	5
+<s> c f d h	1
+<s> c f d </s>	4
+<s> c f i	2
+<s> c f i j	2
+<s> c g	301
+<s> c g b	139
+<s> c g b </s>	20
+<s> c g b h	17
+<s> c g b e	62
+<s> c g b g	22
+<s> c g b a	1
+<s> c g b i	1
+<s> c g b f	6
+<s> c g b d	4
+<s> c g b j	6
+<s> c g f	3
+<s> c g f e	1
+<s> c g f g	1
+<s> c g f j	1
+<s> c g e	81
+<s> c g e </s>	11
+<s> c g e e	32
+<s> c g e h	13
+<s> c g e f	3
+<s> c g e g	19
+<s> c g e j	2
+<s> c g e a	1
+<s> c g c	41
+<s> c g c g	12
+<s> c g c h	4
+<s> c g c e	17
+<s> c g c </s>	8
+<s> c g a	21
+<s> c g a </s>	2
+<s> c g a h	3
+<s> c g a e	10
+<s> c g a g	5
+<s> c g a d	1
+<s> c g g	8
+<s> c g g g	3
+<s> c g g e	3
+<s> c g g </s>	2
+<s> c g d	6
+<s> c g d b	1
+<s> c g d f	1
+<s> c g d e	3
+<s> c g d d	1
+<s> c g i	2
+<s> c g i j	1
+<s> c g i g	1
+<s> c c	164
+<s> c c b	82
+<s> c c b </s>	12
+<s> c c b e	37
+<s> c c b g	16
+<s> c c b f	2
+<s> c c b h	10
+<s> c c b j	4
+<s> c c b b	1
+<s> c c h	1
+<s> c c h g	1
+<s> c c e	38
+<s> c c e </s>	6
+<s> c c e h	3
+<s> c c e j	5
+<s> c c e e	14
+<s> c c e g	7
+<s> c c e f	2
+<s> c c e d	1
+<s> c c a	17
+<s> c c a </s>	2
+<s> c c a e	6
+<s> c c a f	1
+<s> c c a j	2
+<s> c c a g	5
+<s> c c a h	1
+<s> c c c	17
+<s> c c c </s>	1
+<s> c c c g	3
+<s> c c c e	8
+<s> c c c j	1
+<s> c c c h	4
+<s> c c g	5
+<s> c c g e	2
+<s> c c g j	1
+<s> c c g g	1
+<s> c c g h	1
+<s> c c d	1
+<s> c c d e	1
+<s> c c j	2
+<s> c c j g	1
+<s> c c j h	1
+<s> c c f	1
+<s> c c f j	1
+<s> c a	84
+<s> c a b	43
+<s> c a b </s>	7
+<s> c a b g	11
+<s> c a b e	16
+<s> c a b j	3
+<s> c a b h	3
+<s> c a b d	1
+<s> c a b f	2
+<s> c a e	23
+<s> c a e </s>	4
+<s> c a e h	3
+<s> c a e e	10
+<s> c a e f	1
+<s> c a e g	4
+<s> c a e d	1
+<s> c a c	10
+<s> c a c </s>	2
+<s> c a c e	2
+<s> c a c j	1
+<s> c a c h	1
+<s> c a c g	4
+<s> c a a	4
+<s> c a a e	3
+<s> c a a h	1
+<s> c a f	1
+<s> c a f d	1
+<s> c a j	1
+<s> c a j j	1
+<s> c a g	2
+<s> c a g </s>	1
+<s> c a g g	1
+<s> c e	1
+<s> c e b	1
+<s> c e b </s>	1
+<s> c i	18
+<s> c i g	3
+<s> c i g </s>	2
+<s> c i g g	1
+<s> c i b	8
+<s> c i b e	5
+<s> c i b h	1
+<s> c i b g	2
+<s> c i e	5
+<s> c i e g	1
+<s> c i e e	2
+<s> c i e h	2
+<s> c i c	2
+<s> c i c e	2
+<s> c d	5
+<s> c d e	1
+<s> c d e </s>	1
+<s> c d b	3
+<s> c d b </s>	2
+<s> c d b g	1
+<s> c d a	1
+<s> c d a h	1
+<s> c h	2
+<s> c h c	1
+<s> c h c e	1
+<s> c h e	1
+<s> c h e e	1
+<s> d	618
+<s> d b	20
+<s> d b b	10
+<s> d b b e	5
+<s> d b b </s>	1
+<s> d b b h	2
+<s> d b b g	2
+<s> d b e	5
+<s> d b e e	3
+<s> d b e h	1
+<s> d b e g	1
+<s> d b d	1
+<s> d b d e	1
+<s> d b g	1
+<s> d b g g	1
+<s> d b a	3
+<s> d b a </s>	1
+<s> d b a g	1
+<s> d b a j	1
+<s> d f	311
+<s> d f b	162
+<s> d f b </s>	25
+<s> d f b g	31
+<s> d f b e	77
+<s> d f b d	2
+<s> d f b h	19
+<s> d f b f	6
+<s> d f b j	2
+<s> d f e	67
+<s> d f e </s>	13
+<s> d f e h	5
+<s> d f e e	30
+<s> d f e g	10
+<s> d f e j	5
+<s> d f e c	1
+<s> d f e d	1
+<s> d f e f	2
+<s> d f c	45
+<s> d f c </s>	10
+<s> d f c e	21
+<s> d f c h	5
+<s> d f c d	1
+<s> d f c g	6
+<s> d f c j	2
+<s> d f f	9
+<s> d f f h	1
+<s> d f f j	1
+<s> d f f e	5
+<s> d f f g	1
+<s> d f f a	1
+<s> d f a	20
+<s> d f a </s>	2
+<s> d f a e	7
+<s> d f a d	1
+<s> d f a j	4
+<s> d f a h	2
+<s> d f a f	2
+<s> d f a g	2
+<s> d f g	7
+<s> d f g e	4
+<s> d f g </s>	1
+<s> d f g g	1
+<s> d f g h	1
+<s> d f j	1
+<s> d f j j	1
+<s> d a	44
+<s> d a b	23
+<s> d a b </s>	4
+<s> d a b e	5
+<s> d a b j	1
+<s> d a b g	9
+<s> d a b h	4
+<s> d a e	12
+<s> d a e </s>	2
+<s> d a e h	1
+<s> d a e g	3
+<s> d a e j	1
+<s> d a e e	4
+<s> d a e f	1
+<s> d a j	1
+<s> d a j e	1
+<s> d a g	2
+<s> d a g e	2
+<s> d a f	2
+<s> d a f e	2
+<s> d a a	2
+<s> d a a e	2
+<s> d a c	2
+<s> d a c </s>	1
+<s> d a c j	1
+<s> d g	158
+<s> d g b	79
+<s> d g b </s>	14
+<s> d g b h	11
+<s> d g b g	17
+<s> d g b e	29
+<s> d g b f	1
+<s> d g b j	4
+<s> d g b d	2
+<s> d g b a	1
+<s> d g f	2
+<s> d g f </s>	2
+<s> d g e	32
+<s> d g e </s>	7
+<s> d g e e	10
+<s> d g e j	3
+<s> d g e h	4
+<s> d g e f	1
+<s> d g e g	7
+<s> d g c	21
+<s> d g c </s>	2
+<s> d g c g	6
+<s> d g c e	8
+<s> d g c h	2
+<s> d g c f	1
+<s> d g c j	1
+<s> d g c a	1
+<s> d g g	7
+<s> d g g </s>	1
+<s> d g g e	2
+<s> d g g g	1
+<s> d g g h	3
+<s> d g d	1
+<s> d g d </s>	1
+<s> d g a	13
+<s> d g a </s>	3
+<s> d g a h	2
+<s> d g a j	2
+<s> d g a e	4
+<s> d g a g	2
+<s> d g j	2
+<s> d g j </s>	1
+<s> d g j e	1
+<s> d g h	1
+<s> d g h g	1
+<s> d c	76
+<s> d c b	46
+<s> d c b </s>	6
+<s> d c b f	3
+<s> d c b e	24
+<s> d c b g	8
+<s> d c b h	1
+<s> d c b j	4
+<s> d c e	14
+<s> d c e </s>	4
+<s> d c e e	5
+<s> d c e d	1
+<s> d c e g	3
+<s> d c e h	1
+<s> d c c	8
+<s> d c c g	2
+<s> d c c e	4
+<s> d c c f	1
+<s> d c c </s>	1
+<s> d c f	3
+<s> d c f </s>	1
+<s> d c f h	1
+<s> d c f e	1
+<s> d c g	2
+<s> d c g j	1
+<s> d c g g	1
+<s> d c a	2
+<s> d c a e	1
+<s> d c a g	1
+<s> d c h	1
+<s> d c h e	1
+<s> d h	1
+<s> d h c	1
+<s> d h c e	1
+<s> d i	7
+<s> d i b	3
+<s> d i b h	1
+<s> d i b e	1
+<s> d i b </s>	1
+<s> d i c	1
+<s> d i c e	1
+<s> d i a	2
+<s> d i a e	2
+<s> d i e	1
+<s> d i e g	1
+<s> d e	1
+<s> d e d	1
+<s> d e d </s>	1
+<s> g	86
+<s> g b	2
+<s> g b g	1
+<s> g b g </s>	1
+<s> g b b	1
+<s> g b b g	1
+<s> g f	49
+<s> g f b	30
+<s> g f b </s>	9
+<s> g f b g	1
+<s> g f b h	2
+<s> g f b e	17
+<s> g f b b	1
+<s> g f e	8
+<s> g f e f	1
+<s> g f e e	3
+<s> g f e b	1
+<s> g f e </s>	3
+<s> g f a	3
+<s> g f a f	1
+<s> g f a </s>	1
+<s> g f a e	1
+<s> g f c	6
+<s> g f c </s>	2
+<s> g f c d	1
+<s> g f c g	1
+<s> g f c e	2
+<s> g f g	2
+<s> g f g e	1
+<s> g f g </s>	1
+<s> g g	17
+<s> g g b	8
+<s> g g b g	1
+<s> g g b e	3
+<s> g g b h	3
+<s> g g b </s>	1
+<s> g g e	6
+<s> g g e e	4
+<s> g g e j	1
+<s> g g e g	1
+<s> g g a	2
+<s> g g a e	1
+<s> g g a g	1
+<s> g g c	1
+<s> g g c e	1
+<s> g c	12
+<s> g c e	4
+<s> g c e e	2
+<s> g c e g	1
+<s> g c e </s>	1
+<s> g c b	6
+<s> g c b </s>	1
+<s> g c b e	1
+<s> g c b d	1
+<s> g c b h	1
+<s> g c b g	2
+<s> g c c	2
+<s> g c c e	2
+<s> g a	3
+<s> g a g	1
+<s> g a g e	1
+<s> g a b	1
+<s> g a b j	1
+<s> g a a	1
+<s> g a a </s>	1
+<s> g d	2
+<s> g d b	2
+<s> g d b j	1
+<s> g d b g	1
+<s> g i	1
+<s> g i b	1
+<s> g i b e	1
+<s> h	37
+<s> h g	7
+<s> h g b	3
+<s> h g b </s>	1
+<s> h g b g	2
+<s> h g g	1
+<s> h g g </s>	1
+<s> h g c	3
+<s> h g c e	1
+<s> h g c h	2
+<s> h c	8
+<s> h c b	6
+<s> h c b </s>	2
+<s> h c b e	1
+<s> h c b g	1
+<s> h c b j	1
+<s> h c b d	1
+<s> h c a	1
+<s> h c a e	1
+<s> h c c	1
+<s> h c c e	1
+<s> h f	18
+<s> h f b	11
+<s> h f b </s>	5
+<s> h f b e	2
+<s> h f b g	2
+<s> h f b h	1
+<s> h f b a	1
+<s> h f e	1
+<s> h f e h	1
+<s> h f c	2
+<s> h f c h	1
+<s> h f c </s>	1
+<s> h f f	2
+<s> h f f e	1
+<s> h f f </s>	1
+<s> h f a	2
+<s> h f a </s>	1
+<s> h f a h	1
+<s> h a	3
+<s> h a c	1
+<s> h a c e	1
+<s> h a b	2
+<s> h a b </s>	2
+<s> h i	1
+<s> h i b	1
+<s> h i b e	1
+<s> i	18
+<s> i g	3
+<s> i g b	3
+<s> i g b g	1
+<s> i g b j	1
+<s> i g b e	1
+<s> i f	9
+<s> i f e	2
+<s> i f e </s>	2
+<s> i f b	6
+<s> i f b g	3
+<s> i f b e	2
+<s> i f b </s>	1
+<s> i f a	1
+<s> i f a e	1
+<s> i c	5
+<s> i c c	1
+<s> i c c e	1
+<s> i c e	1
+<s> i c e h	1
+<s> i c b	3
+<s> i c b </s>	1
+<s> i c b g	1
+<s> i c b h	1
+<s> i a	1
+<s> i a e	1
+<s> i a e g	1
+<s> j	6
+<s> j c	1
+<s> j c b	1
+<s> j c b g	1
+<s> j f	3
+<s> j f c	1
+<s> j f c e	1
+<s> j f b	2
+<s> j f b e	1
+<s> j f b </s>	1
+<s> j g	2
+<s> j g b	1
+<s> j g b g	1
+<s> j g e	1
+<s> j g e g	1
+b	8388
+b </s>	1123
+b b	268
+b b </s>	49
+b b b	43
+b b b </s>	9
+b b b e	18
+b b b e </s>	2
+b b b e f	9
+b b b e g	2
+b b b e h	3
+b b b e j	2
+b b b f	3
+b b b f </s>	2
+b b b f f	1
+b b b g	9
+b b b g </s>	2
+b b b g h	2
+b b b g f	3
+b b b g j	1
+b b b g d	1
+b b b j	1
+b b b j f	1
+b b b h	3
+b b b h f	3
+b b f	7
+b b f </s>	3
+b b f f	2
+b b f f </s>	1
+b b f f j	1
+b b f h	1
+b b f h e	1
+b b f g	1
+b b f g </s>	1
+b b e	84
+b b e </s>	15
+b b e f	32
+b b e f </s>	9
+b b e f h	7
+b b e f i	1
+b b e f j	2
+b b e f d	1
+b b e f g	11
+b b e f f	1
+b b e j	5
+b b e j g	1
+b b e j j	1
+b b e j h	2
+b b e j d	1
+b b e d	5
+b b e d g	1
+b b e d h	4
+b b e e	9
+b b e e f	4
+b b e e </s>	4
+b b e e h	1
+b b e g	6
+b b e g </s>	1
+b b e g g	1
+b b e g j	1
+b b e g a	1
+b b e g h	2
+b b e h	12
+b b e h h	4
+b b e h f	2
+b b e h d	1
+b b e h g	2
+b b e h j	2
+b b e h a	1
+b b a	9
+b b a </s>	2
+b b a a	1
+b b a a j	1
+b b a h	2
+b b a h f	2
+b b a g	2
+b b a g i	1
+b b a g </s>	1
+b b a e	2
+b b a e f	1
+b b a e </s>	1
+b b c	13
+b b c </s>	1
+b b c h	3
+b b c h </s>	2
+b b c h f	1
+b b c g	6
+b b c g f	4
+b b c g </s>	1
+b b c g j	1
+b b c e	1
+b b c e f	1
+b b c j	1
+b b c j d	1
+b b c a	1
+b b c a h	1
+b b g	35
+b b g </s>	6
+b b g f	16
+b b g f </s>	6
+b b g f g	2
+b b g f h	4
+b b g f j	3
+b b g f b	1
+b b g h	8
+b b g h g	4
+b b g h e	1
+b b g h </s>	1
+b b g h h	2
+b b g j	3
+b b g j h	1
+b b g j j	1
+b b g j g	1
+b b g d	1
+b b g d g	1
+b b g e	1
+b b g e g	1
+b b h	20
+b b h </s>	5
+b b h f	8
+b b h f h	2
+b b h f </s>	5
+b b h f g	1
+b b h h	6
+b b h h h	2
+b b h h i	1
+b b h h e	1
+b b h h </s>	2
+b b h g	1
+b b h g j	1
+b b j	8
+b b j j	2
+b b j j h	1
+b b j j g	1
+b b j f	4
+b b j f g	1
+b b j f </s>	1
+b b j f h	1
+b b j f f	1
+b b j g	1
+b b j g d	1
+b b j </s>	1
+b f	1452
+b f </s>	29
+b f b	676
+b f b </s>	123
+b f b b	1
+b f b b </s>	1
+b f b h	69
+b f b h </s>	12
+b f b h f	34
+b f b h h	11
+b f b h d	3
+b f b h j	8
+b f b h g	1
+b f b e	282
+b f b e </s>	63
+b f b e h	51
+b f b e f	115
+b f b e j	31
+b f b e d	18
+b f b e g	1
+b f b e i	2
+b f b e e	1
+b f b g	136
+b f b g </s>	30
+b f b g f	58
+b f b g h	25
+b f b g j	9
+b f b g d	11
+b f b g g	2
+b f b g i	1
+b f b d	6
+b f b d h	2
+b f b d </s>	4
+b f b a	7
+b f b a f	3
+b f b a </s>	2
+b f b a d	1
+b f b a h	1
+b f b f	17
+b f b f </s>	4
+b f b f f	5
+b f b f h	5
+b f b f j	2
+b f b f d	1
+b f b j	35
+b f b j </s>	7
+b f b j f	18
+b f b j h	6
+b f b j j	3
+b f b j d	1
+b f f	83
+b f f </s>	20
+b f f g	19
+b f f g </s>	1
+b f f g h	14
+b f f g e	2
+b f f g f	1
+b f f g j	1
+b f f h	31
+b f f h </s>	7
+b f f h h	12
+b f f h j	4
+b f f h e	5
+b f f h f	1
+b f f h i	1
+b f f h g	1
+b f f a	1
+b f f a g	1
+b f f j	4
+b f f j f	1
+b f f j h	3
+b f f e	7
+b f f e f	3
+b f f e h	2
+b f f e g	1
+b f f e d	1
+b f f d	1
+b f f d h	1
+b f e	294
+b f e </s>	54
+b f e b	1
+b f e b g	1
+b f e f	9
+b f e f h	3
+b f e f f	4
+b f e f </s>	2
+b f e g	57
+b f e g </s>	12
+b f e g f	22
+b f e g a	1
+b f e g h	11
+b f e g j	9
+b f e g d	2
+b f e e	109
+b f e e </s>	22
+b f e e f	42
+b f e e j	13
+b f e e h	20
+b f e e g	2
+b f e e d	9
+b f e e i	1
+b f e h	37
+b f e h </s>	9
+b f e h f	19
+b f e h j	4
+b f e h h	5
+b f e j	16
+b f e j f	6
+b f e j h	6
+b f e j j	2
+b f e j </s>	2
+b f e d	6
+b f e d </s>	1
+b f e d f	2
+b f e d h	1
+b f e d d	1
+b f e d j	1
+b f e a	4
+b f e a f	2
+b f e a h	2
+b f e i	1
+b f e i </s>	1
+b f g	54
+b f g </s>	8
+b f g g	14
+b f g g </s>	2
+b f g g g	1
+b f g g d	1
+b f g g f	6
+b f g g h	2
+b f g g j	2
+b f g e	19
+b f g e </s>	5
+b f g e f	7
+b f g e h	3
+b f g e j	3
+b f g e d	1
+b f g h	12
+b f g h f	4
+b f g h h	2
+b f g h </s>	4
+b f g h j	2
+b f g j	1
+b f g j f	1
+b f i	6
+b f i </s>	2
+b f i e	1
+b f i e </s>	1
+b f i h	2
+b f i h f	1
+b f i h h	1
+b f i g	1
+b f i g f	1
+b f h	31
+b f h </s>	7
+b f h h	9
+b f h h </s>	2
+b f h h h	4
+b f h h d	2
+b f h h j	1
+b f h j	9
+b f h j h	6
+b f h j </s>	2
+b f h j e	1
+b f h g	3
+b f h g </s>	1
+b f h g h	1
+b f h g j	1
+b f h d	1
+b f h d </s>	1
+b f h e	2
+b f h e h	1
+b f h e </s>	1
+b f c	187
+b f c </s>	32
+b f c h	22
+b f c h </s>	5
+b f c h h	7
+b f c h f	5
+b f c h j	5
+b f c e	76
+b f c e </s>	19
+b f c e f	29
+b f c e h	15
+b f c e j	8
+b f c e d	2
+b f c e g	1
+b f c e a	1
+b f c e i	1
+b f c g	44
+b f c g </s>	6
+b f c g h	13
+b f c g f	17
+b f c g j	4
+b f c g d	4
+b f c j	9
+b f c j </s>	1
+b f c j f	3
+b f c j h	2
+b f c j g	1
+b f c j j	1
+b f c j d	1
+b f c f	2
+b f c f h	1
+b f c f </s>	1
+b f c a	1
+b f c a h	1
+b f c d	1
+b f c d f	1
+b f j	11
+b f j </s>	2
+b f j h	6
+b f j h h	3
+b f j h j	1
+b f j h e	1
+b f j h </s>	1
+b f j g	1
+b f j g i	1
+b f j j	1
+b f j j </s>	1
+b f j e	1
+b f j e </s>	1
+b f d	12
+b f d e	2
+b f d e h	1
+b f d e f	1
+b f d h	3
+b f d h </s>	2
+b f d h h	1
+b f d j	4
+b f d j h	2
+b f d j f	1
+b f d j </s>	1
+b f d g	2
+b f d g f	1
+b f d g d	1
+b f d d	1
+b f d d i	1
+b f a	69
+b f a </s>	19
+b f a e	29
+b f a e </s>	7
+b f a e h	7
+b f a e e	1
+b f a e j	6
+b f a e f	8
+b f a g	11
+b f a g h	2
+b f a g f	3
+b f a g </s>	5
+b f a g j	1
+b f a h	7
+b f a h h	3
+b f a h j	1
+b f a h f	3
+b f a f	2
+b f a f f	2
+b f a j	1
+b f a j d	1
+b h	610
+b h </s>	148
+b h b	3
+b h b g	2
+b h b g j	2
+b h b h	1
+b h b h h	1
+b h f	232
+b h f </s>	57
+b h f h	95
+b h f h </s>	22
+b h f h h	43
+b h f h e	15
+b h f h g	3
+b h f h j	6
+b h f h d	3
+b h f h i	3
+b h f d	10
+b h f d h	5
+b h f d i	1
+b h f d e	3
+b h f d d	1
+b h f b	2
+b h f b h	1
+b h f b j	1
+b h f j	25
+b h f j </s>	9
+b h f j e	3
+b h f j h	9
+b h f j j	2
+b h f j g	1
+b h f j d	1
+b h f g	42
+b h f g </s>	12
+b h f g h	14
+b h f g e	9
+b h f g d	2
+b h f g j	5
+b h f e	1
+b h f e </s>	1
+b h g	6
+b h g h	2
+b h g h </s>	1
+b h g h e	1
+b h g </s>	1
+b h g j	2
+b h g j h	2
+b h g g	1
+b h g g </s>	1
+b h e	8
+b h e </s>	4
+b h e h	1
+b h e h </s>	1
+b h e e	1
+b h e e i	1
+b h e g	1
+b h e g h	1
+b h e j	1
+b h e j j	1
+b h d	34
+b h d c	3
+b h d c </s>	3
+b h d h	18
+b h d h </s>	6
+b h d h e	4
+b h d h h	6
+b h d h j	1
+b h d h d	1
+b h d </s>	7
+b h d g	6
+b h d g </s>	2
+b h d g h	2
+b h d g j	1
+b h d g e	1
+b h h	116
+b h h </s>	33
+b h h h	44
+b h h h </s>	10
+b h h h h	14
+b h h h e	14
+b h h h i	2
+b h h h d	1
+b h h h j	2
+b h h h b	1
+b h h g	18
+b h h g </s>	8
+b h h g h	4
+b h h g g	1
+b h h g i	1
+b h h g e	4
+b h h j	7
+b h h j </s>	2
+b h h j j	2
+b h h j h	2
+b h h j e	1
+b h h d	8
+b h h d </s>	1
+b h h d e	1
+b h h d h	5
+b h h d j	1
+b h h e	2
+b h h e d	1
+b h h e </s>	1
+b h h f	2
+b h h f j	1
+b h h f e	1
+b h h i	1
+b h h i </s>	1
+b h h a	1
+b h h a h	1
+b h j	55
+b h j </s>	14
+b h j g	8
+b h j g </s>	3
+b h j g h	2
+b h j g j	1
+b h j g i	1
+b h j g e	1
+b h j b	2
+b h j b h	2
+b h j h	18
+b h j h </s>	2
+b h j h h	8
+b h j h e	6
+b h j h j	1
+b h j h d	1
+b h j d	4
+b h j d e	1
+b h j d </s>	2
+b h j d h	1
+b h j j	8
+b h j j e	1
+b h j j </s>	4
+b h j j j	2
+b h j j i	1
+b h j f	1
+b h j f h	1
+b h i	4
+b h i g	1
+b h i g h	1
+b h i h	2
+b h i h j	1
+b h i h g	1
+b h i </s>	1
+b h a	2
+b h a c	1
+b h a c </s>	1
+b h a g	1
+b h a g e	1
+b h c	2
+b h c </s>	1
+b h c g	1
+b h c g f	1
+b e	2188
+b e </s>	441
+b e b	1
+b e b h	1
+b e b h </s>	1
+b e f	873
+b e f </s>	213
+b e f b	3
+b e f b h	2
+b e f b </s>	1
+b e f h	350
+b e f h </s>	98
+b e f h b	1
+b e f h h	117
+b e f h e	64
+b e f h j	28
+b e f h i	22
+b e f h d	10
+b e f h g	7
+b e f h a	3
+b e f g	158
+b e f g </s>	27
+b e f g f	1
+b e f g e	38
+b e f g h	62
+b e f g d	4
+b e f g j	16
+b e f g i	8
+b e f g g	2
+b e f j	85
+b e f j </s>	23
+b e f j h	39
+b e f j e	11
+b e f j j	7
+b e f j i	4
+b e f j d	1
+b e f d	44
+b e f d </s>	13
+b e f d h	18
+b e f d e	6
+b e f d j	3
+b e f d i	2
+b e f d d	2
+b e f i	1
+b e f i g	1
+b e f f	16
+b e f f </s>	7
+b e f f h	5
+b e f f j	2
+b e f f i	1
+b e f f e	1
+b e f a	2
+b e f a j	1
+b e f a i	1
+b e f c	1
+b e f c h	1
+b e h	421
+b e h </s>	97
+b e h b	3
+b e h b h	2
+b e h b </s>	1
+b e h h	157
+b e h h </s>	35
+b e h h h	69
+b e h h e	29
+b e h h i	5
+b e h h j	14
+b e h h d	4
+b e h h g	1
+b e h f	10
+b e h f </s>	1
+b e h f g	3
+b e h f j	1
+b e h f h	4
+b e h f e	1
+b e h g	79
+b e h g </s>	13
+b e h g h	41
+b e h g j	13
+b e h g e	9
+b e h g i	1
+b e h g d	2
+b e h d	24
+b e h d </s>	12
+b e h d h	6
+b e h d e	5
+b e h d d	1
+b e h j	48
+b e h j </s>	12
+b e h j h	20
+b e h j j	7
+b e h j e	7
+b e h j d	1
+b e h j i	1
+b e h a	2
+b e h a j	1
+b e h a i	1
+b e h i	1
+b e h i j	1
+b e e	38
+b e e </s>	8
+b e e f	13
+b e e f </s>	2
+b e e f h	3
+b e e f g	2
+b e e f j	4
+b e e f b	1
+b e e f a	1
+b e e h	12
+b e e h </s>	3
+b e e h h	6
+b e e h g	1
+b e e h e	1
+b e e h i	1
+b e e j	3
+b e e j j	2
+b e e j h	1
+b e e d	1
+b e e d h	1
+b e e g	1
+b e e g </s>	1
+b e j	240
+b e j </s>	60
+b e j f	7
+b e j f h	3
+b e j f </s>	2
+b e j f g	1
+b e j f e	1
+b e j j	26
+b e j j </s>	7
+b e j j h	11
+b e j j d	4
+b e j j e	3
+b e j j j	1
+b e j h	83
+b e j h </s>	27
+b e j h e	18
+b e j h h	26
+b e j h i	5
+b e j h j	4
+b e j h d	2
+b e j h g	1
+b e j g	51
+b e j g </s>	13
+b e j g e	11
+b e j g h	17
+b e j g a	1
+b e j g j	7
+b e j g i	1
+b e j g d	1
+b e j d	11
+b e j d h	4
+b e j d </s>	3
+b e j d e	3
+b e j d d	1
+b e j b	2
+b e j b e	1
+b e j b g	1
+b e d	112
+b e d </s>	23
+b e d b	1
+b e d b e	1
+b e d h	45
+b e d h </s>	12
+b e d h e	12
+b e d h j	2
+b e d h h	14
+b e d h d	2
+b e d h i	3
+b e d g	17
+b e d g </s>	5
+b e d g b	1
+b e d g h	4
+b e d g e	1
+b e d g j	3
+b e d g a	1
+b e d g i	1
+b e d g f	1
+b e d j	12
+b e d j i	2
+b e d j e	4
+b e d j </s>	3
+b e d j h	3
+b e d d	10
+b e d d </s>	2
+b e d d e	2
+b e d d j	1
+b e d d h	4
+b e d d i	1
+b e d f	2
+b e d f </s>	1
+b e d f h	1
+b e d i	1
+b e d i e	1
+b e d c	1
+b e d c e	1
+b e i	15
+b e i h	5
+b e i h h	3
+b e i h e	1
+b e i h j	1
+b e i g	5
+b e i g </s>	1
+b e i g h	3
+b e i g j	1
+b e i </s>	4
+b e i j	1
+b e i j </s>	1
+b e g	42
+b e g </s>	13
+b e g h	10
+b e g h </s>	2
+b e g h h	2
+b e g h j	3
+b e g h d	1
+b e g h e	1
+b e g h i	1
+b e g g	8
+b e g g i	2
+b e g g e	2
+b e g g </s>	2
+b e g g h	2
+b e g f	5
+b e g f h	4
+b e g f </s>	1
+b e g j	2
+b e g j j	1
+b e g j </s>	1
+b e g a	1
+b e g a </s>	1
+b e g d	2
+b e g d h	2
+b e g e	1
+b e g e j	1
+b e a	1
+b e a g	1
+b e a g d	1
+b e c	4
+b e c h	1
+b e c h e	1
+b e c </s>	1
+b e c e	1
+b e c e j	1
+b e c f	1
+b e c f h	1
+b g	1695
+b g </s>	188
+b g b	305
+b g b </s>	55
+b g b h	37
+b g b h </s>	6
+b g b h f	18
+b g b h h	5
+b g b h j	5
+b g b h i	2
+b g b h d	1
+b g b e	120
+b g b e </s>	25
+b g b e f	48
+b g b e h	20
+b g b e j	12
+b g b e a	1
+b g b e d	13
+b g b e g	1
+b g b g	64
+b g b g </s>	10
+b g b g f	28
+b g b g h	13
+b g b g j	9
+b g b g d	1
+b g b g g	3
+b g b j	17
+b g b j </s>	3
+b g b j h	4
+b g b j f	7
+b g b j i	2
+b g b j g	1
+b g b a	2
+b g b a d	1
+b g b a </s>	1
+b g b d	3
+b g b d </s>	1
+b g b d d	1
+b g b d f	1
+b g b f	7
+b g b f f	2
+b g b f h	3
+b g b f </s>	1
+b g b f d	1
+b g f	424
+b g f </s>	115
+b g f b	4
+b g f b </s>	3
+b g f b e	1
+b g f h	156
+b g f h </s>	34
+b g f h h	56
+b g f h e	35
+b g f h i	12
+b g f h g	2
+b g f h j	15
+b g f h d	2
+b g f g	71
+b g f g </s>	18
+b g f g h	21
+b g f g e	16
+b g f g f	1
+b g f g i	5
+b g f g j	7
+b g f g d	2
+b g f g g	1
+b g f j	45
+b g f j </s>	10
+b g f j h	19
+b g f j i	3
+b g f j e	8
+b g f j j	4
+b g f j d	1
+b g f e	3
+b g f e h	2
+b g f e f	1
+b g f d	21
+b g f d </s>	4
+b g f d h	11
+b g f d j	2
+b g f d e	2
+b g f d i	2
+b g f f	6
+b g f f e	1
+b g f f </s>	3
+b g f f h	2
+b g f i	2
+b g f i </s>	1
+b g f i e	1
+b g f c	1
+b g f c h	1
+b g g	40
+b g g </s>	8
+b g g e	8
+b g g e </s>	1
+b g g e f	3
+b g g e d	1
+b g g e j	1
+b g g e h	2
+b g g j	4
+b g g j </s>	2
+b g g j j	1
+b g g j f	1
+b g g g	9
+b g g g j	2
+b g g g e	1
+b g g g h	3
+b g g g f	3
+b g g h	10
+b g g h e	1
+b g g h g	2
+b g g h </s>	4
+b g g h h	3
+b g g d	1
+b g g d e	1
+b g j	130
+b g j </s>	29
+b g j h	44
+b g j h </s>	11
+b g j h h	20
+b g j h j	2
+b g j h e	6
+b g j h d	2
+b g j h b	1
+b g j h i	2
+b g j g	34
+b g j g </s>	7
+b g j g e	5
+b g j g h	17
+b g j g j	3
+b g j g i	2
+b g j j	14
+b g j j i	2
+b g j j h	8
+b g j j e	1
+b g j j </s>	3
+b g j a	3
+b g j a e	2
+b g j a </s>	1
+b g j d	3
+b g j d h	2
+b g j d e	1
+b g j f	2
+b g j f h	2
+b g j e	1
+b g j e f	1
+b g e	162
+b g e </s>	31
+b g e b	1
+b g e b f	1
+b g e h	18
+b g e h </s>	5
+b g e h f	8
+b g e h d	1
+b g e h h	2
+b g e h j	1
+b g e h e	1
+b g e e	56
+b g e e </s>	12
+b g e e f	19
+b g e e j	4
+b g e e h	17
+b g e e d	4
+b g e g	39
+b g e g </s>	11
+b g e g e	1
+b g e g f	13
+b g e g h	9
+b g e g j	3
+b g e g d	2
+b g e j	6
+b g e j f	3
+b g e j j	1
+b g e j </s>	1
+b g e j h	1
+b g e f	10
+b g e f j	3
+b g e f f	3
+b g e f </s>	4
+b g e d	1
+b g e d h	1
+b g h	239
+b g h </s>	52
+b g h h	101
+b g h h </s>	22
+b g h h h	41
+b g h h i	3
+b g h h j	12
+b g h h e	19
+b g h h d	3
+b g h h b	1
+b g h f	5
+b g h f </s>	2
+b g h f h	1
+b g h f j	1
+b g h f d	1
+b g h j	20
+b g h j </s>	6
+b g h j h	5
+b g h j e	6
+b g h j i	2
+b g h j d	1
+b g h g	50
+b g h g </s>	13
+b g h g h	18
+b g h g e	7
+b g h g j	7
+b g h g d	3
+b g h g i	2
+b g h d	8
+b g h d </s>	2
+b g h d h	3
+b g h d e	1
+b g h d i	1
+b g h d j	1
+b g h a	1
+b g h a e	1
+b g h e	2
+b g h e b	1
+b g h e h	1
+b g c	83
+b g c </s>	15
+b g c e	31
+b g c e </s>	5
+b g c e f	13
+b g c e j	3
+b g c e h	8
+b g c e e	1
+b g c e d	1
+b g c g	18
+b g c g </s>	3
+b g c g h	4
+b g c g f	9
+b g c g j	1
+b g c g d	1
+b g c f	6
+b g c f h	1
+b g c f f	4
+b g c f </s>	1
+b g c j	5
+b g c j </s>	1
+b g c j f	3
+b g c j j	1
+b g c h	7
+b g c h f	2
+b g c h </s>	2
+b g c h j	2
+b g c h h	1
+b g c a	1
+b g c a f	1
+b g d	58
+b g d </s>	15
+b g d g	12
+b g d g h	5
+b g d g </s>	4
+b g d g d	2
+b g d g e	1
+b g d h	19
+b g d h </s>	6
+b g d h h	7
+b g d h j	3
+b g d h e	2
+b g d h i	1
+b g d j	7
+b g d j e	2
+b g d j </s>	4
+b g d j h	1
+b g d d	3
+b g d d h	1
+b g d d e	1
+b g d d </s>	1
+b g d e	1
+b g d e f	1
+b g d f	1
+b g d f h	1
+b g i	14
+b g i </s>	5
+b g i g	3
+b g i g e	1
+b g i g </s>	2
+b g i h	4
+b g i h j	1
+b g i h e	1
+b g i h </s>	1
+b g i h h	1
+b g i d	1
+b g i d h	1
+b g i j	1
+b g i j h	1
+b g a	52
+b g a </s>	7
+b g a e	24
+b g a e h	10
+b g a e </s>	2
+b g a e j	2
+b g a e f	10
+b g a g	14
+b g a g f	8
+b g a g h	3
+b g a g </s>	3
+b g a d	1
+b g a d </s>	1
+b g a j	1
+b g a j h	1
+b g a h	3
+b g a h f	1
+b g a h j	2
+b g a f	2
+b g a f f	1
+b g a f d	1
+b j	260
+b j </s>	53
+b j b	2
+b j b h	1
+b j b h </s>	1
+b j b g	1
+b j b g </s>	1
+b j f	116
+b j f </s>	19
+b j f g	20
+b j f g </s>	7
+b j f g e	3
+b j f g h	8
+b j f g j	1
+b j f g i	1
+b j f d	7
+b j f d </s>	6
+b j f d h	1
+b j f h	55
+b j f h </s>	15
+b j f h h	19
+b j f h e	13
+b j f h j	4
+b j f h i	3
+b j f h d	1
+b j f a	1
+b j f a i	1
+b j f j	11
+b j f j </s>	4
+b j f j h	3
+b j f j i	2
+b j f j e	1
+b j f j j	1
+b j f f	3
+b j f f h	1
+b j f f e	1
+b j f f </s>	1
+b j g	7
+b j g </s>	2
+b j g g	1
+b j g g i	1
+b j g j	1
+b j g j h	1
+b j g h	2
+b j g h h	1
+b j g h e	1
+b j g d	1
+b j g d d	1
+b j j	16
+b j j </s>	4
+b j j h	9
+b j j h h	5
+b j j h i	1
+b j j h j	1
+b j j h e	2
+b j j f	1
+b j j f d	1
+b j j j	1
+b j j j h	1
+b j j g	1
+b j j g h	1
+b j h	51
+b j h </s>	4
+b j h h	28
+b j h h </s>	7
+b j h h h	11
+b j h h j	3
+b j h h e	5
+b j h h g	1
+b j h h i	1
+b j h j	5
+b j h j j	1
+b j h j h	4
+b j h g	10
+b j h g </s>	2
+b j h g e	2
+b j h g h	3
+b j h g g	1
+b j h g j	2
+b j h f	3
+b j h f e	1
+b j h f </s>	1
+b j h f h	1
+b j h d	1
+b j h d i	1
+b j d	9
+b j d </s>	2
+b j d h	2
+b j d h e	1
+b j d h </s>	1
+b j d g	2
+b j d g </s>	1
+b j d g e	1
+b j d j	2
+b j d j h	1
+b j d j j	1
+b j d d	1
+b j d d </s>	1
+b j i	3
+b j i </s>	3
+b j e	2
+b j e h	2
+b j e h j	1
+b j e h h	1
+b j c	1
+b j c g	1
+b j c g e	1
+b a	204
+b a </s>	17
+b a b	72
+b a b </s>	20
+b a b e	27
+b a b e </s>	7
+b a b e f	8
+b a b e j	3
+b a b e h	8
+b a b e d	1
+b a b g	13
+b a b g f	7
+b a b g </s>	2
+b a b g h	3
+b a b g j	1
+b a b h	8
+b a b h </s>	2
+b a b h f	2
+b a b h h	1
+b a b h j	3
+b a b j	3
+b a b j f	1
+b a b j </s>	2
+b a b a	1
+b a b a </s>	1
+b a f	13
+b a f h	5
+b a f h h	3
+b a f h d	1
+b a f h e	1
+b a f e	2
+b a f e j	1
+b a f e f	1
+b a f </s>	4
+b a f g	2
+b a f g h	2
+b a e	49
+b a e </s>	8
+b a e e	15
+b a e e f	11
+b a e e </s>	2
+b a e e h	1
+b a e e j	1
+b a e h	9
+b a e h </s>	2
+b a e h h	2
+b a e h f	3
+b a e h c	1
+b a e h d	1
+b a e d	1
+b a e d g	1
+b a e g	12
+b a e g f	4
+b a e g j	1
+b a e g h	4
+b a e g </s>	3
+b a e f	4
+b a e f g	1
+b a e f h	3
+b a a	8
+b a a </s>	3
+b a a g	2
+b a a g f	2
+b a a j	1
+b a a j d	1
+b a a h	1
+b a a h f	1
+b a a e	1
+b a a e </s>	1
+b a d	4
+b a d j	1
+b a d j j	1
+b a d h	2
+b a d h i	1
+b a d h </s>	1
+b a d g	1
+b a d g f	1
+b a h	11
+b a h g	2
+b a h g </s>	1
+b a h g h	1
+b a h f	4
+b a h f g	1
+b a h f f	1
+b a h f </s>	1
+b a h f h	1
+b a h h	3
+b a h h </s>	2
+b a h h h	1
+b a h d	2
+b a h d h	1
+b a h d </s>	1
+b a g	10
+b a g g	3
+b a g g </s>	1
+b a g g j	1
+b a g g f	1
+b a g i	1
+b a g i h	1
+b a g </s>	3
+b a g e	3
+b a g e </s>	1
+b a g e j	1
+b a g e f	1
+b a c	16
+b a c </s>	5
+b a c g	4
+b a c g f	2
+b a c g h	2
+b a c e	4
+b a c e d	1
+b a c e </s>	1
+b a c e f	2
+b a c j	1
+b a c j </s>	1
+b a c h	2
+b a c h </s>	2
+b a i	1
+b a i g	1
+b a i g d	1
+b a j	3
+b a j g	1
+b a j g j	1
+b a j </s>	2
+b d	85
+b d </s>	18
+b d b	6
+b d b g	2
+b d b g j	1
+b d b g </s>	1
+b d b </s>	2
+b d b e	1
+b d b e f	1
+b d b h	1
+b d b h j	1
+b d h	17
+b d h </s>	5
+b d h g	4
+b d h g h	1
+b d h g </s>	2
+b d h g e	1
+b d h f	2
+b d h f </s>	2
+b d h j	1
+b d h j </s>	1
+b d h h	4
+b d h h g	1
+b d h h h	3
+b d h d	1
+b d h d </s>	1
+b d f	22
+b d f </s>	6
+b d f e	1
+b d f e f	1
+b d f j	2
+b d f j j	1
+b d f j h	1
+b d f f	2
+b d f f </s>	1
+b d f f h	1
+b d f h	3
+b d f h h	1
+b d f h e	1
+b d f h </s>	1
+b d f g	7
+b d f g </s>	2
+b d f g h	3
+b d f g j	1
+b d f g e	1
+b d f d	1
+b d f d h	1
+b d j	6
+b d j h	3
+b d j h h	3
+b d j g	2
+b d j g h	1
+b d j g </s>	1
+b d j j	1
+b d j j </s>	1
+b d e	5
+b d e f	1
+b d e f h	1
+b d e </s>	2
+b d e e	2
+b d e e f	1
+b d e e h	1
+b d a	1
+b d a </s>	1
+b d c	4
+b d c </s>	2
+b d c e	1
+b d c e </s>	1
+b d c g	1
+b d c g i	1
+b d d	5
+b d d d	1
+b d d d e	1
+b d d h	3
+b d d h i	1
+b d d h </s>	2
+b d d </s>	1
+b d g	1
+b d g h	1
+b d g h h	1
+b c	471
+b c </s>	105
+b c b	179
+b c b </s>	24
+b c b b	1
+b c b b f	1
+b c b f	7
+b c b f f	5
+b c b f h	1
+b c b f i	1
+b c b e	78
+b c b e </s>	16
+b c b e f	39
+b c b e j	4
+b c b e h	17
+b c b e d	2
+b c b j	9
+b c b j </s>	3
+b c b j f	5
+b c b j h	1
+b c b g	39
+b c b g </s>	9
+b c b g f	15
+b c b g j	4
+b c b g h	5
+b c b g d	4
+b c b g i	2
+b c b c	1
+b c b c h	1
+b c b h	18
+b c b h </s>	2
+b c b h h	5
+b c b h f	8
+b c b h d	2
+b c b h j	1
+b c b a	1
+b c b a f	1
+b c b d	1
+b c b d f	1
+b c f	10
+b c f e	7
+b c f e </s>	4
+b c f e f	3
+b c f h	1
+b c f h f	1
+b c f j	2
+b c f j f	1
+b c f j h	1
+b c h	6
+b c h </s>	4
+b c h f	2
+b c h f g	1
+b c h f j	1
+b c c	30
+b c c </s>	4
+b c c e	12
+b c c e d	1
+b c c e f	4
+b c c e h	4
+b c c e </s>	3
+b c c g	8
+b c c g j	1
+b c c g h	3
+b c c g </s>	3
+b c c g f	1
+b c c h	3
+b c c h f	2
+b c c h </s>	1
+b c c j	2
+b c c j </s>	1
+b c c j f	1
+b c c d	1
+b c c d </s>	1
+b c e	97
+b c e </s>	16
+b c e b	1
+b c e b h	1
+b c e f	6
+b c e f h	3
+b c e f g	2
+b c e f f	1
+b c e g	24
+b c e g </s>	4
+b c e g f	11
+b c e g h	6
+b c e g e	1
+b c e g j	1
+b c e g i	1
+b c e e	31
+b c e e </s>	4
+b c e e h	5
+b c e e c	1
+b c e e f	14
+b c e e d	3
+b c e e j	4
+b c e j	9
+b c e j f	6
+b c e j h	3
+b c e h	7
+b c e h h	3
+b c e h </s>	2
+b c e h f	1
+b c e h j	1
+b c e a	2
+b c e a f	2
+b c e d	1
+b c e d </s>	1
+b c g	19
+b c g </s>	4
+b c g f	5
+b c g f h	3
+b c g f </s>	1
+b c g f d	1
+b c g j	4
+b c g j g	2
+b c g j h	2
+b c g e	3
+b c g e g	1
+b c g e h	1
+b c g e f	1
+b c g h	2
+b c g h f	1
+b c g h j	1
+b c g g	1
+b c g g f	1
+b c a	20
+b c a </s>	2
+b c a e	8
+b c a e f	6
+b c a e </s>	2
+b c a g	7
+b c a g f	4
+b c a g d	1
+b c a g h	2
+b c a j	1
+b c a j </s>	1
+b c a f	1
+b c a f h	1
+b c a h	1
+b c a h h	1
+b c j	5
+b c j </s>	1
+b c j f	1
+b c j f h	1
+b c j d	1
+b c j d </s>	1
+b c j j	1
+b c j j h	1
+b c j e	1
+b c j e f	1
+b i	32
+b i </s>	1
+b i b	14
+b i b </s>	3
+b i b e	2
+b i b e f	2
+b i b h	4
+b i b h i	1
+b i b h </s>	2
+b i b h h	1
+b i b g	4
+b i b g j	2
+b i b g </s>	1
+b i b g f	1
+b i b j	1
+b i b j </s>	1
+b i f	1
+b i f g	1
+b i f g g	1
+b i e	10
+b i e </s>	1
+b i e e	5
+b i e e i	1
+b i e e j	2
+b i e e </s>	1
+b i e e h	1
+b i e h	1
+b i e h </s>	1
+b i e g	2
+b i e g f	2
+b i e a	1
+b i e a j	1
+b i j	1
+b i j j	1
+b i j j </s>	1
+b i a	3
+b i a e	3
+b i a e h	1
+b i a e j	2
+b i h	1
+b i h i	1
+b i h i h	1
+b i c	1
+b i c e	1
+b i c e f	1
+f	9238
+f </s>	940
+f b	2573
+f b </s>	438
+f b b	6
+f b b g	1
+f b b g h	1
+f b b e	2
+f b b e f	1
+f b b e </s>	1
+f b b h	1
+f b b h h	1
+f b b </s>	2
+f b h	275
+f b h </s>	52
+f b h f	125
+f b h f </s>	33
+f b h f h	46
+f b h f d	7
+f b h f j	16
+f b h f g	23
+f b h e	2
+f b h e </s>	1
+f b h e j	1
+f b h h	51
+f b h h </s>	8
+f b h h g	10
+f b h h h	23
+f b h h d	4
+f b h h j	5
+f b h h f	1
+f b h d	13
+f b h d c	1
+f b h d h	7
+f b h d g	3
+f b h d </s>	2
+f b h j	27
+f b h j </s>	7
+f b h j g	5
+f b h j d	2
+f b h j j	3
+f b h j h	9
+f b h j f	1
+f b h g	3
+f b h g </s>	1
+f b h g h	1
+f b h g j	1
+f b h c	1
+f b h c </s>	1
+f b h i	1
+f b h i </s>	1
+f b e	1094
+f b e </s>	218
+f b e b	1
+f b e b h	1
+f b e f	459
+f b e f </s>	115
+f b e f b	1
+f b e f h	198
+f b e f g	78
+f b e f f	9
+f b e f d	21
+f b e f j	36
+f b e f c	1
+f b e h	211
+f b e h </s>	56
+f b e h b	1
+f b e h h	65
+f b e h g	42
+f b e h j	26
+f b e h d	18
+f b e h a	1
+f b e h i	1
+f b e h f	1
+f b e j	123
+f b e j </s>	30
+f b e j h	44
+f b e j j	13
+f b e j g	29
+f b e j f	3
+f b e j d	4
+f b e d	56
+f b e d </s>	14
+f b e d h	24
+f b e d g	4
+f b e d j	8
+f b e d d	5
+f b e d c	1
+f b e g	12
+f b e g </s>	5
+f b e g h	3
+f b e g g	3
+f b e g d	1
+f b e i	8
+f b e i g	1
+f b e i </s>	3
+f b e i h	3
+f b e i j	1
+f b e e	4
+f b e e </s>	1
+f b e e j	1
+f b e e h	2
+f b e c	2
+f b e c </s>	1
+f b e c f	1
+f b g	519
+f b g </s>	93
+f b g f	209
+f b g f </s>	53
+f b g f b	3
+f b g f h	77
+f b g f g	35
+f b g f j	26
+f b g f d	9
+f b g f f	5
+f b g f i	1
+f b g h	112
+f b g h </s>	20
+f b g h h	44
+f b g h f	3
+f b g h j	13
+f b g h g	27
+f b g h d	4
+f b g h a	1
+f b g j	60
+f b g j </s>	14
+f b g j h	19
+f b g j g	16
+f b g j a	2
+f b g j j	7
+f b g j f	1
+f b g j d	1
+f b g d	29
+f b g d </s>	6
+f b g d g	5
+f b g d h	11
+f b g d d	3
+f b g d j	3
+f b g d f	1
+f b g g	5
+f b g g j	1
+f b g g h	2
+f b g g </s>	1
+f b g g d	1
+f b g e	2
+f b g e h	2
+f b g i	9
+f b g i </s>	3
+f b g i g	2
+f b g i h	2
+f b g i d	1
+f b g i j	1
+f b d	31
+f b d </s>	8
+f b d h	11
+f b d h </s>	3
+f b d h g	3
+f b d h j	1
+f b d h h	3
+f b d h d	1
+f b d j	3
+f b d j h	2
+f b d j g	1
+f b d c	1
+f b d c </s>	1
+f b d f	7
+f b d f h	1
+f b d f g	2
+f b d f </s>	3
+f b d f f	1
+f b d d	1
+f b d d h	1
+f b f	71
+f b f </s>	13
+f b f f	30
+f b f f g	7
+f b f f h	16
+f b f f </s>	7
+f b f h	16
+f b f h </s>	3
+f b f h g	3
+f b f h j	3
+f b f h d	1
+f b f h h	6
+f b f j	6
+f b f j g	1
+f b f j </s>	1
+f b f j j	1
+f b f j h	3
+f b f d	5
+f b f d h	2
+f b f d j	2
+f b f d g	1
+f b f c	1
+f b f c </s>	1
+f b j	120
+f b j </s>	19
+f b j f	57
+f b j f </s>	11
+f b j f g	9
+f b j f h	27
+f b j f j	6
+f b j f d	4
+f b j j	11
+f b j j h	7
+f b j j f	1
+f b j j </s>	2
+f b j j j	1
+f b j d	8
+f b j d </s>	2
+f b j d h	2
+f b j d g	2
+f b j d d	1
+f b j d j	1
+f b j h	24
+f b j h </s>	1
+f b j h g	3
+f b j h j	3
+f b j h h	16
+f b j h f	1
+f b j i	1
+f b j i </s>	1
+f b a	17
+f b a </s>	4
+f b a f	6
+f b a f h	3
+f b a f g	2
+f b a f </s>	1
+f b a h	5
+f b a h g	1
+f b a h h	2
+f b a h d	2
+f b a i	1
+f b a i g	1
+f b a d	1
+f b a d h	1
+f b c	2
+f b c </s>	2
+f h	1482
+f h </s>	402
+f h b	2
+f h b </s>	2
+f h h	514
+f h h </s>	237
+f h h b	32
+f h h b </s>	9
+f h h b h	7
+f h h b c	11
+f h h b j	2
+f h h b f	1
+f h h b b	2
+f h h h	15
+f h h h </s>	6
+f h h h h	3
+f h h h g	3
+f h h h b	1
+f h h h d	1
+f h h h j	1
+f h h g	62
+f h h g </s>	21
+f h h g b	7
+f h h g c	21
+f h h g j	3
+f h h g h	7
+f h h g d	2
+f h h g a	1
+f h h e	10
+f h h e </s>	3
+f h h e b	2
+f h h e c	3
+f h h e j	1
+f h h e h	1
+f h h d	132
+f h h d </s>	49
+f h h d b	14
+f h h d h	16
+f h h d f	4
+f h h d c	40
+f h h d j	4
+f h h d d	3
+f h h d a	1
+f h h d g	1
+f h h a	19
+f h h a b	2
+f h h a h	1
+f h h a j	1
+f h h a c	10
+f h h a </s>	4
+f h h a a	1
+f h h j	4
+f h h j </s>	2
+f h h j h	1
+f h h j c	1
+f h h c	3
+f h h c c	3
+f h e	260
+f h e </s>	112
+f h e b	25
+f h e b </s>	11
+f h e b g	1
+f h e b c	7
+f h e b a	1
+f h e b h	4
+f h e b b	1
+f h e h	1
+f h e h h	1
+f h e g	38
+f h e g </s>	9
+f h e g h	10
+f h e g c	16
+f h e g d	1
+f h e g j	2
+f h e e	5
+f h e e c	3
+f h e e </s>	2
+f h e d	69
+f h e d </s>	26
+f h e d h	12
+f h e d c	20
+f h e d b	7
+f h e d j	1
+f h e d g	2
+f h e d a	1
+f h e a	6
+f h e a c	3
+f h e a </s>	2
+f h e a b	1
+f h e c	3
+f h e c h	2
+f h e c </s>	1
+f h e i	1
+f h e i </s>	1
+f h j	135
+f h j </s>	51
+f h j b	8
+f h j b h	1
+f h j b c	4
+f h j b b	1
+f h j b </s>	2
+f h j h	9
+f h j h </s>	1
+f h j h g	1
+f h j h d	5
+f h j h h	1
+f h j h b	1
+f h j a	3
+f h j a </s>	3
+f h j g	16
+f h j g b	1
+f h j g h	3
+f h j g c	7
+f h j g </s>	2
+f h j g d	1
+f h j g j	2
+f h j d	41
+f h j d h	8
+f h j d c	13
+f h j d </s>	17
+f h j d b	3
+f h j e	5
+f h j e h	1
+f h j e c	2
+f h j e </s>	2
+f h j j	1
+f h j j </s>	1
+f h j c	1
+f h j c c	1
+f h i	68
+f h i </s>	34
+f h i g	6
+f h i g </s>	2
+f h i g h	2
+f h i g d	1
+f h i g c	1
+f h i d	17
+f h i d </s>	7
+f h i d b	4
+f h i d c	4
+f h i d h	2
+f h i e	3
+f h i e h	1
+f h i e b	1
+f h i e c	1
+f h i a	4
+f h i a </s>	4
+f h i b	4
+f h i b b	1
+f h i b </s>	1
+f h i b c	2
+f h d	52
+f h d </s>	31
+f h d g	4
+f h d g c	1
+f h d g </s>	1
+f h d g e	1
+f h d g d	1
+f h d b	3
+f h d b </s>	2
+f h d b c	1
+f h d a	3
+f h d a </s>	2
+f h d a c	1
+f h d d	6
+f h d d </s>	3
+f h d d d	1
+f h d d h	1
+f h d d j	1
+f h d c	3
+f h d c c	1
+f h d c </s>	2
+f h d h	2
+f h d h b	1
+f h d h </s>	1
+f h g	37
+f h g </s>	17
+f h g b	1
+f h g b </s>	1
+f h g h	5
+f h g h a	1
+f h g h </s>	3
+f h g h d	1
+f h g g	6
+f h g g c	4
+f h g g b	1
+f h g g </s>	1
+f h g c	2
+f h g c </s>	2
+f h g d	3
+f h g d a	1
+f h g d h	1
+f h g d c	1
+f h g j	2
+f h g j d	1
+f h g j g	1
+f h g f	1
+f h g f d	1
+f h a	5
+f h a a	1
+f h a a </s>	1
+f h a d	2
+f h a d h	1
+f h a d </s>	1
+f h a </s>	2
+f h f	7
+f h f </s>	3
+f h f h	2
+f h f h </s>	1
+f h f h h	1
+f h f g	1
+f h f g </s>	1
+f h f c	1
+f h f c </s>	1
+f f	349
+f f </s>	64
+f f b	41
+f f b </s>	5
+f f b e	15
+f f b e </s>	2
+f f b e f	9
+f f b e h	2
+f f b e d	1
+f f b e c	1
+f f b g	12
+f f b g </s>	5
+f f b g f	3
+f f b g j	4
+f f b j	3
+f f b j f	3
+f f b f	1
+f f b f h	1
+f f b h	4
+f f b h h	1
+f f b h </s>	1
+f f b h d	1
+f f b h f	1
+f f b a	1
+f f b a f	1
+f f h	89
+f f h </s>	31
+f f h h	23
+f f h h </s>	11
+f f h h b	2
+f f h h d	6
+f f h h h	3
+f f h h g	1
+f f h e	14
+f f h e </s>	7
+f f h e b	1
+f f h e d	3
+f f h e g	2
+f f h e c	1
+f f h j	7
+f f h j d	2
+f f h j </s>	3
+f f h j b	1
+f f h j h	1
+f f h f	2
+f f h f </s>	2
+f f h d	5
+f f h d </s>	3
+f f h d g	1
+f f h d a	1
+f f h g	4
+f f h g h	2
+f f h g g	1
+f f h g d	1
+f f h i	3
+f f h i d	1
+f f h i </s>	1
+f f h i g	1
+f f g	45
+f f g </s>	9
+f f g f	6
+f f g f h	4
+f f g f j	1
+f f g f </s>	1
+f f g h	22
+f f g h </s>	6
+f f g h b	2
+f f g h d	7
+f f g h j	1
+f f g h h	3
+f f g h g	3
+f f g e	6
+f f g e </s>	4
+f f g e d	2
+f f g b	1
+f f g b g	1
+f f g j	1
+f f g j </s>	1
+f f e	66
+f f e </s>	17
+f f e f	16
+f f e f j	4
+f f e f </s>	3
+f f e f h	8
+f f e f g	1
+f f e g	7
+f f e g h	5
+f f e g d	1
+f f e g f	1
+f f e e	7
+f f e e f	4
+f f e e h	1
+f f e e </s>	2
+f f e d	4
+f f e d h	2
+f f e d d	1
+f f e d g	1
+f f e j	5
+f f e j g	1
+f f e j h	2
+f f e j f	1
+f f e j </s>	1
+f f e h	9
+f f e h </s>	1
+f f e h g	4
+f f e h h	2
+f f e h f	1
+f f e h j	1
+f f e a	1
+f f e a </s>	1
+f f a	9
+f f a </s>	5
+f f a g	1
+f f a g </s>	1
+f f a j	1
+f f a j d	1
+f f a e	1
+f f a e f	1
+f f a i	1
+f f a i g	1
+f f j	16
+f f j </s>	2
+f f j b	1
+f f j b h	1
+f f j f	2
+f f j f h	1
+f f j f g	1
+f f j h	5
+f f j h </s>	3
+f f j h b	1
+f f j h e	1
+f f j j	3
+f f j j d	1
+f f j j g	1
+f f j j </s>	1
+f f j g	1
+f f j g h	1
+f f j e	1
+f f j e g	1
+f f j i	1
+f f j i </s>	1
+f f c	10
+f f c j	1
+f f c j f	1
+f f c e	4
+f f c e j	1
+f f c e h	1
+f f c e f	2
+f f c g	3
+f f c g h	1
+f f c g f	2
+f f c </s>	2
+f f d	5
+f f d d	1
+f f d d </s>	1
+f f d i	1
+f f d i d	1
+f f d h	2
+f f d h g	1
+f f d h d	1
+f f d </s>	1
+f f f	3
+f f f e	1
+f f f e </s>	1
+f f f f	1
+f f f f h	1
+f f f h	1
+f f f h </s>	1
+f f i	1
+f f i d	1
+f f i d c	1
+f g	909
+f g </s>	201
+f g b	20
+f g b </s>	3
+f g b g	6
+f g b g h	2
+f g b g </s>	1
+f g b g f	3
+f g b e	8
+f g b e f	5
+f g b e </s>	2
+f g b e h	1
+f g b h	2
+f g b h f	2
+f g b f	1
+f g b f f	1
+f g f	15
+f g f b	1
+f g f b c	1
+f g f h	5
+f g f h h	2
+f g f h i	1
+f g f h j	1
+f g f h e	1
+f g f </s>	3
+f g f d	1
+f g f d </s>	1
+f g f g	2
+f g f g h	1
+f g f g </s>	1
+f g f e	1
+f g f e f	1
+f g f j	2
+f g f j d	1
+f g f j e	1
+f g e	215
+f g e </s>	90
+f g e b	7
+f g e b h	1
+f g e b c	3
+f g e b </s>	2
+f g e b j	1
+f g e f	32
+f g e f </s>	8
+f g e f j	5
+f g e f h	16
+f g e f g	3
+f g e g	27
+f g e g b	2
+f g e g </s>	8
+f g e g h	3
+f g e g c	6
+f g e g d	3
+f g e g f	4
+f g e g j	1
+f g e j	8
+f g e j </s>	4
+f g e j g	1
+f g e j j	1
+f g e j d	1
+f g e j h	1
+f g e d	29
+f g e d </s>	12
+f g e d h	5
+f g e d c	8
+f g e d b	2
+f g e d a	1
+f g e d f	1
+f g e h	14
+f g e h </s>	3
+f g e h h	5
+f g e h f	2
+f g e h g	1
+f g e h d	2
+f g e h i	1
+f g e e	5
+f g e e </s>	3
+f g e e f	1
+f g e e c	1
+f g e a	3
+f g e a c	1
+f g e a </s>	2
+f g g	47
+f g g </s>	11
+f g g b	1
+f g g b c	1
+f g g f	17
+f g g f </s>	3
+f g g f h	5
+f g g f g	7
+f g g f d	1
+f g g f j	1
+f g g g	2
+f g g g c	1
+f g g g h	1
+f g g j	6
+f g g j h	2
+f g g j </s>	2
+f g g j f	1
+f g g j d	1
+f g g d	4
+f g g d </s>	1
+f g g d c	3
+f g g a	2
+f g g a j	1
+f g g a </s>	1
+f g g h	4
+f g g h g	2
+f g g h h	2
+f g j	82
+f g j </s>	38
+f g j b	4
+f g j b c	3
+f g j b h	1
+f g j f	2
+f g j f g	1
+f g j f </s>	1
+f g j g	15
+f g j g </s>	7
+f g j g h	4
+f g j g j	1
+f g j g c	2
+f g j g d	1
+f g j j	1
+f g j j </s>	1
+f g j d	16
+f g j d </s>	4
+f g j d h	6
+f g j d c	4
+f g j d g	1
+f g j d a	1
+f g j a	2
+f g j a c	2
+f g j c	1
+f g j c </s>	1
+f g j h	2
+f g j h j	1
+f g j h h	1
+f g j e	1
+f g j e c	1
+f g i	25
+f g i </s>	11
+f g i g	3
+f g i g </s>	1
+f g i g h	1
+f g i g c	1
+f g i b	1
+f g i b b	1
+f g i d	7
+f g i d </s>	4
+f g i d c	1
+f g i d h	2
+f g i a	1
+f g i a c	1
+f g i e	2
+f g i e </s>	2
+f g h	277
+f g h </s>	113
+f g h b	23
+f g h b b	4
+f g h b </s>	6
+f g h b j	1
+f g h b c	10
+f g h b h	2
+f g h h	8
+f g h h </s>	1
+f g h h g	2
+f g h h j	1
+f g h h e	1
+f g h h f	1
+f g h h h	2
+f g h g	34
+f g h g </s>	10
+f g h g b	1
+f g h g c	13
+f g h g h	6
+f g h g j	3
+f g h g e	1
+f g h j	6
+f g h j h	3
+f g h j j	2
+f g h j e	1
+f g h d	70
+f g h d </s>	24
+f g h d h	16
+f g h d b	9
+f g h d c	17
+f g h d a	1
+f g h d e	1
+f g h d j	2
+f g h i	1
+f g h i c	1
+f g h a	6
+f g h a </s>	2
+f g h a c	1
+f g h a d	1
+f g h a h	2
+f g h e	6
+f g h e </s>	2
+f g h e b	1
+f g h e c	3
+f g h f	10
+f g h f </s>	3
+f g h f h	5
+f g h f g	1
+f g h f j	1
+f g a	3
+f g a </s>	1
+f g a e	1
+f g a e h	1
+f g a g	1
+f g a g </s>	1
+f g d	20
+f g d </s>	5
+f g d f	1
+f g d f </s>	1
+f g d d	6
+f g d d j	1
+f g d d h	2
+f g d d </s>	2
+f g d d c	1
+f g d b	3
+f g d b c	2
+f g d b </s>	1
+f g d g	3
+f g d g h	1
+f g d g c	1
+f g d g </s>	1
+f g d e	1
+f g d e c	1
+f g d j	1
+f g d j h	1
+f g c	4
+f g c g	2
+f g c g f	1
+f g c g h	1
+f g c </s>	1
+f g c h	1
+f g c h j	1
+f c	728
+f c </s>	127
+f c b	7
+f c b </s>	2
+f c b h	1
+f c b h j	1
+f c b j	1
+f c b j f	1
+f c b e	2
+f c b e h	1
+f c b e f	1
+f c b g	1
+f c b g f	1
+f c h	94
+f c h </s>	18
+f c h f	40
+f c h f </s>	11
+f c h f h	13
+f c h f j	6
+f c h f b	1
+f c h f g	8
+f c h f d	1
+f c h i	1
+f c h i h	1
+f c h h	22
+f c h h </s>	5
+f c h h h	11
+f c h h g	4
+f c h h j	1
+f c h h d	1
+f c h d	6
+f c h d j	1
+f c h d d	1
+f c h d h	3
+f c h d </s>	1
+f c h j	7
+f c h j h	5
+f c h j g	2
+f c e	289
+f c e </s>	55
+f c e f	110
+f c e f </s>	32
+f c e f g	26
+f c e f h	41
+f c e f j	8
+f c e f d	2
+f c e f c	1
+f c e h	64
+f c e h </s>	17
+f c e h b	1
+f c e h h	21
+f c e h g	15
+f c e h a	2
+f c e h d	3
+f c e h j	4
+f c e h f	1
+f c e j	37
+f c e j h	19
+f c e j </s>	7
+f c e j j	2
+f c e j g	9
+f c e d	15
+f c e d </s>	6
+f c e d h	4
+f c e d j	3
+f c e d f	1
+f c e d d	1
+f c e i	2
+f c e i h	1
+f c e i </s>	1
+f c e e	2
+f c e e </s>	1
+f c e e j	1
+f c e g	3
+f c e g </s>	2
+f c e g h	1
+f c e a	1
+f c e a g	1
+f c g	140
+f c g </s>	23
+f c g h	34
+f c g h </s>	7
+f c g h h	13
+f c g h j	3
+f c g h g	9
+f c g h d	2
+f c g j	15
+f c g j </s>	7
+f c g j h	4
+f c g j b	1
+f c g j j	1
+f c g j f	1
+f c g j g	1
+f c g f	57
+f c g f </s>	12
+f c g f h	23
+f c g f j	5
+f c g f g	15
+f c g f b	1
+f c g f e	1
+f c g d	9
+f c g d h	3
+f c g d g	1
+f c g d </s>	4
+f c g d d	1
+f c g g	1
+f c g g h	1
+f c g c	1
+f c g c g	1
+f c j	31
+f c j </s>	5
+f c j h	5
+f c j h </s>	1
+f c j h h	3
+f c j h g	1
+f c j j	3
+f c j j h	1
+f c j j </s>	2
+f c j f	15
+f c j f </s>	3
+f c j f g	5
+f c j f d	1
+f c j f h	3
+f c j f j	2
+f c j f c	1
+f c j d	2
+f c j d </s>	1
+f c j d h	1
+f c j g	1
+f c j g g	1
+f c f	25
+f c f </s>	5
+f c f f	12
+f c f f h	4
+f c f f </s>	5
+f c f f g	2
+f c f f j	1
+f c f h	4
+f c f h </s>	2
+f c f h h	1
+f c f h g	1
+f c f d	1
+f c f d h	1
+f c f j	2
+f c f j h	1
+f c f j </s>	1
+f c f a	1
+f c f a </s>	1
+f c d	9
+f c d j	2
+f c d j </s>	1
+f c d j h	1
+f c d h	3
+f c d h </s>	1
+f c d h h	2
+f c d f	3
+f c d f i	1
+f c d f g	1
+f c d f j	1
+f c d g	1
+f c d g h	1
+f c a	6
+f c a h	3
+f c a h </s>	2
+f c a h h	1
+f c a f	1
+f c a f h	1
+f c a </s>	1
+f c a g	1
+f c a g </s>	1
+f e	1311
+f e </s>	241
+f e b	4
+f e b f	2
+f e b f </s>	1
+f e b f h	1
+f e b b	1
+f e b b </s>	1
+f e b g	1
+f e b g j	1
+f e f	73
+f e f </s>	17
+f e f h	19
+f e f h j	3
+f e f h g	2
+f e f h e	5
+f e f h h	9
+f e f f	22
+f e f f g	4
+f e f f h	10
+f e f f j	3
+f e f f </s>	5
+f e f j	7
+f e f j </s>	1
+f e f j h	1
+f e f j i	1
+f e f j j	2
+f e f j g	1
+f e f j e	1
+f e f g	7
+f e f g j	2
+f e f g h	2
+f e f g e	2
+f e f g </s>	1
+f e f d	1
+f e f d h	1
+f e g	241
+f e g </s>	49
+f e g f	99
+f e g f </s>	25
+f e g f g	19
+f e g f j	8
+f e g f h	39
+f e g f d	6
+f e g f f	2
+f e g a	1
+f e g a h	1
+f e g h	47
+f e g h </s>	13
+f e g h h	21
+f e g h j	6
+f e g h g	6
+f e g h d	1
+f e g j	23
+f e g j </s>	5
+f e g j h	10
+f e g j g	3
+f e g j j	3
+f e g j d	2
+f e g e	3
+f e g e j	2
+f e g e h	1
+f e g g	3
+f e g g </s>	2
+f e g g j	1
+f e g d	13
+f e g d h	9
+f e g d </s>	3
+f e g d j	1
+f e g i	1
+f e g i h	1
+f e g c	2
+f e g c </s>	2
+f e e	486
+f e e </s>	93
+f e e f	193
+f e e f </s>	41
+f e e f h	70
+f e e f d	19
+f e e f g	32
+f e e f j	28
+f e e f b	1
+f e e f f	2
+f e e j	52
+f e e j </s>	13
+f e e j h	20
+f e e j j	4
+f e e j g	11
+f e e j d	3
+f e e j b	1
+f e e h	106
+f e e h </s>	27
+f e e h h	37
+f e e h g	20
+f e e h j	12
+f e e h c	1
+f e e h d	6
+f e e h i	1
+f e e h f	2
+f e e d	33
+f e e d </s>	8
+f e e d g	8
+f e e d h	13
+f e e d j	1
+f e e d d	2
+f e e d a	1
+f e e g	7
+f e e g h	4
+f e e g </s>	1
+f e e g g	1
+f e e g j	1
+f e e i	2
+f e e i g	1
+f e e i </s>	1
+f e h	137
+f e h </s>	32
+f e h f	50
+f e h f </s>	7
+f e h f h	28
+f e h f j	5
+f e h f g	7
+f e h f f	1
+f e h f d	2
+f e h g	5
+f e h g j	2
+f e h g e	1
+f e h g i	1
+f e h g </s>	1
+f e h j	15
+f e h j </s>	5
+f e h j j	4
+f e h j g	3
+f e h j h	3
+f e h h	28
+f e h h </s>	11
+f e h h h	8
+f e h h g	5
+f e h h d	1
+f e h h f	1
+f e h h j	2
+f e h d	6
+f e h d h	4
+f e h d g	2
+f e h i	1
+f e h i </s>	1
+f e j	87
+f e j </s>	19
+f e j h	19
+f e j h </s>	4
+f e j h h	6
+f e j h j	3
+f e j h g	4
+f e j h e	1
+f e j h d	1
+f e j f	35
+f e j f </s>	5
+f e j f g	6
+f e j f d	2
+f e j f h	18
+f e j f j	4
+f e j d	3
+f e j d h	2
+f e j d </s>	1
+f e j g	1
+f e j g e	1
+f e j j	9
+f e j j h	1
+f e j j j	2
+f e j j </s>	3
+f e j j g	3
+f e j e	1
+f e j e j	1
+f e d	23
+f e d </s>	3
+f e d h	5
+f e d h h	3
+f e d h j	1
+f e d h </s>	1
+f e d f	6
+f e d f h	5
+f e d f j	1
+f e d e	2
+f e d e </s>	1
+f e d e g	1
+f e d c	2
+f e d c </s>	2
+f e d j	2
+f e d j </s>	1
+f e d j g	1
+f e d d	2
+f e d d h	1
+f e d d e	1
+f e d g	1
+f e d g </s>	1
+f e a	16
+f e a f	10
+f e a f </s>	3
+f e a f h	4
+f e a f g	2
+f e a f b	1
+f e a h	3
+f e a h d	1
+f e a h h	1
+f e a h j	1
+f e a </s>	3
+f e c	2
+f e c </s>	1
+f e c h	1
+f e c h g	1
+f e i	1
+f e i </s>	1
+f d	205
+f d </s>	57
+f d h	78
+f d h </s>	34
+f d h b	4
+f d h b j	1
+f d h b </s>	1
+f d h b c	1
+f d h b h	1
+f d h f	4
+f d h f f	1
+f d h f h	2
+f d h f j	1
+f d h g	12
+f d h g h	2
+f d h g c	5
+f d h g </s>	4
+f d h g j	1
+f d h h	3
+f d h h g	2
+f d h h h	1
+f d h d	18
+f d h d </s>	5
+f d h d g	1
+f d h d c	6
+f d h d b	1
+f d h d h	4
+f d h d j	1
+f d h a	1
+f d h a </s>	1
+f d h j	2
+f d h j g	1
+f d h j h	1
+f d e	29
+f d e </s>	13
+f d e b	1
+f d e b c	1
+f d e h	1
+f d e h h	1
+f d e g	4
+f d e g </s>	2
+f d e g h	1
+f d e g c	1
+f d e e	2
+f d e e c	2
+f d e d	5
+f d e d b	1
+f d e d c	2
+f d e d j	1
+f d e d </s>	1
+f d e j	2
+f d e j h	1
+f d e j </s>	1
+f d e f	1
+f d e f d	1
+f d g	7
+f d g </s>	2
+f d g d	2
+f d g d c	1
+f d g d d	1
+f d g f	3
+f d g f h	2
+f d g f j	1
+f d i	11
+f d i </s>	5
+f d i d	4
+f d i d c	3
+f d i d </s>	1
+f d i g	1
+f d i g </s>	1
+f d i j	1
+f d i j h	1
+f d d	6
+f d d d	3
+f d d d c	1
+f d d d h	1
+f d d d </s>	1
+f d d </s>	1
+f d d b	1
+f d d b c	1
+f d d i	1
+f d d i g	1
+f d j	14
+f d j </s>	5
+f d j b	1
+f d j b c	1
+f d j h	2
+f d j h j	1
+f d j h </s>	1
+f d j a	1
+f d j a c	1
+f d j e	1
+f d j e c	1
+f d j d	2
+f d j d j	1
+f d j d </s>	1
+f d j f	1
+f d j f h	1
+f d j j	1
+f d j j c	1
+f d a	1
+f d a d	1
+f d a d </s>	1
+f d f	2
+f d f f	1
+f d f f h	1
+f d f g	1
+f d f g j	1
+f a	316
+f a </s>	66
+f a b	3
+f a b e	2
+f a b e f	1
+f a b e </s>	1
+f a b </s>	1
+f a f	11
+f a f f	6
+f a f f </s>	1
+f a f f h	4
+f a f f g	1
+f a f h	2
+f a f h </s>	1
+f a f h d	1
+f a f </s>	3
+f a e	110
+f a e </s>	25
+f a e f	47
+f a e f </s>	9
+f a e f h	16
+f a e f j	7
+f a e f g	10
+f a e f d	5
+f a e d	4
+f a e d h	1
+f a e d g	1
+f a e d j	2
+f a e j	15
+f a e j h	9
+f a e j </s>	4
+f a e j j	1
+f a e j g	1
+f a e h	18
+f a e h </s>	3
+f a e h h	7
+f a e h g	6
+f a e h d	1
+f a e h j	1
+f a e e	1
+f a e e h	1
+f a a	4
+f a a f	2
+f a a f d	1
+f a a f h	1
+f a a </s>	1
+f a a j	1
+f a a j </s>	1
+f a g	58
+f a g </s>	17
+f a g b	1
+f a g b d	1
+f a g f	26
+f a g f </s>	10
+f a g f g	4
+f a g f h	9
+f a g f j	2
+f a g f d	1
+f a g h	7
+f a g h h	4
+f a g h g	1
+f a g h </s>	2
+f a g j	4
+f a g j g	1
+f a g j </s>	2
+f a g j d	1
+f a g e	1
+f a g e h	1
+f a g i	1
+f a g i d	1
+f a g d	1
+f a g d h	1
+f a h	35
+f a h </s>	3
+f a h f	14
+f a h f h	10
+f a h f g	2
+f a h f </s>	1
+f a h f j	1
+f a h j	3
+f a h j h	2
+f a h j </s>	1
+f a h h	12
+f a h h </s>	3
+f a h h g	3
+f a h h d	1
+f a h h j	3
+f a h h h	2
+f a h d	2
+f a h d h	1
+f a h d j	1
+f a h b	1
+f a h b </s>	1
+f a j	21
+f a j </s>	5
+f a j h	5
+f a j h h	2
+f a j h j	1
+f a j h </s>	2
+f a j d	3
+f a j d j	1
+f a j d </s>	1
+f a j d g	1
+f a j j	1
+f a j j h	1
+f a j f	6
+f a j f h	3
+f a j f g	1
+f a j f j	1
+f a j f </s>	1
+f a j g	1
+f a j g h	1
+f a d	4
+f a d f	2
+f a d f h	2
+f a d e	1
+f a d e h	1
+f a d </s>	1
+f a i	3
+f a i </s>	2
+f a i g	1
+f a i g h	1
+f a c	1
+f a c e	1
+f a c e h	1
+f j	407
+f j </s>	98
+f j b	1
+f j b h	1
+f j b h </s>	1
+f j h	162
+f j h </s>	68
+f j h b	13
+f j h b b	1
+f j h b h	1
+f j h b c	4
+f j h b d	1
+f j h b j	2
+f j h b a	1
+f j h b </s>	3
+f j h h	4
+f j h h </s>	2
+f j h h d	1
+f j h h g	1
+f j h g	17
+f j h g </s>	2
+f j h g h	5
+f j h g j	2
+f j h g c	6
+f j h g b	2
+f j h j	2
+f j h j h	1
+f j h j </s>	1
+f j h d	45
+f j h d </s>	18
+f j h d b	7
+f j h d c	16
+f j h d h	3
+f j h d j	1
+f j h a	5
+f j h a h	2
+f j h a j	1
+f j h a </s>	2
+f j h e	5
+f j h e </s>	3
+f j h e a	1
+f j h e h	1
+f j h c	2
+f j h c c	2
+f j h f	1
+f j h f h	1
+f j e	67
+f j e </s>	29
+f j e g	8
+f j e g </s>	1
+f j e g h	1
+f j e g j	1
+f j e g c	3
+f j e g a	1
+f j e g b	1
+f j e d	19
+f j e d j	2
+f j e d c	6
+f j e d </s>	8
+f j e d h	3
+f j e a	2
+f j e a c	1
+f j e a </s>	1
+f j e b	5
+f j e b c	2
+f j e b </s>	2
+f j e b d	1
+f j e f	3
+f j e f </s>	3
+f j e e	1
+f j e e </s>	1
+f j j	31
+f j j </s>	16
+f j j a	2
+f j j a b	1
+f j j a c	1
+f j j d	6
+f j j d </s>	2
+f j j d c	4
+f j j b	2
+f j j b c	1
+f j j b h	1
+f j j g	4
+f j j g h	3
+f j j g j	1
+f j j h	1
+f j j h </s>	1
+f j i	21
+f j i b	4
+f j i b </s>	2
+f j i b b	1
+f j i b c	1
+f j i e	1
+f j i e j	1
+f j i d	4
+f j i d h	1
+f j i d </s>	2
+f j i d c	1
+f j i </s>	10
+f j i g	2
+f j i g b	1
+f j i g </s>	1
+f j g	13
+f j g b	1
+f j g b </s>	1
+f j g h	7
+f j g h d	1
+f j g h </s>	4
+f j g h g	2
+f j g i	1
+f j g i d	1
+f j g </s>	3
+f j g f	1
+f j g f d	1
+f j f	5
+f j f h	2
+f j f h h	1
+f j f h </s>	1
+f j f g	1
+f j f g </s>	1
+f j f </s>	2
+f j d	9
+f j d </s>	2
+f j d d	5
+f j d d </s>	2
+f j d d j	1
+f j d d c	2
+f j d a	1
+f j d a c	1
+f j d h	1
+f j d h </s>	1
+f i	18
+f i </s>	5
+f i g	4
+f i g </s>	3
+f i g f	1
+f i g f g	1
+f i e	3
+f i e </s>	1
+f i e d	1
+f i e d </s>	1
+f i e f	1
+f i e f f	1
+f i d	1
+f i d c	1
+f i d c </s>	1
+f i h	2
+f i h f	1
+f i h f h	1
+f i h h	1
+f i h h </s>	1
+f i j	2
+f i j f	1
+f i j f j	1
+f i j </s>	1
+f i c	1
+f i c g	1
+f i c g f	1
+h	7751
+h </s>	2493
+h b	156
+h b </s>	45
+h b b	13
+h b b </s>	12
+h b b h	1
+h b b h </s>	1
+h b h	31
+h b h </s>	25
+h b h a	1
+h b h a c	1
+h b h h	2
+h b h h d	1
+h b h h h	1
+h b h d	2
+h b h d </s>	1
+h b h d c	1
+h b h e	1
+h b h e </s>	1
+h b g	3
+h b g j	2
+h b g j j	1
+h b g j f	1
+h b g h	1
+h b g h h	1
+h b c	50
+h b c </s>	50
+h b j	7
+h b j </s>	7
+h b d	2
+h b d </s>	2
+h b a	2
+h b a </s>	2
+h b f	1
+h b f </s>	1
+h b i	1
+h b i </s>	1
+h b e	1
+h b e f	1
+h b e f h	1
+h f	505
+h f </s>	107
+h f b	14
+h f b </s>	5
+h f b h	2
+h f b h d	1
+h f b h h	1
+h f b e	3
+h f b e g	1
+h f b e f	1
+h f b e d	1
+h f b g	2
+h f b g j	1
+h f b g f	1
+h f b a	1
+h f b a f	1
+h f b j	1
+h f b j d	1
+h f h	201
+h f h </s>	51
+h f h b	1
+h f h b </s>	1
+h f h h	70
+h f h h </s>	30
+h f h h g	9
+h f h h d	19
+h f h h b	4
+h f h h a	4
+h f h h c	1
+h f h h e	3
+h f h e	35
+h f h e d	13
+h f h e g	5
+h f h e </s>	15
+h f h e b	2
+h f h g	5
+h f h g </s>	4
+h f h g g	1
+h f h j	22
+h f h j </s>	10
+h f h j d	7
+h f h j b	2
+h f h j g	3
+h f h i	12
+h f h i </s>	6
+h f h i e	1
+h f h i g	2
+h f h i d	2
+h f h i a	1
+h f h d	5
+h f h d </s>	2
+h f h d d	2
+h f h d h	1
+h f g	87
+h f g </s>	24
+h f g e	11
+h f g e g	2
+h f g e b	2
+h f g e </s>	7
+h f g j	9
+h f g j </s>	2
+h f g j b	1
+h f g j a	1
+h f g j d	2
+h f g j g	3
+h f g h	36
+h f g h </s>	16
+h f g h b	3
+h f g h d	9
+h f g h a	2
+h f g h g	6
+h f g i	2
+h f g i g	1
+h f g i </s>	1
+h f g d	3
+h f g d b	1
+h f g d g	1
+h f g d e	1
+h f g g	2
+h f g g </s>	1
+h f g g a	1
+h f f	7
+h f f </s>	2
+h f f d	2
+h f f d d	1
+h f f d </s>	1
+h f f e	2
+h f f e a	1
+h f f e f	1
+h f f h	1
+h f f h g	1
+h f d	21
+h f d </s>	3
+h f d h	10
+h f d h </s>	3
+h f d h d	5
+h f d h g	1
+h f d h b	1
+h f d i	2
+h f d i d	1
+h f d i g	1
+h f d e	4
+h f d e e	1
+h f d e </s>	2
+h f d e g	1
+h f d a	1
+h f d a d	1
+h f d d	1
+h f d d b	1
+h f j	53
+h f j </s>	16
+h f j e	7
+h f j e d	3
+h f j e e	1
+h f j e b	1
+h f j e </s>	2
+h f j h	19
+h f j h </s>	7
+h f j h b	3
+h f j h d	5
+h f j h g	3
+h f j h a	1
+h f j j	4
+h f j j </s>	2
+h f j j d	1
+h f j j g	1
+h f j g	3
+h f j g </s>	2
+h f j g h	1
+h f j d	3
+h f j d d	2
+h f j d h	1
+h f j i	1
+h f j i g	1
+h f e	8
+h f e b	1
+h f e b b	1
+h f e h	1
+h f e h h	1
+h f e d	2
+h f e d c	1
+h f e d h	1
+h f e g	2
+h f e g c	1
+h f e g h	1
+h f e </s>	2
+h f c	4
+h f c </s>	3
+h f c h	1
+h f c h d	1
+h f a	3
+h f a </s>	2
+h f a h	1
+h f a h h	1
+h h	1908
+h h </s>	676
+h h b	72
+h h b </s>	18
+h h b b	7
+h h b b </s>	6
+h h b b h	1
+h h b h	16
+h h b h </s>	16
+h h b a	1
+h h b a </s>	1
+h h b c	24
+h h b c </s>	24
+h h b j	3
+h h b j </s>	3
+h h b f	1
+h h b f </s>	1
+h h b d	1
+h h b d </s>	1
+h h b i	1
+h h b i </s>	1
+h h h	378
+h h h </s>	138
+h h h b	21
+h h h b </s>	5
+h h h b h	4
+h h h b c	5
+h h h b a	1
+h h h b b	5
+h h h b i	1
+h h h h	38
+h h h h b	5
+h h h h g	4
+h h h h d	16
+h h h h </s>	12
+h h h h e	1
+h h h g	35
+h h h g </s>	12
+h h h g a	1
+h h h g c	8
+h h h g h	8
+h h h g b	3
+h h h g j	2
+h h h g i	1
+h h h e	22
+h h h e </s>	9
+h h h e g	3
+h h h e d	6
+h h h e c	3
+h h h e b	1
+h h h d	98
+h h h d </s>	31
+h h h d a	3
+h h h d c	37
+h h h d h	12
+h h h d b	11
+h h h d j	2
+h h h d d	2
+h h h i	5
+h h h i a	1
+h h h i b	1
+h h h i </s>	3
+h h h c	4
+h h h c c	2
+h h h c </s>	2
+h h h a	13
+h h h a </s>	5
+h h h a h	4
+h h h a b	1
+h h h a c	2
+h h h a j	1
+h h h j	4
+h h h j g	1
+h h h j </s>	3
+h h g	172
+h h g </s>	56
+h h g b	10
+h h g b </s>	10
+h h g h	32
+h h g h </s>	26
+h h g h d	5
+h h g h g	1
+h h g a	5
+h h g a </s>	3
+h h g a c	1
+h h g a h	1
+h h g c	39
+h h g c </s>	39
+h h g j	12
+h h g j </s>	6
+h h g j b	1
+h h g j d	4
+h h g j g	1
+h h g i	3
+h h g i b	1
+h h g i d	1
+h h g i </s>	1
+h h g e	9
+h h g e d	3
+h h g e </s>	4
+h h g e b	2
+h h g d	4
+h h g d c	1
+h h g d d	1
+h h g d </s>	2
+h h g g	2
+h h g g j	1
+h h g g </s>	1
+h h e	139
+h h e </s>	60
+h h e b	11
+h h e b h	2
+h h e b </s>	6
+h h e b b	2
+h h e b c	1
+h h e f	1
+h h e f </s>	1
+h h e a	4
+h h e a b	2
+h h e a c	2
+h h e c	9
+h h e c </s>	9
+h h e d	38
+h h e d </s>	14
+h h e d h	8
+h h e d c	10
+h h e d j	2
+h h e d d	1
+h h e d a	1
+h h e d b	2
+h h e g	13
+h h e g b	1
+h h e g </s>	6
+h h e g c	2
+h h e g j	2
+h h e g h	2
+h h e j	2
+h h e j c	1
+h h e j </s>	1
+h h e h	1
+h h e h </s>	1
+h h d	309
+h h d </s>	109
+h h d b	30
+h h d b </s>	30
+h h d h	38
+h h d h </s>	34
+h h d h d	4
+h h d a	6
+h h d a </s>	4
+h h d a c	1
+h h d a h	1
+h h d c	93
+h h d c </s>	93
+h h d g	4
+h h d g </s>	3
+h h d g d	1
+h h d j	7
+h h d j </s>	6
+h h d j d	1
+h h d e	4
+h h d e </s>	2
+h h d e g	2
+h h d f	4
+h h d f </s>	4
+h h d d	12
+h h d d </s>	9
+h h d d c	2
+h h d d h	1
+h h d i	2
+h h d i g	1
+h h d i c	1
+h h i	27
+h h i </s>	14
+h h i g	2
+h h i g c	1
+h h i g </s>	1
+h h i d	6
+h h i d b	1
+h h i d a	1
+h h i d h	2
+h h i d </s>	1
+h h i d c	1
+h h i a	1
+h h i a c	1
+h h i b	4
+h h i b </s>	2
+h h i b h	1
+h h i b c	1
+h h j	80
+h h j </s>	37
+h h j b	3
+h h j b </s>	2
+h h j b c	1
+h h j h	6
+h h j h d	1
+h h j h </s>	4
+h h j h a	1
+h h j g	11
+h h j g </s>	4
+h h j g f	1
+h h j g c	2
+h h j g j	1
+h h j g h	2
+h h j g b	1
+h h j e	4
+h h j e </s>	2
+h h j e g	2
+h h j d	11
+h h j d </s>	3
+h h j d h	1
+h h j d c	5
+h h j d b	1
+h h j d d	1
+h h j j	4
+h h j j </s>	4
+h h j a	3
+h h j a h	1
+h h j a </s>	2
+h h j c	1
+h h j c </s>	1
+h h a	40
+h h a </s>	9
+h h a h	7
+h h a h </s>	7
+h h a c	17
+h h a c </s>	17
+h h a j	2
+h h a j </s>	2
+h h a b	4
+h h a b </s>	4
+h h a a	1
+h h a a </s>	1
+h h c	10
+h h c </s>	3
+h h c c	6
+h h c c </s>	6
+h h c d	1
+h h c d </s>	1
+h h f	5
+h h f e	3
+h h f e b	1
+h h f e g	1
+h h f e </s>	1
+h h f j	1
+h h f j </s>	1
+h h f </s>	1
+h j	512
+h j </s>	169
+h j b	15
+h j b h	4
+h j b h </s>	2
+h j b h e	1
+h j b h d	1
+h j b c	5
+h j b c </s>	5
+h j b </s>	5
+h j b b	1
+h j b b </s>	1
+h j h	106
+h j h </s>	38
+h j h b	3
+h j h b c	2
+h j h b </s>	1
+h j h h	14
+h j h h g	2
+h j h h d	4
+h j h h a	1
+h j h h </s>	7
+h j h g	12
+h j h g </s>	4
+h j h g b	1
+h j h g c	2
+h j h g h	3
+h j h g a	1
+h j h g g	1
+h j h e	8
+h j h e d	2
+h j h e </s>	4
+h j h e b	1
+h j h e g	1
+h j h d	25
+h j h d </s>	12
+h j h d h	3
+h j h d j	3
+h j h d c	6
+h j h d d	1
+h j h a	3
+h j h a b	1
+h j h a c	2
+h j h c	1
+h j h c h	1
+h j h j	1
+h j h j </s>	1
+h j h i	1
+h j h i d	1
+h j a	8
+h j a </s>	6
+h j a h	2
+h j a h </s>	2
+h j g	57
+h j g </s>	14
+h j g b	3
+h j g b </s>	3
+h j g h	11
+h j g h g	1
+h j g h </s>	10
+h j g e	8
+h j g e c	1
+h j g e </s>	4
+h j g e g	2
+h j g e d	1
+h j g c	10
+h j g c </s>	10
+h j g d	4
+h j g d g	2
+h j g d d	1
+h j g d </s>	1
+h j g j	4
+h j g j </s>	4
+h j g f	1
+h j g f </s>	1
+h j g i	2
+h j g i g	1
+h j g i </s>	1
+h j d	80
+h j d </s>	31
+h j d b	8
+h j d b </s>	7
+h j d b h	1
+h j d h	14
+h j d h </s>	14
+h j d g	1
+h j d g c	1
+h j d c	22
+h j d c </s>	22
+h j d e	1
+h j d e </s>	1
+h j d d	2
+h j d d h	1
+h j d d j	1
+h j d a	1
+h j d a h	1
+h j j	31
+h j j </s>	17
+h j j b	1
+h j j b c	1
+h j j h	1
+h j j h </s>	1
+h j j e	4
+h j j e b	1
+h j j e </s>	1
+h j j e c	2
+h j j g	1
+h j j g h	1
+h j j i	3
+h j j i g	2
+h j j i </s>	1
+h j j j	3
+h j j j </s>	3
+h j j d	1
+h j j d c	1
+h j e	35
+h j e b	1
+h j e b c	1
+h j e </s>	16
+h j e h	1
+h j e h </s>	1
+h j e g	6
+h j e g j	1
+h j e g c	1
+h j e g h	1
+h j e g </s>	3
+h j e d	8
+h j e d </s>	3
+h j e d c	2
+h j e d h	2
+h j e d b	1
+h j e c	2
+h j e c </s>	2
+h j e i	1
+h j e i c	1
+h j i	8
+h j i b	1
+h j i b d	1
+h j i h	1
+h j i h </s>	1
+h j i g	1
+h j i g c	1
+h j i </s>	3
+h j i i	1
+h j i i </s>	1
+h j i c	1
+h j i c </s>	1
+h j f	1
+h j f h	1
+h j f h g	1
+h j c	2
+h j c c	1
+h j c c </s>	1
+h j c </s>	1
+h i	132
+h i </s>	64
+h i b	11
+h i b </s>	4
+h i b h	1
+h i b h </s>	1
+h i b c	4
+h i b c </s>	4
+h i b b	1
+h i b b </s>	1
+h i b e	1
+h i b e h	1
+h i h	5
+h i h h	2
+h i h h d	1
+h i h h </s>	1
+h i h j	1
+h i h j </s>	1
+h i h g	2
+h i h g </s>	2
+h i g	13
+h i g c	4
+h i g c </s>	4
+h i g </s>	3
+h i g h	5
+h i g h </s>	4
+h i g h d	1
+h i g d	1
+h i g d </s>	1
+h i c	1
+h i c </s>	1
+h i d	27
+h i d </s>	8
+h i d b	6
+h i d b </s>	6
+h i d a	1
+h i d a </s>	1
+h i d j	1
+h i d j </s>	1
+h i d h	4
+h i d h </s>	4
+h i d c	7
+h i d c </s>	7
+h i a	5
+h i a c	1
+h i a c </s>	1
+h i a </s>	4
+h i e	4
+h i e h	1
+h i e h </s>	1
+h i e b	1
+h i e b </s>	1
+h i e </s>	1
+h i e c	1
+h i e c </s>	1
+h i j	1
+h i j d	1
+h i j d h	1
+h i i	1
+h i i </s>	1
+h d	750
+h d </s>	269
+h d b	61
+h d b </s>	59
+h d b c	2
+h d b c </s>	2
+h d h	138
+h d h </s>	103
+h d h b	2
+h d h b c	2
+h d h h	9
+h d h h d	2
+h d h h </s>	5
+h d h h a	1
+h d h h b	1
+h d h e	6
+h d h e b	1
+h d h e a	1
+h d h e </s>	2
+h d h e g	1
+h d h e d	1
+h d h a	2
+h d h a </s>	2
+h d h d	12
+h d h d </s>	5
+h d h d b	3
+h d h d h	2
+h d h d j	1
+h d h d c	1
+h d h j	2
+h d h j d	2
+h d h g	2
+h d h g </s>	2
+h d g	20
+h d g </s>	10
+h d g h	3
+h d g h </s>	1
+h d g h g	1
+h d g h d	1
+h d g c	1
+h d g c </s>	1
+h d g i	1
+h d g i </s>	1
+h d g e	2
+h d g e d	1
+h d g e </s>	1
+h d g j	1
+h d g j </s>	1
+h d g d	2
+h d g d </s>	2
+h d c	174
+h d c </s>	173
+h d c c	1
+h d c c </s>	1
+h d j	26
+h d j </s>	20
+h d j j	1
+h d j j </s>	1
+h d j d	4
+h d j d b	1
+h d j d </s>	1
+h d j d h	1
+h d j d c	1
+h d j e	1
+h d j e </s>	1
+h d a	11
+h d a </s>	8
+h d a c	2
+h d a c </s>	2
+h d a h	1
+h d a h </s>	1
+h d e	16
+h d e d	2
+h d e d </s>	2
+h d e </s>	10
+h d e c	1
+h d e c </s>	1
+h d e g	3
+h d e g h	1
+h d e g d	1
+h d e g c	1
+h d d	24
+h d d </s>	15
+h d d h	3
+h d d h </s>	3
+h d d c	2
+h d d c </s>	2
+h d d d	2
+h d d d </s>	1
+h d d d b	1
+h d d b	1
+h d d b </s>	1
+h d d j	1
+h d d j </s>	1
+h d f	5
+h d f </s>	4
+h d f e	1
+h d f e g	1
+h d i	6
+h d i </s>	3
+h d i g	1
+h d i g h	1
+h d i c	1
+h d i c </s>	1
+h d i b	1
+h d i b h	1
+h g	630
+h g </s>	170
+h g b	24
+h g b </s>	20
+h g b c	1
+h g b c </s>	1
+h g b g	2
+h g b g f	2
+h g b h	1
+h g b h </s>	1
+h g h	176
+h g h </s>	102
+h g h b	7
+h g h b b	1
+h g h b c	3
+h g h b </s>	1
+h g h b h	2
+h g h f	1
+h g h f j	1
+h g h a	6
+h g h a c	4
+h g h a </s>	2
+h g h g	19
+h g h g b	2
+h g h g h	4
+h g h g c	7
+h g h g j	2
+h g h g </s>	3
+h g h g e	1
+h g h d	36
+h g h d </s>	8
+h g h d h	7
+h g h d c	15
+h g h d b	5
+h g h d j	1
+h g h e	3
+h g h e h	1
+h g h e </s>	2
+h g h c	2
+h g h c c	2
+h g a	8
+h g a </s>	4
+h g a c	2
+h g a c </s>	2
+h g a g	1
+h g a g </s>	1
+h g a h	1
+h g a h </s>	1
+h g c	86
+h g c </s>	83
+h g c e	1
+h g c e f	1
+h g c h	2
+h g c h </s>	1
+h g c h j	1
+h g j	65
+h g j </s>	34
+h g j b	2
+h g j b </s>	1
+h g j b h	1
+h g j h	2
+h g j h b	1
+h g j h e	1
+h g j g	7
+h g j g b	2
+h g j g h	2
+h g j g c	1
+h g j g a	1
+h g j g </s>	1
+h g j c	2
+h g j c </s>	1
+h g j c c	1
+h g j d	15
+h g j d b	4
+h g j d h	2
+h g j d c	3
+h g j d d	2
+h g j d j	1
+h g j d </s>	3
+h g j a	2
+h g j a </s>	2
+h g j e	1
+h g j e </s>	1
+h g i	14
+h g i b	2
+h g i b c	2
+h g i </s>	8
+h g i d	3
+h g i d c	1
+h g i d b	1
+h g i d </s>	1
+h g i g	1
+h g i g c	1
+h g g	14
+h g g </s>	4
+h g g h	1
+h g g h </s>	1
+h g g c	4
+h g g c </s>	4
+h g g d	1
+h g g d </s>	1
+h g g j	1
+h g g j </s>	1
+h g g b	2
+h g g b </s>	2
+h g g a	1
+h g g a </s>	1
+h g d	21
+h g d </s>	9
+h g d a	2
+h g d a </s>	1
+h g d a c	1
+h g d b	2
+h g d b h	1
+h g d b c	1
+h g d c	3
+h g d c </s>	3
+h g d d	2
+h g d d </s>	1
+h g d d b	1
+h g d h	2
+h g d h </s>	2
+h g d g	1
+h g d g d	1
+h g e	50
+h g e </s>	15
+h g e g	9
+h g e g </s>	5
+h g e g h	2
+h g e g b	1
+h g e g f	1
+h g e i	1
+h g e i c	1
+h g e d	19
+h g e d c	8
+h g e d </s>	8
+h g e d h	3
+h g e b	5
+h g e b </s>	3
+h g e b c	1
+h g e b h	1
+h g e e	1
+h g e e </s>	1
+h g f	2
+h g f h	1
+h g f h d	1
+h g f d	1
+h g f d </s>	1
+h e	548
+h e </s>	238
+h e b	47
+h e b </s>	23
+h e b h	6
+h e b h </s>	6
+h e b c	13
+h e b c </s>	13
+h e b g	1
+h e b g </s>	1
+h e b a	1
+h e b a </s>	1
+h e b b	3
+h e b b </s>	3
+h e h	7
+h e h </s>	5
+h e h h	2
+h e h h j	1
+h e h h </s>	1
+h e a	14
+h e a b	3
+h e a b </s>	3
+h e a c	6
+h e a c </s>	6
+h e a </s>	4
+h e a h	1
+h e a h </s>	1
+h e g	69
+h e g </s>	20
+h e g h	17
+h e g h </s>	16
+h e g h h	1
+h e g c	26
+h e g c </s>	26
+h e g j	4
+h e g j </s>	4
+h e g b	1
+h e g b </s>	1
+h e g d	1
+h e g d </s>	1
+h e d	138
+h e d </s>	50
+h e d b	11
+h e d b </s>	11
+h e d h	25
+h e d h </s>	25
+h e d a	3
+h e d a </s>	3
+h e d c	40
+h e d c </s>	40
+h e d j	5
+h e d j </s>	5
+h e d d	1
+h e d d </s>	1
+h e d g	2
+h e d g </s>	2
+h e d f	1
+h e d f </s>	1
+h e e	13
+h e e </s>	4
+h e e f	2
+h e e f </s>	1
+h e e f g	1
+h e e c	4
+h e e c </s>	4
+h e e b	1
+h e e b </s>	1
+h e e i	2
+h e e i h	2
+h e c	16
+h e c </s>	14
+h e c h	2
+h e c h </s>	2
+h e j	3
+h e j c	1
+h e j c </s>	1
+h e j </s>	1
+h e j j	1
+h e j j g	1
+h e i	1
+h e i </s>	1
+h e f	2
+h e f </s>	2
+h a	83
+h a </s>	23
+h a b	7
+h a b </s>	7
+h a h	13
+h a h </s>	12
+h a h h	1
+h a h h </s>	1
+h a a	2
+h a a </s>	2
+h a c	26
+h a c </s>	25
+h a c e	1
+h a c e d	1
+h a j	5
+h a j d	2
+h a j d h	1
+h a j d </s>	1
+h a j </s>	3
+h a e	2
+h a e e	1
+h a e e </s>	1
+h a e d	1
+h a e d c	1
+h a d	3
+h a d </s>	2
+h a d h	1
+h a d h </s>	1
+h a i	1
+h a i </s>	1
+h a g	1
+h a g e	1
+h a g e </s>	1
+h c	34
+h c </s>	4
+h c b	6
+h c b </s>	2
+h c b e	1
+h c b e h	1
+h c b g	1
+h c b g </s>	1
+h c b j	1
+h c b j </s>	1
+h c b d	1
+h c b d f	1
+h c h	3
+h c h </s>	3
+h c e	4
+h c e h	2
+h c e h h	1
+h c e h </s>	1
+h c e f	2
+h c e f h	2
+h c c	12
+h c c </s>	11
+h c c e	1
+h c c e j	1
+h c a	1
+h c a e	1
+h c a e f	1
+h c g	2
+h c g h	1
+h c g h </s>	1
+h c g f	1
+h c g f g	1
+h c d	1
+h c d </s>	1
+h c j	1
+h c j </s>	1
+</s>	10000
+a	6432
+a </s>	207
+a b	470
+a b </s>	80
+a b b	72
+a b b </s>	11
+a b b g	18
+a b b g f	11
+a b b g </s>	2
+a b b g h	4
+a b b g e	1
+a b b e	32
+a b b e </s>	8
+a b b e f	10
+a b b e h	7
+a b b e d	3
+a b b e j	2
+a b b e g	2
+a b b j	4
+a b b j j	2
+a b b j f	2
+a b b h	7
+a b b h h	2
+a b b h f	2
+a b b h </s>	2
+a b b h g	1
+a b h	32
+a b h </s>	8
+a b h f	9
+a b h f h	6
+a b h f b	1
+a b h f g	1
+a b h f </s>	1
+a b h j	6
+a b h j b	1
+a b h j </s>	2
+a b h j j	2
+a b h j h	1
+a b h h	8
+a b h h </s>	3
+a b h h h	3
+a b h h g	2
+a b h d	1
+a b h d h	1
+a b e	160
+a b e </s>	35
+a b e h	34
+a b e h </s>	4
+a b e h h	15
+a b e h f	4
+a b e h g	7
+a b e h j	3
+a b e h b	1
+a b e f	46
+a b e f </s>	10
+a b e f h	17
+a b e f a	2
+a b e f g	11
+a b e f d	3
+a b e f j	2
+a b e f b	1
+a b e j	17
+a b e j </s>	6
+a b e j f	3
+a b e j j	2
+a b e j g	2
+a b e j h	4
+a b e e	15
+a b e e </s>	1
+a b e e h	6
+a b e e j	2
+a b e e d	1
+a b e e f	4
+a b e e g	1
+a b e d	3
+a b e d </s>	2
+a b e d f	1
+a b e g	9
+a b e g </s>	2
+a b e g g	3
+a b e g f	2
+a b e g j	1
+a b e g d	1
+a b e c	1
+a b e c h	1
+a b j	13
+a b j f	6
+a b j f g	2
+a b j f </s>	1
+a b j f h	3
+a b j g	1
+a b j g </s>	1
+a b j </s>	3
+a b j h	3
+a b j h h	1
+a b j h g	1
+a b j h j	1
+a b g	68
+a b g </s>	12
+a b g f	33
+a b g f </s>	12
+a b g f g	3
+a b g f h	11
+a b g f j	5
+a b g f d	2
+a b g h	9
+a b g h </s>	3
+a b g h h	3
+a b g h j	1
+a b g h f	1
+a b g h g	1
+a b g j	9
+a b g j </s>	3
+a b g j h	5
+a b g j g	1
+a b g i	1
+a b g i h	1
+a b g e	1
+a b g e f	1
+a b g d	2
+a b g d h	1
+a b g d g	1
+a b g g	1
+a b g g </s>	1
+a b c	19
+a b c </s>	3
+a b c g	3
+a b c g j	2
+a b c g f	1
+a b c e	8
+a b c e </s>	4
+a b c e f	4
+a b c h	2
+a b c h </s>	1
+a b c h f	1
+a b c j	3
+a b c j j	1
+a b c j f	1
+a b c j </s>	1
+a b f	10
+a b f h	2
+a b f h h	1
+a b f h </s>	1
+a b f e	1
+a b f e </s>	1
+a b f </s>	2
+a b f f	5
+a b f f </s>	1
+a b f f h	3
+a b f f g	1
+a b a	11
+a b a </s>	4
+a b a e	4
+a b a e d	1
+a b a e h	2
+a b a e f	1
+a b a g	1
+a b a g </s>	1
+a b a j	1
+a b a j </s>	1
+a b a h	1
+a b a h f	1
+a b i	1
+a b i h	1
+a b i h i	1
+a b d	4
+a b d d	1
+a b d d h	1
+a b d h	1
+a b d h </s>	1
+a b d f	1
+a b d f h	1
+a b d </s>	1
+a f	2600
+a f </s>	12
+a f b	1247
+a f b </s>	204
+a f b b	2
+a f b b g	1
+a f b b h	1
+a f b h	131
+a f b h </s>	26
+a f b h f	59
+a f b h e	2
+a f b h h	22
+a f b h j	12
+a f b h d	7
+a f b h c	1
+a f b h g	1
+a f b h i	1
+a f b e	535
+a f b e </s>	106
+a f b e f	231
+a f b e h	98
+a f b e j	60
+a f b e d	25
+a f b e g	8
+a f b e e	3
+a f b e i	4
+a f b f	35
+a f b f </s>	3
+a f b f f	19
+a f b f h	7
+a f b f j	4
+a f b f d	2
+a f b g	253
+a f b g </s>	39
+a f b g f	93
+a f b g h	64
+a f b g j	32
+a f b g d	14
+a f b g g	2
+a f b g e	2
+a f b g i	7
+a f b j	65
+a f b j </s>	11
+a f b j f	28
+a f b j j	5
+a f b j d	3
+a f b j h	17
+a f b j i	1
+a f b d	17
+a f b d </s>	2
+a f b d h	7
+a f b d j	1
+a f b d c	1
+a f b d f	5
+a f b d d	1
+a f b a	4
+a f b a h	2
+a f b a </s>	1
+a f b a i	1
+a f b c	1
+a f b c </s>	1
+a f f	50
+a f f </s>	8
+a f f g	10
+a f f g f	4
+a f f g </s>	4
+a f f g h	2
+a f f e	19
+a f f e </s>	3
+a f f e f	9
+a f f e d	2
+a f f e j	2
+a f f e h	3
+a f f h	10
+a f f h </s>	2
+a f f h e	2
+a f f h i	1
+a f f h j	1
+a f f h h	3
+a f f h d	1
+a f f a	1
+a f f a j	1
+a f f j	1
+a f f j j	1
+a f f f	1
+a f f f f	1
+a f g	94
+a f g </s>	13
+a f g g	14
+a f g g </s>	4
+a f g g j	3
+a f g g f	5
+a f g g h	2
+a f g e	44
+a f g e </s>	14
+a f g e f	17
+a f g e j	4
+a f g e d	2
+a f g e h	7
+a f g h	14
+a f g h h	2
+a f g h j	2
+a f g h g	3
+a f g h f	5
+a f g h d	2
+a f g j	5
+a f g j j	1
+a f g j f	1
+a f g j </s>	2
+a f g j h	1
+a f g d	3
+a f g d f	1
+a f g d g	1
+a f g d </s>	1
+a f g f	1
+a f g f </s>	1
+a f c	355
+a f c </s>	65
+a f c b	1
+a f c b </s>	1
+a f c h	48
+a f c h </s>	7
+a f c h f	27
+a f c h i	1
+a f c h d	3
+a f c h h	8
+a f c h j	2
+a f c e	135
+a f c e </s>	24
+a f c e f	53
+a f c e j	17
+a f c e h	32
+a f c e d	8
+a f c e e	1
+a f c g	66
+a f c g </s>	13
+a f c g f	27
+a f c g j	8
+a f c g d	3
+a f c g g	1
+a f c g h	13
+a f c g c	1
+a f c a	4
+a f c a h	2
+a f c a f	1
+a f c a </s>	1
+a f c f	16
+a f c f </s>	2
+a f c f f	10
+a f c f h	2
+a f c f j	1
+a f c f a	1
+a f c d	6
+a f c d h	3
+a f c d g	1
+a f c d j	1
+a f c d f	1
+a f c j	14
+a f c j f	9
+a f c j h	1
+a f c j </s>	4
+a f a	147
+a f a </s>	26
+a f a h	18
+a f a h </s>	2
+a f a h f	7
+a f a h j	2
+a f a h h	5
+a f a h d	1
+a f a h b	1
+a f a e	51
+a f a e </s>	14
+a f a e f	23
+a f a e d	3
+a f a e j	3
+a f a e h	8
+a f a a	4
+a f a a f	2
+a f a a </s>	1
+a f a a j	1
+a f a g	33
+a f a g </s>	8
+a f a g f	15
+a f a g h	4
+a f a g b	1
+a f a g j	3
+a f a g e	1
+a f a g d	1
+a f a j	8
+a f a j h	2
+a f a j f	3
+a f a j </s>	3
+a f a f	5
+a f a f h	1
+a f a f f	2
+a f a f </s>	2
+a f a d	2
+a f a d f	1
+a f a d </s>	1
+a f e	642
+a f e </s>	108
+a f e h	61
+a f e h </s>	13
+a f e h f	22
+a f e h j	7
+a f e h h	14
+a f e h d	4
+a f e h i	1
+a f e g	127
+a f e g </s>	26
+a f e g f	58
+a f e g h	21
+a f e g j	13
+a f e g e	2
+a f e g g	3
+a f e g d	4
+a f e e	258
+a f e e </s>	41
+a f e e f	101
+a f e e h	67
+a f e e j	28
+a f e e d	17
+a f e e g	3
+a f e e i	1
+a f e j	40
+a f e j </s>	10
+a f e j h	3
+a f e j f	18
+a f e j d	3
+a f e j j	6
+a f e a	10
+a f e a f	8
+a f e a </s>	2
+a f e f	29
+a f e f </s>	10
+a f e f f	12
+a f e f h	5
+a f e f g	1
+a f e f j	1
+a f e d	8
+a f e d </s>	2
+a f e d h	1
+a f e d e	2
+a f e d j	1
+a f e d f	2
+a f e c	1
+a f e c h	1
+a f d	21
+a f d </s>	6
+a f d h	7
+a f d h f	4
+a f d h h	2
+a f d h j	1
+a f d i	1
+a f d i </s>	1
+a f d g	4
+a f d g </s>	2
+a f d g f	2
+a f d e	2
+a f d e j	1
+a f d e d	1
+a f d f	1
+a f d f f	1
+a f h	23
+a f h </s>	6
+a f h h	7
+a f h h </s>	3
+a f h h h	2
+a f h h d	1
+a f h h a	1
+a f h e	3
+a f h e g	1
+a f h e e	1
+a f h e d	1
+a f h d	3
+a f h d </s>	2
+a f h d h	1
+a f h j	2
+a f h j d	1
+a f h j h	1
+a f h f	1
+a f h f </s>	1
+a f h g	1
+a f h g f	1
+a f j	6
+a f j e	4
+a f j e f	2
+a f j e </s>	2
+a f j g	2
+a f j g h	2
+a f i	3
+a f i g	2
+a f i g </s>	2
+a f i e	1
+a f i e f	1
+a g	1398
+a g </s>	36
+a g b	640
+a g b </s>	112
+a g b b	2
+a g b b h	2
+a g b h	72
+a g b h </s>	15
+a g b h g	2
+a g b h f	27
+a g b h j	6
+a g b h h	14
+a g b h d	7
+a g b h a	1
+a g b g	137
+a g b g </s>	21
+a g b g f	39
+a g b g j	14
+a g b g h	42
+a g b g d	15
+a g b g g	5
+a g b g i	1
+a g b e	262
+a g b e </s>	63
+a g b e f	97
+a g b e h	51
+a g b e j	31
+a g b e d	12
+a g b e i	4
+a g b e g	3
+a g b e e	1
+a g b j	33
+a g b j </s>	5
+a g b j g	2
+a g b j f	13
+a g b j j	1
+a g b j h	10
+a g b j c	1
+a g b j d	1
+a g b d	10
+a g b d </s>	1
+a g b d f	6
+a g b d e	1
+a g b d a	1
+a g b d h	1
+a g b f	10
+a g b f j	1
+a g b f f	6
+a g b f h	3
+a g b a	2
+a g b a h	1
+a g b a </s>	1
+a g f	81
+a g f </s>	25
+a g f h	26
+a g f h </s>	8
+a g f h e	5
+a g f h g	2
+a g f h f	2
+a g f h h	7
+a g f h i	1
+a g f h j	1
+a g f d	3
+a g f d </s>	1
+a g f d g	1
+a g f d h	1
+a g f g	13
+a g f g e	3
+a g f g f	1
+a g f g </s>	3
+a g f g h	6
+a g f j	8
+a g f j </s>	1
+a g f j h	3
+a g f j j	2
+a g f j i	1
+a g f j e	1
+a g f e	5
+a g f e h	1
+a g f e </s>	2
+a g f e f	1
+a g f e j	1
+a g f f	1
+a g f f </s>	1
+a g e	313
+a g e </s>	56
+a g e b	1
+a g e b f	1
+a g e h	35
+a g e h </s>	3
+a g e h f	15
+a g e h d	2
+a g e h h	10
+a g e h j	4
+a g e h g	1
+a g e e	127
+a g e e </s>	25
+a g e e f	56
+a g e e h	29
+a g e e j	6
+a g e e d	6
+a g e e g	2
+a g e e a	1
+a g e e e	1
+a g e e i	1
+a g e g	56
+a g e g </s>	9
+a g e g h	9
+a g e g j	9
+a g e g f	22
+a g e g g	2
+a g e g d	5
+a g e f	10
+a g e f f	3
+a g e f </s>	4
+a g e f j	2
+a g e f h	1
+a g e d	6
+a g e d </s>	1
+a g e d f	2
+a g e d d	1
+a g e d j	1
+a g e d g	1
+a g e j	19
+a g e j </s>	5
+a g e j f	7
+a g e j h	4
+a g e j g	1
+a g e j i	1
+a g e j j	1
+a g e a	3
+a g e a h	1
+a g e a f	2
+a g c	163
+a g c </s>	21
+a g c f	6
+a g c f </s>	1
+a g c f f	4
+a g c f j	1
+a g c g	32
+a g c g </s>	7
+a g c g f	12
+a g c g h	8
+a g c g j	3
+a g c g d	1
+a g c g c	1
+a g c e	76
+a g c e </s>	12
+a g c e g	3
+a g c e j	11
+a g c e d	6
+a g c e f	34
+a g c e h	9
+a g c e i	1
+a g c h	17
+a g c h </s>	3
+a g c h h	6
+a g c h f	4
+a g c h d	1
+a g c h j	2
+a g c h a	1
+a g c i	2
+a g c i f	1
+a g c i h	1
+a g c j	8
+a g c j g	1
+a g c j j	2
+a g c j f	3
+a g c j h	2
+a g c a	1
+a g c a </s>	1
+a g g	45
+a g g </s>	13
+a g g h	4
+a g g h f	2
+a g g h </s>	2
+a g g g	4
+a g g g h	2
+a g g g j	1
+a g g g f	1
+a g g j	7
+a g g j </s>	1
+a g g j f	2
+a g g j j	1
+a g g j g	1
+a g g j h	2
+a g g d	1
+a g g d f	1
+a g g e	12
+a g g e </s>	3
+a g g e g	2
+a g g e d	1
+a g g e f	4
+a g g e j	1
+a g g e c	1
+a g g a	1
+a g g a f	1
+a g g f	3
+a g g f f	1
+a g g f h	2
+a g a	69
+a g a </s>	13
+a g a e	30
+a g a e j	5
+a g a e f	10
+a g a e </s>	8
+a g a e h	7
+a g a g	19
+a g a g f	10
+a g a g h	3
+a g a g </s>	5
+a g a g j	1
+a g a j	4
+a g a j h	1
+a g a j f	2
+a g a j j	1
+a g a h	3
+a g a h d	1
+a g a h f	1
+a g a h </s>	1
+a g j	17
+a g j </s>	5
+a g j e	1
+a g j e </s>	1
+a g j g	6
+a g j g f	2
+a g j g j	2
+a g j g e	1
+a g j g </s>	1
+a g j h	2
+a g j h </s>	2
+a g j d	2
+a g j d b	1
+a g j d </s>	1
+a g j j	1
+a g j j h	1
+a g h	21
+a g h </s>	5
+a g h h	9
+a g h h h	6
+a g h h e	2
+a g h h j	1
+a g h g	4
+a g h g d	2
+a g h g h	2
+a g h d	2
+a g h d h	1
+a g h d </s>	1
+a g h j	1
+a g h j </s>	1
+a g d	9
+a g d </s>	1
+a g d b	1
+a g d b </s>	1
+a g d d	1
+a g d d </s>	1
+a g d j	2
+a g d j h	1
+a g d j d	1
+a g d h	2
+a g d h </s>	1
+a g d h h	1
+a g d e	2
+a g d e </s>	2
+a g i	4
+a g i h	1
+a g i h </s>	1
+a g i d	1
+a g i d h	1
+a g i e	1
+a g i e h	1
+a g i </s>	1
+a a	335
+a a </s>	10
+a a b	158
+a a b </s>	36
+a a b e	66
+a a b e </s>	14
+a a b e h	13
+a a b e f	33
+a a b e j	3
+a a b e g	2
+a a b e c	1
+a a b f	6
+a a b f h	2
+a a b f </s>	1
+a a b f f	3
+a a b g	29
+a a b g </s>	4
+a a b g f	16
+a a b g h	4
+a a b g i	1
+a a b g j	3
+a a b g g	1
+a a b j	5
+a a b j g	1
+a a b j f	1
+a a b j </s>	1
+a a b j h	2
+a a b h	15
+a a b h </s>	5
+a a b h j	2
+a a b h h	3
+a a b h f	5
+a a b d	1
+a a b d h	1
+a a f	2
+a a f d	1
+a a f d i	1
+a a f h	1
+a a f h </s>	1
+a a e	80
+a a e </s>	17
+a a e h	13
+a a e h </s>	4
+a a e h h	4
+a a e h g	1
+a a e h f	3
+a a e h d	1
+a a e e	21
+a a e e </s>	5
+a a e e f	9
+a a e e j	3
+a a e e d	2
+a a e e h	2
+a a e a	2
+a a e a h	1
+a a e a </s>	1
+a a e f	9
+a a e f </s>	2
+a a e f g	1
+a a e f h	4
+a a e f j	2
+a a e g	13
+a a e g </s>	2
+a a e g f	6
+a a e g i	1
+a a e g d	2
+a a e g h	2
+a a e j	4
+a a e j f	2
+a a e j h	2
+a a e i	1
+a a e i </s>	1
+a a c	41
+a a c </s>	7
+a a c g	12
+a a c g f	7
+a a c g </s>	2
+a a c g j	1
+a a c g h	2
+a a c e	17
+a a c e f	7
+a a c e h	4
+a a c e </s>	5
+a a c e j	1
+a a c j	1
+a a c j f	1
+a a c h	4
+a a c h f	4
+a a d	6
+a a d </s>	2
+a a d e	3
+a a d e f	2
+a a d e j	1
+a a d g	1
+a a d g d	1
+a a g	8
+a a g e	3
+a a g e d	1
+a a g e </s>	1
+a a g e f	1
+a a g f	2
+a a g f </s>	1
+a a g f h	1
+a a g h	2
+a a g h </s>	1
+a a g h h	1
+a a g j	1
+a a g j j	1
+a a j	8
+a a j </s>	3
+a a j e	2
+a a j e h	1
+a a j e f	1
+a a j d	1
+a a j d </s>	1
+a a j h	1
+a a j h </s>	1
+a a j j	1
+a a j j g	1
+a a a	17
+a a a </s>	2
+a a a e	8
+a a a e f	6
+a a a e h	1
+a a a e i	1
+a a a h	2
+a a a h f	2
+a a a j	3
+a a a j h	1
+a a a j </s>	1
+a a a j j	1
+a a a g	2
+a a a g h	2
+a a h	5
+a a h f	4
+a a h f </s>	1
+a a h f g	2
+a a h f h	1
+a a h e	1
+a a h e </s>	1
+a c	736
+a c </s>	63
+a c b	310
+a c b </s>	38
+a c b b	1
+a c b b f	1
+a c b f	8
+a c b f j	1
+a c b f f	4
+a c b f g	1
+a c b f </s>	2
+a c b e	130
+a c b e </s>	15
+a c b e f	57
+a c b e h	27
+a c b e j	17
+a c b e d	10
+a c b e e	1
+a c b e i	1
+a c b e g	2
+a c b g	71
+a c b g </s>	10
+a c b g h	21
+a c b g d	2
+a c b g f	25
+a c b g j	12
+a c b g g	1
+a c b a	4
+a c b a f	2
+a c b a j	1
+a c b a d	1
+a c b j	21
+a c b j </s>	4
+a c b j g	1
+a c b j f	9
+a c b j h	4
+a c b j j	2
+a c b j e	1
+a c b d	6
+a c b d </s>	1
+a c b d h	2
+a c b d j	3
+a c b h	30
+a c b h </s>	7
+a c b h h	6
+a c b h f	12
+a c b h d	2
+a c b h e	1
+a c b h j	2
+a c b i	1
+a c b i j	1
+a c f	10
+a c f g	4
+a c f g h	2
+a c f g f	2
+a c f </s>	4
+a c f e	2
+a c f e f	2
+a c e	177
+a c e </s>	32
+a c e b	1
+a c e b </s>	1
+a c e h	18
+a c e h </s>	2
+a c e h g	1
+a c e h j	5
+a c e h f	3
+a c e h h	4
+a c e h d	3
+a c e e	59
+a c e e </s>	13
+a c e e h	13
+a c e e f	25
+a c e e i	2
+a c e e j	3
+a c e e d	2
+a c e e g	1
+a c e g	36
+a c e g </s>	7
+a c e g f	12
+a c e g d	2
+a c e g h	12
+a c e g j	2
+a c e g i	1
+a c e f	16
+a c e f </s>	1
+a c e f h	4
+a c e f d	2
+a c e f f	3
+a c e f g	2
+a c e f j	3
+a c e f a	1
+a c e j	9
+a c e j h	4
+a c e j f	3
+a c e j j	1
+a c e j </s>	1
+a c e d	6
+a c e d f	1
+a c e d h	3
+a c e d </s>	1
+a c e d j	1
+a c c	74
+a c c </s>	12
+a c c h	6
+a c c h f	2
+a c c h h	2
+a c c h </s>	1
+a c c h j	1
+a c c e	30
+a c c e </s>	5
+a c c e h	1
+a c c e j	7
+a c c e d	4
+a c c e f	12
+a c c e g	1
+a c c g	16
+a c c g f	11
+a c c g h	3
+a c c g j	1
+a c c g </s>	1
+a c c j	7
+a c c j f	3
+a c c j </s>	3
+a c c j h	1
+a c c d	1
+a c c d </s>	1
+a c c f	1
+a c c f </s>	1
+a c c i	1
+a c c i f	1
+a c j	7
+a c j </s>	1
+a c j f	2
+a c j f h	1
+a c j f g	1
+a c j j	1
+a c j j d	1
+a c j g	1
+a c j g f	1
+a c j h	2
+a c j h </s>	2
+a c a	41
+a c a </s>	6
+a c a e	14
+a c a e </s>	3
+a c a e f	7
+a c a e h	1
+a c a e d	2
+a c a e j	1
+a c a j	4
+a c a j f	3
+a c a j j	1
+a c a g	10
+a c a g h	2
+a c a g j	3
+a c a g f	4
+a c a g </s>	1
+a c a h	7
+a c a h </s>	2
+a c a h h	3
+a c a h f	2
+a c g	38
+a c g </s>	6
+a c g f	11
+a c g f d	1
+a c g f h	5
+a c g f </s>	3
+a c g f g	2
+a c g e	8
+a c g e </s>	2
+a c g e f	2
+a c g e i	1
+a c g e h	3
+a c g h	5
+a c g h h	3
+a c g h g	1
+a c g h </s>	1
+a c g g	5
+a c g g </s>	2
+a c g g h	2
+a c g g f	1
+a c g j	3
+a c g j g	1
+a c g j </s>	2
+a c d	6
+a c d g	1
+a c d g f	1
+a c d h	2
+a c d h f	1
+a c d h d	1
+a c d e	2
+a c d e </s>	1
+a c d e h	1
+a c d f	1
+a c d f f	1
+a c i	2
+a c i e	2
+a c i e f	2
+a c h	8
+a c h f	5
+a c h f j	1
+a c h f f	1
+a c h f g	1
+a c h f h	2
+a c h g	1
+a c h g h	1
+a c h </s>	2
+a e	400
+a e </s>	82
+a e b	5
+a e b e	3
+a e b e f	1
+a e b e j	1
+a e b e h	1
+a e b g	2
+a e b g f	1
+a e b g </s>	1
+a e f	105
+a e f </s>	21
+a e f h	44
+a e f h </s>	11
+a e f h e	9
+a e f h i	2
+a e f h h	16
+a e f h j	4
+a e f h d	2
+a e f j	15
+a e f j e	2
+a e f j h	8
+a e f j g	1
+a e f j </s>	4
+a e f g	17
+a e f g </s>	7
+a e f g h	5
+a e f g j	2
+a e f g e	2
+a e f g i	1
+a e f d	5
+a e f d h	3
+a e f d </s>	1
+a e f d e	1
+a e f b	3
+a e f b h	1
+a e f b </s>	2
+a e e	56
+a e e </s>	11
+a e e f	29
+a e e f </s>	8
+a e e f h	10
+a e e f d	3
+a e e f g	5
+a e e f f	1
+a e e f j	2
+a e e j	5
+a e e j h	3
+a e e j </s>	2
+a e e h	6
+a e e h h	3
+a e e h </s>	1
+a e e h g	2
+a e e e	3
+a e e e h	1
+a e e e d	2
+a e e d	2
+a e e d h	2
+a e j	31
+a e j </s>	6
+a e j h	15
+a e j h </s>	2
+a e j h h	7
+a e j h j	3
+a e j h g	1
+a e j h e	2
+a e j f	3
+a e j f </s>	1
+a e j f g	1
+a e j f h	1
+a e j g	3
+a e j g h	2
+a e j g j	1
+a e j j	3
+a e j j j	1
+a e j j h	2
+a e j b	1
+a e j b h	1
+a e d	10
+a e d h	3
+a e d h h	2
+a e d h </s>	1
+a e d g	3
+a e d g </s>	1
+a e d g h	2
+a e d c	1
+a e d c </s>	1
+a e d f	1
+a e d f g	1
+a e d j	2
+a e d j </s>	2
+a e a	2
+a e a h	1
+a e a h </s>	1
+a e a </s>	1
+a e h	74
+a e h </s>	16
+a e h h	25
+a e h h </s>	9
+a e h h h	8
+a e h h e	4
+a e h h g	1
+a e h h j	2
+a e h h d	1
+a e h g	13
+a e h g </s>	2
+a e h g a	1
+a e h g j	3
+a e h g h	4
+a e h g i	1
+a e h g e	2
+a e h j	7
+a e h j </s>	2
+a e h j h	2
+a e h j i	1
+a e h j d	1
+a e h j j	1
+a e h f	7
+a e h f h	3
+a e h f g	2
+a e h f </s>	2
+a e h d	5
+a e h d h	3
+a e h d </s>	1
+a e h d g	1
+a e h c	1
+a e h c g	1
+a e g	33
+a e g </s>	9
+a e g f	12
+a e g f </s>	2
+a e g f g	2
+a e g f h	7
+a e g f j	1
+a e g j	2
+a e g j g	1
+a e g j </s>	1
+a e g i	1
+a e g i h	1
+a e g d	2
+a e g d h	1
+a e g d g	1
+a e g h	7
+a e g h </s>	1
+a e g h h	4
+a e g h j	2
+a e i	1
+a e i </s>	1
+a e c	1
+a e c e	1
+a e c e j	1
+a d	36
+a d </s>	8
+a d b	8
+a d b g	6
+a d b g f	2
+a d b g j	1
+a d b g h	3
+a d b e	2
+a d b e </s>	2
+a d f	2
+a d f h	2
+a d f h h	1
+a d f h </s>	1
+a d e	6
+a d e </s>	1
+a d e f	2
+a d e f h	1
+a d e f g	1
+a d e e	1
+a d e e h	1
+a d e h	1
+a d e h g	1
+a d e j	1
+a d e j g	1
+a d j	1
+a d j j	1
+a d j j d	1
+a d a	2
+a d a </s>	1
+a d a g	1
+a d a g f	1
+a d c	2
+a d c e	1
+a d c e </s>	1
+a d c </s>	1
+a d h	3
+a d h </s>	2
+a d h i	1
+a d h i </s>	1
+a d g	4
+a d g g	1
+a d g g f	1
+a d g f	1
+a d g f j	1
+a d g d	1
+a d g d h	1
+a d g </s>	1
+a h	115
+a h </s>	28
+a h b	4
+a h b g	1
+a h b g h	1
+a h b </s>	1
+a h b h	1
+a h b h h	1
+a h b e	1
+a h b e f	1
+a h h	28
+a h h </s>	9
+a h h g	5
+a h h g h	4
+a h h g </s>	1
+a h h h	8
+a h h h h	4
+a h h h </s>	2
+a h h h d	1
+a h h h b	1
+a h h d	2
+a h h d h	2
+a h h j	4
+a h h j </s>	1
+a h h j e	1
+a h h j h	1
+a h h j d	1
+a h f	29
+a h f </s>	5
+a h f h	14
+a h f h </s>	3
+a h f h h	5
+a h f h i	3
+a h f h j	2
+a h f h e	1
+a h f g	5
+a h f g i	1
+a h f g e	1
+a h f g </s>	2
+a h f g h	1
+a h f f	2
+a h f f d	1
+a h f f e	1
+a h f j	2
+a h f j h	2
+a h f d	1
+a h f d h	1
+a h g	2
+a h g </s>	1
+a h g h	1
+a h g h </s>	1
+a h j	7
+a h j h	3
+a h j h </s>	3
+a h j </s>	2
+a h j e	1
+a h j e g	1
+a h j g	1
+a h j g e	1
+a h d	6
+a h d h	4
+a h d h </s>	3
+a h d h h	1
+a h d j	1
+a h d j </s>	1
+a h d </s>	1
+a h e	9
+a h e e	3
+a h e e f	1
+a h e e </s>	1
+a h e e i	1
+a h e </s>	5
+a h e g	1
+a h e g </s>	1
+a h c	2
+a h c e	2
+a h c e h	1
+a h c e f	1
+a i	75
+a i b	30
+a i b </s>	3
+a i b e	13
+a i b e </s>	4
+a i b e h	2
+a i b e d	1
+a i b e f	5
+a i b e j	1
+a i b j	4
+a i b j f	3
+a i b j </s>	1
+a i b h	4
+a i b h f	1
+a i b h h	1
+a i b h </s>	1
+a i b h j	1
+a i b g	4
+a i b g f	2
+a i b g h	2
+a i b d	2
+a i b d f	1
+a i b d d	1
+a i e	27
+a i e </s>	5
+a i e e	13
+a i e e </s>	1
+a i e e h	8
+a i e e j	2
+a i e e f	2
+a i e d	1
+a i e d </s>	1
+a i e g	6
+a i e g f	3
+a i e g j	2
+a i e g d	1
+a i e h	2
+a i e h h	1
+a i e h j	1
+a i c	9
+a i c </s>	2
+a i c e	3
+a i c e j	2
+a i c e e	1
+a i c j	1
+a i c j f	1
+a i c g	2
+a i c g f	2
+a i c h	1
+a i c h f	1
+a i a	1
+a i a h	1
+a i a h h	1
+a i </s>	3
+a i f	1
+a i f j	1
+a i f j f	1
+a i g	4
+a i g d	1
+a i g d a	1
+a i g </s>	1
+a i g e	1
+a i g e h	1
+a i g h	1
+a i g h g	1
+a j	60
+a j </s>	18
+a j b	2
+a j b </s>	2
+a j f	14
+a j f </s>	1
+a j f g	2
+a j f g j	1
+a j f g </s>	1
+a j f d	1
+a j f d </s>	1
+a j f h	8
+a j f h e	3
+a j f h h	3
+a j f h </s>	2
+a j f j	2
+a j f j d	1
+a j f j j	1
+a j e	4
+a j e h	1
+a j e h h	1
+a j e j	1
+a j e j h	1
+a j e f	1
+a j e f g	1
+a j e g	1
+a j e g </s>	1
+a j h	8
+a j h h	3
+a j h h </s>	2
+a j h h j	1
+a j h j	2
+a j h j </s>	2
+a j h </s>	3
+a j d	6
+a j d h	1
+a j d h </s>	1
+a j d </s>	3
+a j d j	1
+a j d j j	1
+a j d g	1
+a j d g j	1
+a j j	6
+a j j </s>	1
+a j j h	2
+a j j h i	1
+a j j h </s>	1
+a j j e	1
+a j j e </s>	1
+a j j j	1
+a j j j h	1
+a j j g	1
+a j j g </s>	1
+a j g	2
+a j g j	1
+a j g j d	1
+a j g h	1
+a j g h e	1
+e	7862
+e </s>	1708
+e b	99
+e b </s>	38
+e b b	8
+e b b e	2
+e b b e f	1
+e b b e </s>	1
+e b b </s>	4
+e b b j	2
+e b b j f	1
+e b b j </s>	1
+e b h	11
+e b h </s>	10
+e b h h	1
+e b h h e	1
+e b e	7
+e b e </s>	2
+e b e f	1
+e b e f h	1
+e b e j	1
+e b e j h	1
+e b e h	2
+e b e h j	1
+e b e h h	1
+e b e e	1
+e b e e f	1
+e b c	23
+e b c </s>	22
+e b c e	1
+e b c e d	1
+e b g	4
+e b g </s>	2
+e b g f	1
+e b g f </s>	1
+e b g j	1
+e b g j h	1
+e b f	4
+e b f </s>	3
+e b f h	1
+e b f h j	1
+e b a	2
+e b a </s>	1
+e b a e	1
+e b a e f	1
+e b j	1
+e b j </s>	1
+e b d	1
+e b d </s>	1
+e f	1896
+e f </s>	422
+e f b	82
+e f b </s>	17
+e f b e	29
+e f b e </s>	4
+e f b e f	15
+e f b e h	5
+e f b e j	3
+e f b e g	1
+e f b e d	1
+e f b h	13
+e f b h f	6
+e f b h </s>	5
+e f b h g	1
+e f b h h	1
+e f b g	13
+e f b g </s>	3
+e f b g f	6
+e f b g h	1
+e f b g j	1
+e f b g d	2
+e f b f	4
+e f b f </s>	2
+e f b f f	1
+e f b f c	1
+e f b a	3
+e f b a </s>	1
+e f b a h	2
+e f b d	3
+e f b d h	1
+e f b d j	1
+e f b d f	1
+e f h	663
+e f h </s>	181
+e f h b	1
+e f h b </s>	1
+e f h h	239
+e f h h </s>	111
+e f h h b	18
+e f h h h	4
+e f h h g	32
+e f h h e	4
+e f h h d	56
+e f h h a	10
+e f h h j	3
+e f h h c	1
+e f h e	115
+e f h e </s>	51
+e f h e g	15
+e f h e d	31
+e f h e b	12
+e f h e c	1
+e f h e e	2
+e f h e a	3
+e f h j	56
+e f h j </s>	19
+e f h j b	4
+e f h j h	1
+e f h j g	8
+e f h j j	1
+e f h j d	19
+e f h j e	3
+e f h j a	1
+e f h i	34
+e f h i </s>	18
+e f h i g	2
+e f h i a	2
+e f h i b	4
+e f h i d	8
+e f h d	20
+e f h d </s>	13
+e f h d g	1
+e f h d a	1
+e f h d d	3
+e f h d c	1
+e f h d b	1
+e f h g	12
+e f h g </s>	9
+e f h g h	2
+e f h g g	1
+e f h a	5
+e f h a a	1
+e f h a d	2
+e f h a </s>	2
+e f g	319
+e f g </s>	73
+e f g b	1
+e f g b </s>	1
+e f g f	1
+e f g f b	1
+e f g e	66
+e f g e </s>	29
+e f g e f	2
+e f g e d	18
+e f g e g	12
+e f g e b	2
+e f g e a	2
+e f g e e	1
+e f g h	117
+e f g h </s>	58
+e f g h b	9
+e f g h h	1
+e f g h g	12
+e f g h j	1
+e f g h i	1
+e f g h d	29
+e f g h e	4
+e f g h a	2
+e f g j	35
+e f g j </s>	19
+e f g j g	5
+e f g j d	6
+e f g j b	3
+e f g j c	1
+e f g j e	1
+e f g g	6
+e f g g </s>	1
+e f g g g	1
+e f g g d	2
+e f g g a	1
+e f g g f	1
+e f g d	7
+e f g d d	2
+e f g d </s>	3
+e f g d b	2
+e f g i	13
+e f g i </s>	4
+e f g i g	2
+e f g i d	5
+e f g i a	1
+e f g i e	1
+e f c	20
+e f c </s>	2
+e f c g	5
+e f c g j	1
+e f c g f	3
+e f c g d	1
+e f c e	8
+e f c e f	4
+e f c e j	2
+e f c e h	1
+e f c e </s>	1
+e f c f	2
+e f c f </s>	1
+e f c f d	1
+e f c h	3
+e f c h </s>	1
+e f c h d	1
+e f c h f	1
+e f d	82
+e f d </s>	20
+e f d h	33
+e f d h </s>	15
+e f d h g	8
+e f d h b	1
+e f d h d	8
+e f d h a	1
+e f d e	17
+e f d e </s>	8
+e f d e g	3
+e f d e d	3
+e f d e b	1
+e f d e j	1
+e f d e e	1
+e f d d	3
+e f d d d	3
+e f d i	3
+e f d i d	2
+e f d i </s>	1
+e f d j	6
+e f d j </s>	1
+e f d j b	1
+e f d j a	1
+e f d j e	1
+e f d j d	2
+e f j	194
+e f j </s>	44
+e f j h	88
+e f j h </s>	36
+e f j h b	6
+e f j h f	1
+e f j h g	11
+e f j h j	1
+e f j h d	27
+e f j h a	2
+e f j h e	2
+e f j h c	1
+e f j h h	1
+e f j e	31
+e f j e g	5
+e f j e </s>	16
+e f j e a	1
+e f j e d	9
+e f j i	13
+e f j i e	1
+e f j i d	4
+e f j i </s>	6
+e f j i b	2
+e f j j	11
+e f j j b	1
+e f j j a	1
+e f j j </s>	5
+e f j j d	3
+e f j j g	1
+e f j g	4
+e f j g h	2
+e f j g b	1
+e f j g </s>	1
+e f j d	3
+e f j d </s>	2
+e f j d d	1
+e f f	62
+e f f </s>	20
+e f f g	6
+e f f g h	2
+e f f g f	1
+e f f g </s>	2
+e f f g e	1
+e f f h	25
+e f f h </s>	9
+e f f h e	5
+e f f h h	6
+e f f h d	1
+e f f h g	2
+e f f h j	1
+e f f h i	1
+e f f j	7
+e f f j </s>	1
+e f f j g	1
+e f f j j	2
+e f f j e	1
+e f f j i	1
+e f f j b	1
+e f f d	1
+e f f d i	1
+e f f i	1
+e f f i d	1
+e f f e	2
+e f f e </s>	1
+e f f e h	1
+e f e	38
+e f e </s>	12
+e f e e	15
+e f e e j	2
+e f e e h	5
+e f e e f	6
+e f e e </s>	2
+e f e j	3
+e f e j </s>	1
+e f e j h	1
+e f e j e	1
+e f e g	5
+e f e g d	1
+e f e g </s>	1
+e f e g h	1
+e f e g f	2
+e f e h	2
+e f e h h	1
+e f e h f	1
+e f e f	1
+e f e f f	1
+e f i	2
+e f i g	1
+e f i g </s>	1
+e f i </s>	1
+e f a	12
+e f a </s>	3
+e f a h	2
+e f a h f	1
+e f a h d	1
+e f a j	3
+e f a j </s>	2
+e f a j h	1
+e f a g	2
+e f a g i	1
+e f a g f	1
+e f a e	1
+e f a e j	1
+e f a i	1
+e f a i </s>	1
+e g	782
+e g </s>	160
+e g b	52
+e g b g	14
+e g b g j	3
+e g b g h	5
+e g b g f	4
+e g b g </s>	2
+e g b </s>	14
+e g b e	22
+e g b e h	6
+e g b e f	11
+e g b e </s>	4
+e g b e d	1
+e g b h	2
+e g b h f	2
+e g f	208
+e g f </s>	47
+e g f g	45
+e g f g </s>	12
+e g f g e	11
+e g f g j	6
+e g f g h	10
+e g f g d	2
+e g f g g	2
+e g f g i	2
+e g f h	90
+e g f h </s>	26
+e g f h h	37
+e g f h d	5
+e g f h e	11
+e g f h j	8
+e g f h i	2
+e g f h g	1
+e g f j	16
+e g f j h	4
+e g f j e	6
+e g f j j	2
+e g f j </s>	4
+e g f d	6
+e g f d </s>	2
+e g f d j	2
+e g f d h	2
+e g f f	4
+e g f f h	3
+e g f f j	1
+e g a	10
+e g a </s>	2
+e g a h	1
+e g a h h	1
+e g a e	4
+e g a e </s>	1
+e g a e h	1
+e g a e f	2
+e g a a	1
+e g a a </s>	1
+e g a f	1
+e g a f f	1
+e g a j	1
+e g a j f	1
+e g j	57
+e g j </s>	17
+e g j g	11
+e g j g </s>	5
+e g j g h	3
+e g j g j	2
+e g j g e	1
+e g j h	21
+e g j h </s>	4
+e g j h e	3
+e g j h f	1
+e g j h j	3
+e g j h h	8
+e g j h i	1
+e g j h g	1
+e g j j	6
+e g j j e	2
+e g j j </s>	2
+e g j j g	1
+e g j j h	1
+e g j d	2
+e g j d h	1
+e g j d e	1
+e g e	31
+e g e </s>	6
+e g e g	6
+e g e g f	2
+e g e g h	3
+e g e g </s>	1
+e g e e	9
+e g e e f	7
+e g e e h	2
+e g e j	3
+e g e j d	1
+e g e j h	1
+e g e j g	1
+e g e h	5
+e g e h </s>	1
+e g e h h	1
+e g e h f	3
+e g e b	2
+e g e b </s>	1
+e g e b c	1
+e g g	22
+e g g </s>	6
+e g g f	2
+e g g f f	1
+e g g f h	1
+e g g i	4
+e g g i b	1
+e g g i </s>	2
+e g g i d	1
+e g g h	4
+e g g h h	1
+e g g h f	1
+e g g h g	1
+e g g h </s>	1
+e g g g	1
+e g g g j	1
+e g g e	4
+e g g e b	1
+e g g e d	1
+e g g e </s>	1
+e g g e j	1
+e g g j	1
+e g g j </s>	1
+e g c	53
+e g c </s>	46
+e g c h	2
+e g c h </s>	2
+e g c e	1
+e g c e f	1
+e g c g	2
+e g c g h	1
+e g c g </s>	1
+e g c j	1
+e g c j f	1
+e g c f	1
+e g c f j	1
+e g h	151
+e g h </s>	60
+e g h h	53
+e g h h </s>	13
+e g h h b	2
+e g h h h	17
+e g h h e	8
+e g h h a	1
+e g h h d	3
+e g h h g	2
+e g h h i	3
+e g h h j	4
+e g h j	16
+e g h j </s>	4
+e g h j h	4
+e g h j g	1
+e g h j d	4
+e g h j e	2
+e g h j a	1
+e g h g	15
+e g h g </s>	4
+e g h g h	8
+e g h g e	2
+e g h g j	1
+e g h d	4
+e g h d h	3
+e g h d b	1
+e g h e	2
+e g h e a	1
+e g h e </s>	1
+e g h i	1
+e g h i </s>	1
+e g d	34
+e g d </s>	10
+e g d h	17
+e g d h e	2
+e g d h j	3
+e g d h h	7
+e g d h </s>	5
+e g d j	1
+e g d j </s>	1
+e g d g	3
+e g d g h	1
+e g d g </s>	2
+e g d d	2
+e g d d h	2
+e g d e	1
+e g d e h	1
+e g i	4
+e g i h	3
+e g i h e	2
+e g i h h	1
+e g i j	1
+e g i j </s>	1
+e e	991
+e e </s>	198
+e e b	1
+e e b </s>	1
+e e h	219
+e e h </s>	50
+e e h b	3
+e e h b h	3
+e e h h	89
+e e h h </s>	24
+e e h h e	18
+e e h h h	32
+e e h h j	9
+e e h h i	4
+e e h h d	2
+e e h g	37
+e e h g </s>	8
+e e h g h	19
+e e h g e	6
+e e h g i	1
+e e h g d	1
+e e h g j	2
+e e h j	22
+e e h j </s>	7
+e e h j h	7
+e e h j d	1
+e e h j e	4
+e e h j j	1
+e e h j i	2
+e e h c	1
+e e h c h	1
+e e h i	3
+e e h i </s>	1
+e e h i e	1
+e e h i i	1
+e e h d	9
+e e h d </s>	2
+e e h d h	4
+e e h d j	1
+e e h d i	1
+e e h d e	1
+e e h f	4
+e e h f d	1
+e e h f e	1
+e e h f g	1
+e e h f h	1
+e e h e	1
+e e h e d	1
+e e f	391
+e e f </s>	92
+e e f b	3
+e e f b h	2
+e e f b e	1
+e e f h	138
+e e f h </s>	42
+e e f h h	53
+e e f h j	12
+e e f h e	21
+e e f h i	3
+e e f h d	7
+e e f g	74
+e e f g </s>	26
+e e f g g	1
+e e f g j	9
+e e f g d	3
+e e f g h	22
+e e f g e	9
+e e f g i	4
+e e f j	54
+e e f j </s>	11
+e e f j h	25
+e e f j e	10
+e e f j i	6
+e e f j d	2
+e e f d	24
+e e f d </s>	4
+e e f d h	10
+e e f d e	7
+e e f d i	1
+e e f d j	2
+e e f i	1
+e e f i </s>	1
+e e f f	4
+e e f f h	2
+e e f f </s>	2
+e e f a	1
+e e f a j	1
+e e j	90
+e e j </s>	21
+e e j h	36
+e e j h </s>	10
+e e j h e	8
+e e j h h	10
+e e j h j	5
+e e j h i	2
+e e j h d	1
+e e j j	8
+e e j j </s>	1
+e e j j e	2
+e e j j h	3
+e e j j a	1
+e e j j d	1
+e e j g	15
+e e j g </s>	2
+e e j g h	6
+e e j g e	5
+e e j g d	1
+e e j g j	1
+e e j d	7
+e e j d h	2
+e e j d e	3
+e e j d </s>	2
+e e j b	2
+e e j b </s>	1
+e e j b e	1
+e e j f	1
+e e j f h	1
+e e i	8
+e e i h	3
+e e i h e	2
+e e i h d	1
+e e i </s>	2
+e e i g	2
+e e i g h	2
+e e i d	1
+e e i d h	1
+e e g	13
+e e g </s>	2
+e e g g	3
+e e g g i	2
+e e g g </s>	1
+e e g h	6
+e e g h h	6
+e e g e	1
+e e g e b	1
+e e g j	1
+e e g j j	1
+e e d	58
+e e d </s>	12
+e e d g	12
+e e d g </s>	2
+e e d g j	2
+e e d g e	4
+e e d g h	4
+e e d a	2
+e e d a e	1
+e e d a h	1
+e e d h	24
+e e d h e	11
+e e d h h	8
+e e d h </s>	4
+e e d h j	1
+e e d d	4
+e e d d e	1
+e e d d h	1
+e e d d </s>	2
+e e d j	4
+e e d j h	2
+e e d j e	1
+e e d j </s>	1
+e e c	8
+e e c </s>	7
+e e c h	1
+e e c h h	1
+e e e	4
+e e e h	1
+e e e h h	1
+e e e </s>	1
+e e e d	2
+e e e d </s>	1
+e e e d h	1
+e e a	1
+e e a h	1
+e e a h e	1
+e h	1100
+e h </s>	251
+e h b	9
+e h b h	7
+e h b h a	1
+e h b h </s>	3
+e h b h d	2
+e h b h e	1
+e h b </s>	2
+e h h	376
+e h h </s>	100
+e h h b	1
+e h h b h	1
+e h h h	147
+e h h h </s>	61
+e h h h b	8
+e h h h h	7
+e h h h g	12
+e h h h e	4
+e h h h d	47
+e h h h i	2
+e h h h c	2
+e h h h a	4
+e h h e	55
+e h h e b	6
+e h h e a	2
+e h h e d	16
+e h h e </s>	26
+e h h e g	5
+e h h j	36
+e h h j </s>	17
+e h h j b	2
+e h h j h	1
+e h h j g	6
+e h h j a	2
+e h h j d	4
+e h h j e	2
+e h h j j	2
+e h h i	12
+e h h i g	1
+e h h i </s>	5
+e h h i d	3
+e h h i b	3
+e h h g	14
+e h h g </s>	3
+e h h g h	3
+e h h g a	2
+e h h g e	3
+e h h g d	1
+e h h g j	2
+e h h d	9
+e h h d </s>	1
+e h h d g	1
+e h h d a	1
+e h h d d	4
+e h h d i	2
+e h h f	2
+e h h f </s>	1
+e h h f e	1
+e h f	115
+e h f </s>	17
+e h f h	56
+e h f h </s>	12
+e h f h b	1
+e h f h h	14
+e h f h e	12
+e h f h j	10
+e h f h i	5
+e h f h g	1
+e h f h d	1
+e h f g	22
+e h f g </s>	6
+e h f g h	12
+e h f g j	1
+e h f g i	1
+e h f g d	1
+e h f g g	1
+e h f j	10
+e h f j </s>	3
+e h f j e	1
+e h f j h	3
+e h f j g	2
+e h f j i	1
+e h f d	6
+e h f d </s>	1
+e h f d h	2
+e h f d a	1
+e h f d i	1
+e h f d e	1
+e h f a	1
+e h f a </s>	1
+e h f f	1
+e h f f d	1
+e h f e	2
+e h f e g	1
+e h f e d	1
+e h j	111
+e h j </s>	28
+e h j g	10
+e h j g h	3
+e h j g d	3
+e h j g e	3
+e h j g </s>	1
+e h j h	37
+e h j h </s>	15
+e h j h g	7
+e h j h d	10
+e h j h c	1
+e h j h b	2
+e h j h e	1
+e h j h h	1
+e h j j	13
+e h j j </s>	6
+e h j j e	3
+e h j j b	1
+e h j j h	1
+e h j j g	1
+e h j j d	1
+e h j e	15
+e h j e b	1
+e h j e g	3
+e h j e i	1
+e h j e </s>	6
+e h j e d	4
+e h j d	4
+e h j d g	1
+e h j d </s>	2
+e h j d d	1
+e h j i	4
+e h j i b	1
+e h j i </s>	3
+e h g	166
+e h g </s>	32
+e h g h	75
+e h g h </s>	31
+e h g h a	3
+e h g h d	22
+e h g h g	12
+e h g h e	2
+e h g h b	3
+e h g h c	2
+e h g e	23
+e h g e b	3
+e h g e g	5
+e h g e i	1
+e h g e d	7
+e h g e </s>	6
+e h g e e	1
+e h g j	23
+e h g j b	1
+e h g j </s>	9
+e h g j d	6
+e h g j c	2
+e h g j a	2
+e h g j g	2
+e h g j e	1
+e h g a	1
+e h g a g	1
+e h g g	1
+e h g g d	1
+e h g i	6
+e h g i </s>	6
+e h g d	5
+e h g d b	1
+e h g d </s>	1
+e h g d d	1
+e h g d h	1
+e h g d g	1
+e h d	57
+e h d </s>	18
+e h d h	23
+e h d h </s>	12
+e h d h e	1
+e h d h h	2
+e h d h a	2
+e h d h d	3
+e h d h g	2
+e h d h j	1
+e h d g	3
+e h d g i	1
+e h d g h	1
+e h d g </s>	1
+e h d j	3
+e h d j d	2
+e h d j e	1
+e h d e	7
+e h d e d	1
+e h d e c	1
+e h d e </s>	4
+e h d e g	1
+e h d i	1
+e h d i </s>	1
+e h d d	1
+e h d d d	1
+e h d f	1
+e h d f e	1
+e h c	2
+e h c h	1
+e h c h </s>	1
+e h c g	1
+e h c g h	1
+e h a	5
+e h a j	2
+e h a j d	2
+e h a e	1
+e h a e d	1
+e h a </s>	1
+e h a i	1
+e h a i </s>	1
+e h i	6
+e h i </s>	2
+e h i e	1
+e h i e </s>	1
+e h i j	1
+e h i j d	1
+e h i h	1
+e h i h g	1
+e h i i	1
+e h i i </s>	1
+e h e	2
+e h e </s>	1
+e h e d	1
+e h e d c	1
+e d	505
+e d </s>	152
+e d b	18
+e d b </s>	17
+e d b e	1
+e d b e g	1
+e d h	134
+e d h </s>	67
+e d h h	31
+e d h h d	5
+e d h h </s>	20
+e d h h b	5
+e d h h g	1
+e d h e	24
+e d h e b	3
+e d h e g	7
+e d h e d	6
+e d h e a	1
+e d h e </s>	6
+e d h e e	1
+e d h j	6
+e d h j </s>	4
+e d h j d	2
+e d h d	2
+e d h d e	1
+e d h d </s>	1
+e d h i	4
+e d h i </s>	2
+e d h i g	2
+e d g	40
+e d g </s>	11
+e d g b	1
+e d g b </s>	1
+e d g h	13
+e d g h b	1
+e d g h d	7
+e d g h </s>	4
+e d g h g	1
+e d g e	7
+e d g e d	3
+e d g e </s>	3
+e d g e f	1
+e d g j	5
+e d g j </s>	4
+e d g j g	1
+e d g a	1
+e d g a g	1
+e d g i	1
+e d g i a	1
+e d g f	1
+e d g f g	1
+e d c	81
+e d c </s>	80
+e d c e	1
+e d c e </s>	1
+e d j	34
+e d j </s>	16
+e d j e	6
+e d j e d	2
+e d j e b	2
+e d j e </s>	2
+e d j i	3
+e d j i j	1
+e d j i d	2
+e d j g	2
+e d j g e	1
+e d j g h	1
+e d j h	7
+e d j h </s>	2
+e d j h h	1
+e d j h d	2
+e d j h c	1
+e d j h e	1
+e d a	6
+e d a </s>	4
+e d a e	1
+e d a e </s>	1
+e d a h	1
+e d a h e	1
+e d f	17
+e d f </s>	5
+e d f h	9
+e d f h </s>	1
+e d f h e	4
+e d f h g	1
+e d f h d	1
+e d f h h	2
+e d f j	2
+e d f j h	1
+e d f j </s>	1
+e d f g	1
+e d f g h	1
+e d d	20
+e d d </s>	8
+e d d e	4
+e d d e g	1
+e d d e </s>	3
+e d d j	1
+e d d j </s>	1
+e d d h	6
+e d d h </s>	4
+e d d h e	1
+e d d h d	1
+e d d i	1
+e d d i </s>	1
+e d i	1
+e d i e	1
+e d i e d	1
+e d e	2
+e d e </s>	1
+e d e g	1
+e d e g e	1
+e j	597
+e j </s>	140
+e j b	6
+e j b e	3
+e j b e d	1
+e j b e f	1
+e j b e </s>	1
+e j b </s>	1
+e j b g	1
+e j b g b	1
+e j b h	1
+e j b h d	1
+e j h	203
+e j h </s>	62
+e j h h	67
+e j h h </s>	27
+e j h h b	2
+e j h h h	7
+e j h h g	7
+e j h h e	3
+e j h h d	14
+e j h h a	3
+e j h h i	1
+e j h h j	1
+e j h h c	2
+e j h e	33
+e j h e </s>	14
+e j h e g	5
+e j h e d	11
+e j h e b	2
+e j h e f	1
+e j h j	18
+e j h j </s>	7
+e j h j h	2
+e j h j g	5
+e j h j d	3
+e j h j a	1
+e j h g	9
+e j h g </s>	2
+e j h g b	2
+e j h g j	3
+e j h g h	1
+e j h g d	1
+e j h i	8
+e j h i b	2
+e j h i g	2
+e j h i </s>	4
+e j h d	6
+e j h d h	2
+e j h d i	1
+e j h d b	1
+e j h d </s>	2
+e j f	71
+e j f </s>	15
+e j f h	31
+e j f h </s>	11
+e j f h e	5
+e j f h j	3
+e j f h h	10
+e j f h d	1
+e j f h f	1
+e j f g	13
+e j f g </s>	1
+e j f g g	1
+e j f g e	1
+e j f g h	7
+e j f g d	2
+e j f g j	1
+e j f d	4
+e j f d </s>	2
+e j f d h	1
+e j f d i	1
+e j f j	6
+e j f j h	2
+e j f j </s>	3
+e j f j e	1
+e j f e	2
+e j f e d	1
+e j f e </s>	1
+e j j	59
+e j j </s>	14
+e j j e	6
+e j j e d	2
+e j j e </s>	4
+e j j d	6
+e j j d a	1
+e j j d </s>	3
+e j j d d	1
+e j j d g	1
+e j j h	21
+e j j h </s>	9
+e j j h g	5
+e j j h d	4
+e j j h b	1
+e j j h e	1
+e j j h h	1
+e j j j	6
+e j j j h	2
+e j j j i	1
+e j j j </s>	3
+e j j a	1
+e j j a c	1
+e j j g	5
+e j j g e	1
+e j j g h	1
+e j j g c	1
+e j j g </s>	2
+e j g	91
+e j g </s>	22
+e j g h	32
+e j g h </s>	16
+e j g h b	4
+e j g h d	7
+e j g h g	4
+e j g h c	1
+e j g e	19
+e j g e </s>	6
+e j g e a	1
+e j g e d	7
+e j g e g	4
+e j g e e	1
+e j g a	1
+e j g a d	1
+e j g j	11
+e j g j d	3
+e j g j </s>	6
+e j g j b	1
+e j g j g	1
+e j g g	2
+e j g g </s>	1
+e j g g d	1
+e j g d	3
+e j g d d	3
+e j g i	1
+e j g i d	1
+e j d	24
+e j d d	2
+e j d d c	1
+e j d d </s>	1
+e j d h	9
+e j d h </s>	6
+e j d h e	2
+e j d h i	1
+e j d </s>	7
+e j d e	6
+e j d e </s>	4
+e j d e d	1
+e j d e g	1
+e j c	1
+e j c </s>	1
+e j i	1
+e j i h	1
+e j i h h	1
+e j e	1
+e j e j	1
+e j e j </s>	1
+e i	39
+e i </s>	11
+e i b	2
+e i b e	2
+e i b e f	1
+e i b e h	1
+e i h	10
+e i h </s>	1
+e i h e	3
+e i h e d	2
+e i h e g	1
+e i h h	4
+e i h h g	2
+e i h h b	1
+e i h h d	1
+e i h j	1
+e i h j d	1
+e i h d	1
+e i h d d	1
+e i g	8
+e i g </s>	1
+e i g h	6
+e i g h </s>	4
+e i g h e	1
+e i g h a	1
+e i g j	1
+e i g j d	1
+e i c	3
+e i c </s>	3
+e i a	1
+e i a e	1
+e i a e f	1
+e i d	2
+e i d h	2
+e i d h b	1
+e i d h </s>	1
+e i e	1
+e i e e	1
+e i e e j	1
+e i j	1
+e i j </s>	1
+e c	83
+e c </s>	34
+e c b	17
+e c b </s>	4
+e c b e	9
+e c b e j	2
+e c b e </s>	3
+e c b e f	4
+e c b g	2
+e c b g f	1
+e c b g h	1
+e c b f	1
+e c b f f	1
+e c b h	1
+e c b h h	1
+e c h	5
+e c h </s>	2
+e c h h	1
+e c h h d	1
+e c h e	1
+e c h e </s>	1
+e c h g	1
+e c h g d	1
+e c e	17
+e c e </s>	3
+e c e g	4
+e c e g f	3
+e c e g </s>	1
+e c e e	7
+e c e e h	2
+e c e e </s>	2
+e c e e f	1
+e c e e j	2
+e c e j	2
+e c e j h	2
+e c e f	1
+e c e f f	1
+e c g	3
+e c g </s>	1
+e c g h	1
+e c g h </s>	1
+e c g e	1
+e c g e h	1
+e c c	3
+e c c </s>	1
+e c c j	1
+e c c j h	1
+e c c g	1
+e c c g f	1
+e c f	2
+e c f e	1
+e c f e f	1
+e c f h	1
+e c f h </s>	1
+e c j	1
+e c j g	1
+e c j g f	1
+e c a	1
+e c a h	1
+e c a h </s>	1
+e a	62
+e a </s>	11
+e a b	14
+e a b </s>	4
+e a b g	3
+e a b g f	2
+e a b g d	1
+e a b h	2
+e a b h </s>	1
+e a b h f	1
+e a b e	3
+e a b e </s>	1
+e a b e h	1
+e a b e f	1
+e a b d	2
+e a b d f	1
+e a b d </s>	1
+e a h	7
+e a h </s>	2
+e a h e	1
+e a h e </s>	1
+e a h j	2
+e a h j </s>	1
+e a h j e	1
+e a h d	1
+e a h d h	1
+e a h h	1
+e a h h </s>	1
+e a f	15
+e a f </s>	4
+e a f h	6
+e a f h </s>	3
+e a f h e	1
+e a f h h	1
+e a f h d	1
+e a f g	4
+e a f g h	3
+e a f g e	1
+e a f b	1
+e a f b </s>	1
+e a c	11
+e a c e	2
+e a c e h	1
+e a c e j	1
+e a c </s>	9
+e a g	2
+e a g d	1
+e a g d b	1
+e a g h	1
+e a g h </s>	1
+e a j	1
+e a j j	1
+e a j j e	1
+e a e	1
+e a e e	1
+e a e e </s>	1
+g	6944
+g </s>	979
+g b	1286
+g b </s>	251
+g b b	3
+g b b h	2
+g b b h h	1
+g b b h </s>	1
+g b b g	1
+g b b g </s>	1
+g b h	145
+g b h </s>	24
+g b h f	60
+g b h f b	1
+g b h f h	30
+g b h f j	5
+g b h f </s>	11
+g b h f g	12
+g b h f d	1
+g b h g	2
+g b h g h	1
+g b h g g	1
+g b h h	31
+g b h h </s>	11
+g b h h h	10
+g b h h d	3
+g b h h g	5
+g b h h j	1
+g b h h f	1
+g b h j	13
+g b h j </s>	4
+g b h j b	1
+g b h j h	4
+g b h j d	1
+g b h j g	2
+g b h j j	1
+g b h d	12
+g b h d h	7
+g b h d </s>	2
+g b h d g	3
+g b h i	2
+g b h i h	2
+g b h a	1
+g b h a g	1
+g b g	266
+g b g </s>	47
+g b g f	93
+g b g f </s>	24
+g b g f h	34
+g b g f j	7
+g b g f g	19
+g b g f d	7
+g b g f i	1
+g b g f c	1
+g b g j	31
+g b g j </s>	8
+g b g j g	10
+g b g j h	11
+g b g j d	1
+g b g j j	1
+g b g h	70
+g b g h </s>	16
+g b g h h	36
+g b g h j	4
+g b g h g	10
+g b g h d	4
+g b g d	16
+g b g d </s>	6
+g b g d g	2
+g b g d j	1
+g b g d h	7
+g b g g	8
+g b g g g	2
+g b g g h	4
+g b g g </s>	2
+g b g i	1
+g b g i </s>	1
+g b e	507
+g b e </s>	109
+g b e f	196
+g b e f </s>	41
+g b e f g	36
+g b e f j	25
+g b e f d	13
+g b e f h	78
+g b e f f	3
+g b e h	94
+g b e h </s>	21
+g b e h h	40
+g b e h j	12
+g b e h g	15
+g b e h f	2
+g b e h d	4
+g b e j	63
+g b e j </s>	15
+g b e j g	10
+g b e j j	10
+g b e j f	1
+g b e j h	21
+g b e j d	5
+g b e j b	1
+g b e i	5
+g b e i h	1
+g b e i g	4
+g b e d	33
+g b e d </s>	6
+g b e d b	1
+g b e d h	10
+g b e d f	1
+g b e d j	3
+g b e d d	3
+g b e d i	1
+g b e d g	8
+g b e a	1
+g b e a g	1
+g b e g	5
+g b e g </s>	3
+g b e g h	2
+g b e e	1
+g b e e h	1
+g b j	61
+g b j </s>	9
+g b j h	17
+g b j h </s>	3
+g b j h h	5
+g b j h g	5
+g b j h d	1
+g b j h j	1
+g b j h f	2
+g b j g	4
+g b j g j	1
+g b j g h	2
+g b j g </s>	1
+g b j f	26
+g b j f </s>	1
+g b j f h	15
+g b j f a	1
+g b j f g	3
+g b j f j	3
+g b j f d	1
+g b j f f	2
+g b j j	1
+g b j j h	1
+g b j i	2
+g b j i </s>	2
+g b j c	1
+g b j c g	1
+g b j d	1
+g b j d j	1
+g b d	19
+g b d </s>	3
+g b d f	10
+g b d f </s>	1
+g b d f f	1
+g b d f j	2
+g b d f g	4
+g b d f h	1
+g b d f d	1
+g b d e	1
+g b d e </s>	1
+g b d a	1
+g b d a </s>	1
+g b d h	2
+g b d h g	1
+g b d h f	1
+g b d d	2
+g b d d d	1
+g b d d </s>	1
+g b a	6
+g b a d	1
+g b a d j	1
+g b a </s>	3
+g b a h	2
+g b a h h	1
+g b a h g	1
+g b f	25
+g b f </s>	3
+g b f a	1
+g b f a </s>	1
+g b f j	1
+g b f j h	1
+g b f f	10
+g b f f g	3
+g b f f j	1
+g b f f h	4
+g b f f </s>	2
+g b f h	9
+g b f h j	5
+g b f h h	2
+g b f h </s>	2
+g b f d	1
+g b f d d	1
+g b c	2
+g b c </s>	2
+g b i	1
+g b i f	1
+g b i f g	1
+g f	952
+g f </s>	231
+g f b	36
+g f b </s>	13
+g f b g	1
+g f b g j	1
+g f b c	1
+g f b c </s>	1
+g f b h	2
+g f b h j	1
+g f b h h	1
+g f b e	18
+g f b e f	6
+g f b e h	5
+g f b e </s>	4
+g f b e j	3
+g f b b	1
+g f b b </s>	1
+g f h	340
+g f h </s>	83
+g f h h	124
+g f h h b	6
+g f h h </s>	60
+g f h h g	14
+g f h h d	36
+g f h h a	4
+g f h h h	2
+g f h h e	2
+g f h e	63
+g f h e </s>	30
+g f h e b	5
+g f h e e	2
+g f h e a	1
+g f h e d	14
+g f h e i	1
+g f h e g	9
+g f h e c	1
+g f h j	32
+g f h j </s>	12
+g f h j a	2
+g f h j g	3
+g f h j e	1
+g f h j d	12
+g f h j b	1
+g f h j c	1
+g f h d	12
+g f h d </s>	8
+g f h d b	2
+g f h d g	1
+g f h d d	1
+g f h i	16
+g f h i </s>	7
+g f h i g	1
+g f h i d	5
+g f h i e	2
+g f h i a	1
+g f h g	8
+g f h g g	3
+g f h g d	2
+g f h g </s>	2
+g f h g b	1
+g f h f	2
+g f h f h	2
+g f g	176
+g f g </s>	51
+g f g h	48
+g f g h g	8
+g f g h </s>	17
+g f g h d	16
+g f g h b	7
+g f g e	38
+g f g e </s>	22
+g f g e b	3
+g f g e f	1
+g f g e g	5
+g f g e j	1
+g f g e d	4
+g f g e a	1
+g f g e e	1
+g f g j	20
+g f g j </s>	10
+g f g j d	5
+g f g j g	4
+g f g j a	1
+g f g i	8
+g f g i </s>	5
+g f g i b	1
+g f g i e	1
+g f g i d	1
+g f g f	3
+g f g f </s>	1
+g f g f g	1
+g f g f h	1
+g f g d	5
+g f g d d	3
+g f g d </s>	1
+g f g d j	1
+g f g g	3
+g f g g b	1
+g f g g d	1
+g f g g </s>	1
+g f j	85
+g f j </s>	20
+g f j h	31
+g f j h </s>	12
+g f j h b	3
+g f j h d	12
+g f j h g	2
+g f j h a	2
+g f j e	20
+g f j e b	4
+g f j e </s>	6
+g f j e a	1
+g f j e d	7
+g f j e g	2
+g f j i	4
+g f j i b	2
+g f j i </s>	2
+g f j d	2
+g f j d d	2
+g f j j	8
+g f j j b	1
+g f j j </s>	5
+g f j j d	1
+g f j j a	1
+g f e	19
+g f e b	1
+g f e b f	1
+g f e f	5
+g f e f f	1
+g f e f g	2
+g f e f </s>	1
+g f e f h	1
+g f e e	3
+g f e e f	2
+g f e e d	1
+g f e h	4
+g f e h g	1
+g f e h </s>	2
+g f e h d	1
+g f e </s>	5
+g f e j	1
+g f e j h	1
+g f a	3
+g f a f	1
+g f a f f	1
+g f a </s>	1
+g f a e	1
+g f a e j	1
+g f d	40
+g f d </s>	13
+g f d h	16
+g f d h b	2
+g f d h </s>	10
+g f d h d	3
+g f d h g	1
+g f d g	1
+g f d g d	1
+g f d j	4
+g f d j </s>	3
+g f d j j	1
+g f d e	3
+g f d e </s>	2
+g f d e d	1
+g f d i	3
+g f d i j	1
+g f d i </s>	2
+g f f	13
+g f f </s>	4
+g f f g	1
+g f f g </s>	1
+g f f e	1
+g f f e g	1
+g f f h	6
+g f f h d	2
+g f f h </s>	4
+g f f j	1
+g f f j </s>	1
+g f c	7
+g f c </s>	2
+g f c g	1
+g f c g </s>	1
+g f c d	1
+g f c d f	1
+g f c e	2
+g f c e h	1
+g f c e </s>	1
+g f c h	1
+g f c h </s>	1
+g f i	2
+g f i </s>	1
+g f i e	1
+g f i e d	1
+g e	985
+g e </s>	243
+g e b	17
+g e b </s>	7
+g e b h	2
+g e b h </s>	2
+g e b f	2
+g e b f </s>	2
+g e b c	5
+g e b c </s>	5
+g e b j	1
+g e b j </s>	1
+g e h	98
+g e h </s>	15
+g e h f	35
+g e h f </s>	7
+g e h f h	16
+g e h f g	8
+g e h f j	2
+g e h f d	2
+g e h h	26
+g e h h </s>	8
+g e h h b	1
+g e h h h	8
+g e h h e	2
+g e h h g	4
+g e h h i	1
+g e h h f	1
+g e h h j	1
+g e h g	6
+g e h g </s>	2
+g e h g g	1
+g e h g j	1
+g e h g d	1
+g e h g h	1
+g e h d	7
+g e h d h	4
+g e h d j	1
+g e h d </s>	1
+g e h d e	1
+g e h j	7
+g e h j g	3
+g e h j h	3
+g e h j </s>	1
+g e h e	1
+g e h e </s>	1
+g e h i	1
+g e h i h	1
+g e e	245
+g e e </s>	52
+g e e f	106
+g e e f </s>	30
+g e e f h	35
+g e e f j	12
+g e e f g	26
+g e e f i	1
+g e e f f	1
+g e e f d	1
+g e e h	55
+g e e h </s>	10
+g e e h b	2
+g e e h h	27
+g e e h g	6
+g e e h j	5
+g e e h i	1
+g e e h d	2
+g e e h f	2
+g e e g	3
+g e e g g	1
+g e e g h	2
+g e e d	13
+g e e d </s>	2
+g e e d h	5
+g e e d d	2
+g e e d j	2
+g e e d g	2
+g e e j	12
+g e e j </s>	4
+g e e j h	4
+g e e j j	1
+g e e j b	1
+g e e j d	2
+g e e a	1
+g e e a h	1
+g e e e	1
+g e e e </s>	1
+g e e i	1
+g e e i d	1
+g e e c	1
+g e e c </s>	1
+g e g	176
+g e g </s>	40
+g e g b	4
+g e g b </s>	4
+g e g f	54
+g e g f </s>	11
+g e g f g	16
+g e g f h	20
+g e g f f	2
+g e g f j	5
+g e g h	35
+g e g h </s>	15
+g e g h h	13
+g e g h d	2
+g e g h g	4
+g e g h j	1
+g e g j	18
+g e g j g	5
+g e g j h	8
+g e g j </s>	4
+g e g j j	1
+g e g e	1
+g e g e g	1
+g e g c	11
+g e g c h	1
+g e g c </s>	10
+g e g d	10
+g e g d </s>	5
+g e g d h	2
+g e g d g	1
+g e g d d	2
+g e g g	2
+g e g g h	1
+g e g g f	1
+g e g a	1
+g e g a a	1
+g e d	79
+g e d </s>	32
+g e d b	3
+g e d b </s>	3
+g e d h	14
+g e d h h	2
+g e d h </s>	12
+g e d f	3
+g e d f h	1
+g e d f j	1
+g e d f </s>	1
+g e d c	22
+g e d c </s>	22
+g e d d	2
+g e d d </s>	2
+g e d j	1
+g e d j g	1
+g e d a	1
+g e d a </s>	1
+g e d g	1
+g e d g e	1
+g e f	70
+g e f </s>	21
+g e f f	7
+g e f f h	6
+g e f f </s>	1
+g e f j	11
+g e f j e	2
+g e f j j	1
+g e f j h	5
+g e f j g	2
+g e f j i	1
+g e f h	23
+g e f h </s>	7
+g e f h e	5
+g e f h j	1
+g e f h g	1
+g e f h h	9
+g e f g	8
+g e f g h	3
+g e f g e	3
+g e f g </s>	1
+g e f g j	1
+g e j	45
+g e j </s>	13
+g e j h	9
+g e j h </s>	1
+g e j h g	1
+g e j h h	4
+g e j h d	2
+g e j h i	1
+g e j j	5
+g e j j h	2
+g e j j j	1
+g e j j g	1
+g e j j d	1
+g e j f	12
+g e j f </s>	5
+g e j f h	3
+g e j f j	1
+g e j f g	2
+g e j f d	1
+g e j g	3
+g e j g h	1
+g e j g g	1
+g e j g </s>	1
+g e j d	2
+g e j d d	1
+g e j d h	1
+g e j i	1
+g e j i h	1
+g e c	2
+g e c </s>	2
+g e a	8
+g e a c	2
+g e a c </s>	2
+g e a h	1
+g e a h j	1
+g e a f	3
+g e a f h	1
+g e a f </s>	1
+g e a f g	1
+g e a </s>	2
+g e i	2
+g e i c	1
+g e i c </s>	1
+g e i g	1
+g e i g h	1
+g j	445
+g j </s>	164
+g j b	8
+g j b </s>	3
+g j b c	3
+g j b c </s>	3
+g j b h	2
+g j b h </s>	2
+g j h	87
+g j h </s>	22
+g j h b	2
+g j h b c	1
+g j h b </s>	1
+g j h h	37
+g j h h g	3
+g j h h </s>	19
+g j h h b	4
+g j h h d	11
+g j h e	11
+g j h e b	1
+g j h e d	3
+g j h e </s>	6
+g j h e c	1
+g j h j	7
+g j h j </s>	3
+g j h j g	1
+g j h j d	2
+g j h j e	1
+g j h d	2
+g j h d d	1
+g j h d </s>	1
+g j h f	1
+g j h f c	1
+g j h g	2
+g j h g h	1
+g j h g d	1
+g j h i	3
+g j h i </s>	3
+g j g	83
+g j g </s>	25
+g j g b	3
+g j g b </s>	3
+g j g f	2
+g j g f g	1
+g j g f h	1
+g j g e	7
+g j g e d	5
+g j g e </s>	2
+g j g j	9
+g j g j </s>	4
+g j g j h	1
+g j g j a	1
+g j g j j	1
+g j g j d	2
+g j g h	28
+g j g h </s>	14
+g j g h g	3
+g j g h d	9
+g j g h c	1
+g j g h j	1
+g j g c	4
+g j g c </s>	4
+g j g a	1
+g j g a </s>	1
+g j g i	3
+g j g i a	1
+g j g i d	1
+g j g i </s>	1
+g j g d	1
+g j g d </s>	1
+g j e	5
+g j e </s>	2
+g j e f	1
+g j e f g	1
+g j e c	1
+g j e c </s>	1
+g j e j	1
+g j e j f	1
+g j d	47
+g j d </s>	13
+g j d b	5
+g j d b </s>	4
+g j d b d	1
+g j d h	11
+g j d h </s>	8
+g j d h e	1
+g j d h d	2
+g j d g	1
+g j d g </s>	1
+g j d c	9
+g j d c </s>	9
+g j d d	3
+g j d d </s>	3
+g j d j	1
+g j d j </s>	1
+g j d a	1
+g j d a </s>	1
+g j d e	3
+g j d e g	1
+g j d e d	2
+g j j	29
+g j j </s>	8
+g j j h	12
+g j j h </s>	3
+g j j h h	2
+g j j h d	3
+g j j h b	2
+g j j h g	1
+g j j h a	1
+g j j e	3
+g j j e d	3
+g j j c	1
+g j j c </s>	1
+g j j i	2
+g j j i </s>	1
+g j j i d	1
+g j j d	1
+g j j d c	1
+g j j g	1
+g j j g b	1
+g j j j	1
+g j j j d	1
+g j f	10
+g j f </s>	3
+g j f g	2
+g j f g e	1
+g j f g </s>	1
+g j f h	4
+g j f h d	1
+g j f h </s>	2
+g j f h h	1
+g j f e	1
+g j f e </s>	1
+g j a	8
+g j a e	2
+g j a e </s>	2
+g j a c	3
+g j a c </s>	3
+g j a </s>	3
+g j i	1
+g j i </s>	1
+g j c	3
+g j c </s>	2
+g j c c	1
+g j c c </s>	1
+g c	499
+g c </s>	209
+g c b	6
+g c b </s>	1
+g c b e	1
+g c b e </s>	1
+g c b d	1
+g c b d h	1
+g c b h	1
+g c b h f	1
+g c b g	2
+g c b g f	1
+g c b g </s>	1
+g c f	14
+g c f </s>	2
+g c f f	8
+g c f f h	4
+g c f f g	2
+g c f f d	1
+g c f f j	1
+g c f h	2
+g c f h </s>	1
+g c f h g	1
+g c f j	2
+g c f j h	1
+g c f j g	1
+g c g	73
+g c g </s>	14
+g c g f	31
+g c g f </s>	10
+g c g f h	13
+g c g f d	1
+g c g f g	5
+g c g f j	2
+g c g d	4
+g c g d h	2
+g c g d </s>	1
+g c g d g	1
+g c g h	17
+g c g h </s>	6
+g c g h g	2
+g c g h h	7
+g c g h d	1
+g c g h f	1
+g c g j	6
+g c g j h	1
+g c g j g	2
+g c g j </s>	2
+g c g j j	1
+g c g c	1
+g c g c h	1
+g c e	139
+g c e </s>	24
+g c e f	60
+g c e f </s>	14
+g c e f h	25
+g c e f g	14
+g c e f j	4
+g c e f f	1
+g c e f a	1
+g c e f d	1
+g c e g	4
+g c e g </s>	3
+g c e g h	1
+g c e j	17
+g c e j </s>	5
+g c e j h	5
+g c e j g	3
+g c e j d	1
+g c e j j	3
+g c e d	7
+g c e d </s>	1
+g c e d f	1
+g c e d h	2
+g c e d g	3
+g c e h	23
+g c e h </s>	6
+g c e h h	6
+g c e h g	8
+g c e h f	1
+g c e h b	1
+g c e h a	1
+g c e e	3
+g c e e h	1
+g c e e </s>	1
+g c e e g	1
+g c e i	1
+g c e i h	1
+g c h	36
+g c h </s>	11
+g c h f	9
+g c h f g	1
+g c h f h	4
+g c h f j	2
+g c h f </s>	2
+g c h h	7
+g c h h d	2
+g c h h h	2
+g c h h j	1
+g c h h </s>	2
+g c h d	1
+g c h d g	1
+g c h g	1
+g c h g g	1
+g c h j	6
+g c h j h	2
+g c h j </s>	2
+g c h j g	1
+g c h j j	1
+g c h a	1
+g c h a h	1
+g c i	2
+g c i f	1
+g c i f g	1
+g c i h	1
+g c i h g	1
+g c j	15
+g c j </s>	2
+g c j g	1
+g c j g h	1
+g c j j	3
+g c j j d	1
+g c j j b	1
+g c j j g	1
+g c j f	7
+g c j f </s>	1
+g c j f g	2
+g c j f d	2
+g c j f h	2
+g c j h	2
+g c j h </s>	2
+g c a	3
+g c a f	2
+g c a f j	1
+g c a f h	1
+g c a </s>	1
+g c c	2
+g c c e	2
+g c c e f	2
+g g	235
+g g </s>	49
+g g b	11
+g g b </s>	3
+g g b g	1
+g g b g </s>	1
+g g b c	1
+g g b c </s>	1
+g g b e	3
+g g b e j	2
+g g b e d	1
+g g b h	3
+g g b h j	1
+g g b h f	1
+g g b h h	1
+g g h	38
+g g h </s>	11
+g g h f	5
+g g h f g	3
+g g h f </s>	1
+g g h f h	1
+g g h h	12
+g g h h </s>	6
+g g h h h	2
+g g h h d	2
+g g h h e	1
+g g h h g	1
+g g h d	2
+g g h d e	1
+g g h d j	1
+g g h e	1
+g g h e </s>	1
+g g h g	6
+g g h g a	1
+g g h g </s>	2
+g g h g e	2
+g g h g h	1
+g g h j	1
+g g h j h	1
+g g e	36
+g g e </s>	7
+g g e b	1
+g g e b </s>	1
+g g e f	8
+g g e f </s>	2
+g g e f h	4
+g g e f g	2
+g g e g	4
+g g e g a	1
+g g e g c	1
+g g e g h	2
+g g e e	4
+g g e e d	1
+g g e e </s>	1
+g g e e f	2
+g g e d	4
+g g e d </s>	2
+g g e d d	1
+g g e d h	1
+g g e j	4
+g g e j f	1
+g g e j </s>	2
+g g e j j	1
+g g e c	1
+g g e c </s>	1
+g g e h	3
+g g e h h	2
+g g e h g	1
+g g j	25
+g g j </s>	8
+g g j f	4
+g g j f </s>	2
+g g j f h	2
+g g j h	7
+g g j h </s>	2
+g g j h h	4
+g g j h g	1
+g g j j	3
+g g j j d	1
+g g j j h	1
+g g j j j	1
+g g j g	1
+g g j g </s>	1
+g g j d	2
+g g j d c	1
+g g j d e	1
+g g d	8
+g g d f	1
+g g d f </s>	1
+g g d </s>	3
+g g d c	3
+g g d c </s>	3
+g g d e	1
+g g d e </s>	1
+g g i	6
+g g i b	1
+g g i b </s>	1
+g g i d	2
+g g i d </s>	2
+g g i </s>	3
+g g g	20
+g g g </s>	1
+g g g h	8
+g g g h </s>	2
+g g g h h	3
+g g g h d	1
+g g g h g	1
+g g g h j	1
+g g g c	1
+g g g c </s>	1
+g g g j	4
+g g g j h	3
+g g g j j	1
+g g g e	1
+g g g e g	1
+g g g i	1
+g g g i </s>	1
+g g g f	4
+g g g f </s>	2
+g g g f g	1
+g g g f h	1
+g g c	6
+g g c </s>	5
+g g c e	1
+g g c e f	1
+g g f	30
+g g f </s>	6
+g g f f	2
+g g f f g	1
+g g f f h	1
+g g f h	10
+g g f h </s>	3
+g g f h e	1
+g g f h j	2
+g g f h d	1
+g g f h g	1
+g g f h h	2
+g g f g	9
+g g f g </s>	2
+g g f g e	1
+g g f g j	3
+g g f g h	2
+g g f g d	1
+g g f d	1
+g g f d </s>	1
+g g f j	2
+g g f j </s>	1
+g g f j h	1
+g g a	6
+g g a </s>	2
+g g a e	1
+g g a e </s>	1
+g g a f	1
+g g a f h	1
+g g a j	1
+g g a j </s>	1
+g g a g	1
+g g a g f	1
+g h	1103
+g h </s>	429
+g h b	36
+g h b </s>	12
+g h b b	5
+g h b b </s>	5
+g h b j	1
+g h b j </s>	1
+g h b c	14
+g h b c </s>	14
+g h b h	4
+g h b h </s>	4
+g h h	215
+g h h </s>	45
+g h h b	4
+g h h b </s>	1
+g h h b c	2
+g h h b d	1
+g h h h	86
+g h h h </s>	34
+g h h h b	4
+g h h h h	1
+g h h h g	12
+g h h h a	7
+g h h h d	25
+g h h h c	2
+g h h h e	1
+g h h g	6
+g h h g </s>	2
+g h h g a	1
+g h h g i	1
+g h h g h	1
+g h h g j	1
+g h h j	18
+g h h j </s>	8
+g h h j d	6
+g h h j g	3
+g h h j b	1
+g h h i	7
+g h h i g	1
+g h h i d	3
+g h h i </s>	3
+g h h e	38
+g h h e </s>	18
+g h h e g	4
+g h h e j	1
+g h h e d	12
+g h h e f	1
+g h h e a	1
+g h h e b	1
+g h h d	9
+g h h d c	2
+g h h d g	2
+g h h d </s>	4
+g h h d a	1
+g h h a	1
+g h h a h	1
+g h h f	1
+g h h f e	1
+g h g	156
+g h g </s>	40
+g h g b	5
+g h g b </s>	5
+g h g h	43
+g h g h </s>	28
+g h g h b	3
+g h g h d	7
+g h g h g	3
+g h g h a	2
+g h g e	15
+g h g e </s>	5
+g h g e d	6
+g h g e g	4
+g h g c	25
+g h g c </s>	25
+g h g d	5
+g h g d </s>	3
+g h g d a	1
+g h g d b	1
+g h g j	18
+g h g j </s>	12
+g h g j d	4
+g h g j g	2
+g h g a	1
+g h g a c	1
+g h g i	4
+g h g i b	1
+g h g i </s>	1
+g h g i g	1
+g h g i d	1
+g h j	50
+g h j </s>	13
+g h j b	1
+g h j b </s>	1
+g h j h	16
+g h j h </s>	5
+g h j h a	2
+g h j h d	5
+g h j h g	2
+g h j h h	1
+g h j h i	1
+g h j g	1
+g h j g e	1
+g h j e	9
+g h j e </s>	5
+g h j e d	4
+g h j j	2
+g h j j </s>	1
+g h j j j	1
+g h j d	5
+g h j d h	2
+g h j d b	1
+g h j d </s>	1
+g h j d a	1
+g h j i	2
+g h j i g	1
+g h j i i	1
+g h j a	1
+g h j a </s>	1
+g h d	155
+g h d </s>	50
+g h d b	16
+g h d b </s>	15
+g h d b c	1
+g h d h	36
+g h d h </s>	31
+g h d h b	1
+g h d h d	4
+g h d e	4
+g h d e d	1
+g h d e </s>	3
+g h d c	41
+g h d c </s>	41
+g h d a	1
+g h d a </s>	1
+g h d j	6
+g h d j </s>	5
+g h d j d	1
+g h d i	1
+g h d i b	1
+g h f	23
+g h f </s>	7
+g h f g	4
+g h f g e	1
+g h f g h	3
+g h f h	7
+g h f h h	2
+g h f h </s>	2
+g h f h e	2
+g h f h g	1
+g h f j	3
+g h f j </s>	1
+g h f j d	1
+g h f j e	1
+g h f d	2
+g h f d h	1
+g h f d </s>	1
+g h a	14
+g h a </s>	5
+g h a e	1
+g h a e e	1
+g h a c	5
+g h a c </s>	5
+g h a d	1
+g h a d </s>	1
+g h a h	2
+g h a h </s>	2
+g h i	2
+g h i c	1
+g h i c </s>	1
+g h i </s>	1
+g h e	19
+g h e </s>	8
+g h e b	2
+g h e b </s>	1
+g h e b c	1
+g h e h	2
+g h e h </s>	1
+g h e h h	1
+g h e d	2
+g h e d c	1
+g h e d b	1
+g h e c	3
+g h e c </s>	3
+g h e a	1
+g h e a </s>	1
+g h e e	1
+g h e e c	1
+g h c	4
+g h c h	1
+g h c h </s>	1
+g h c j	1
+g h c j </s>	1
+g h c c	2
+g h c c </s>	2
+g d	192
+g d </s>	56
+g d b	9
+g d b </s>	2
+g d b h	1
+g d b h </s>	1
+g d b c	3
+g d b c </s>	3
+g d b j	2
+g d b j </s>	1
+g d b j f	1
+g d b g	1
+g d b g h	1
+g d f	4
+g d f </s>	2
+g d f f	1
+g d f f </s>	1
+g d f h	1
+g d f h d	1
+g d h	47
+g d h </s>	17
+g d h h	18
+g d h h </s>	7
+g d h h g	3
+g d h h c	1
+g d h h d	3
+g d h h e	2
+g d h h b	1
+g d h h a	1
+g d h e	4
+g d h e </s>	2
+g d h e d	1
+g d h e b	1
+g d h j	7
+g d h j i	2
+g d h j </s>	1
+g d h j d	3
+g d h j b	1
+g d h i	1
+g d h i d	1
+g d g	23
+g d g </s>	9
+g d g h	7
+g d g h d	2
+g d g h h	2
+g d g h g	2
+g d g h </s>	1
+g d g c	3
+g d g c </s>	3
+g d g d	3
+g d g d d	1
+g d g d h	1
+g d g d </s>	1
+g d g e	1
+g d g e g	1
+g d d	23
+g d d </s>	11
+g d d h	5
+g d d h </s>	2
+g d d h d	1
+g d d h e	1
+g d d h b	1
+g d d j	1
+g d d j </s>	1
+g d d c	3
+g d d c </s>	3
+g d d e	1
+g d d e </s>	1
+g d d b	2
+g d d b </s>	2
+g d j	11
+g d j e	2
+g d j e </s>	2
+g d j </s>	5
+g d j h	3
+g d j h </s>	1
+g d j h g	1
+g d j h d	1
+g d j d	1
+g d j d h	1
+g d a	3
+g d a </s>	2
+g d a c	1
+g d a c </s>	1
+g d c	7
+g d c </s>	7
+g d e	9
+g d e </s>	3
+g d e f	1
+g d e f h	1
+g d e h	3
+g d e h h	1
+g d e h g	1
+g d e h </s>	1
+g d e c	1
+g d e c </s>	1
+g d e j	1
+g d e j j	1
+g i	80
+g i </s>	31
+g i b	5
+g i b </s>	1
+g i b c	2
+g i b c </s>	2
+g i b b	1
+g i b b </s>	1
+g i b e	1
+g i b e h	1
+g i h	8
+g i h </s>	2
+g i h e	3
+g i h e </s>	2
+g i h e g	1
+g i h j	1
+g i h j d	1
+g i h h	2
+g i h h d	1
+g i h h </s>	1
+g i g	9
+g i g </s>	3
+g i g e	1
+g i g e </s>	1
+g i g h	1
+g i g h </s>	1
+g i g f	1
+g i g f g	1
+g i g c	3
+g i g c </s>	3
+g i a	3
+g i a c	1
+g i a c </s>	1
+g i a j	1
+g i a j </s>	1
+g i a </s>	1
+g i d	17
+g i d </s>	8
+g i d h	4
+g i d h g	1
+g i d h </s>	2
+g i d h h	1
+g i d c	3
+g i d c </s>	3
+g i d d	1
+g i d d </s>	1
+g i d b	1
+g i d b </s>	1
+g i e	3
+g i e </s>	2
+g i e h	1
+g i e h </s>	1
+g i j	4
+g i j h	2
+g i j h h	1
+g i j h b	1
+g i j </s>	1
+g i j d	1
+g i j d d	1
+g a	188
+g a </s>	35
+g a b	1
+g a b j	1
+g a b j f	1
+g a h	13
+g a h </s>	2
+g a h h	4
+g a h h g	2
+g a h h h	1
+g a h h </s>	1
+g a h f	4
+g a h f h	2
+g a h f j	1
+g a h f </s>	1
+g a h j	2
+g a h j h	1
+g a h j g	1
+g a h d	1
+g a h d h	1
+g a e	74
+g a e </s>	16
+g a e f	24
+g a e f h	11
+g a e f g	4
+g a e f </s>	5
+g a e f j	4
+g a e j	8
+g a e j h	4
+g a e j </s>	1
+g a e j j	2
+g a e j b	1
+g a e h	25
+g a e h </s>	7
+g a e h h	6
+g a e h g	5
+g a e h j	5
+g a e h d	2
+g a e d	1
+g a e d h	1
+g a g	45
+g a g </s>	11
+g a g f	23
+g a g f </s>	6
+g a g f h	7
+g a g f d	2
+g a g f j	4
+g a g f g	4
+g a g h	7
+g a g h </s>	1
+g a g h g	1
+g a g h h	3
+g a g h d	1
+g a g h j	1
+g a g e	1
+g a g e d	1
+g a g j	2
+g a g j h	1
+g a g j g	1
+g a g c	1
+g a g c </s>	1
+g a j	9
+g a j </s>	2
+g a j h	2
+g a j h h	1
+g a j h j	1
+g a j f	4
+g a j f d	1
+g a j f h	2
+g a j f j	1
+g a j j	1
+g a j j h	1
+g a c	2
+g a c </s>	2
+g a d	3
+g a d </s>	2
+g a d g	1
+g a d g </s>	1
+g a a	2
+g a a </s>	2
+g a f	4
+g a f f	2
+g a f f h	2
+g a f h	1
+g a f h j	1
+g a f d	1
+g a f d g	1
+j	2676
+j </s>	787
+j b	39
+j b </s>	12
+j b h	10
+j b h </s>	7
+j b h e	1
+j b h e </s>	1
+j b h d	2
+j b h d </s>	1
+j b h d c	1
+j b c	11
+j b c </s>	11
+j b b	1
+j b b </s>	1
+j b e	3
+j b e d	1
+j b e d g	1
+j b e f	1
+j b e f </s>	1
+j b e </s>	1
+j b g	2
+j b g b	1
+j b g b </s>	1
+j b g </s>	1
+j h	701
+j h </s>	227
+j h b	22
+j h b </s>	8
+j h b b	1
+j h b b </s>	1
+j h b c	8
+j h b c </s>	8
+j h b d	1
+j h b d </s>	1
+j h b j	2
+j h b j </s>	2
+j h b h	1
+j h b h </s>	1
+j h b a	1
+j h b a </s>	1
+j h h	169
+j h h </s>	70
+j h h b	6
+j h h b h	2
+j h h b c	3
+j h h b </s>	1
+j h h h	21
+j h h h </s>	9
+j h h h g	4
+j h h h d	5
+j h h h a	2
+j h h h b	1
+j h h g	17
+j h h g </s>	6
+j h h g h	1
+j h h g c	7
+j h h g j	2
+j h h g g	1
+j h h e	9
+j h h e b	1
+j h h e a	1
+j h h e c	2
+j h h e d	2
+j h h e </s>	2
+j h h e g	1
+j h h d	33
+j h h d b	2
+j h h d </s>	18
+j h h d h	3
+j h h d c	9
+j h h d d	1
+j h h a	4
+j h h a c	3
+j h h a b	1
+j h h i	2
+j h h i </s>	2
+j h h j	5
+j h h j </s>	3
+j h h j g	1
+j h h j a	1
+j h h c	2
+j h h c d	1
+j h h c c	1
+j h e	62
+j h e </s>	29
+j h e b	4
+j h e b </s>	2
+j h e b c	2
+j h e h	1
+j h e h </s>	1
+j h e g	6
+j h e g h	3
+j h e g </s>	2
+j h e g c	1
+j h e a	1
+j h e a c	1
+j h e d	18
+j h e d </s>	5
+j h e d a	1
+j h e d c	6
+j h e d h	3
+j h e d b	1
+j h e d j	2
+j h e e	1
+j h e e </s>	1
+j h e c	1
+j h e c </s>	1
+j h e f	1
+j h e f </s>	1
+j h j	38
+j h j </s>	15
+j h j h	8
+j h j h g	1
+j h j h </s>	4
+j h j h d	3
+j h j g	6
+j h j g h	1
+j h j g </s>	3
+j h j g b	1
+j h j g c	1
+j h j d	6
+j h j d c	3
+j h j d h	1
+j h j d </s>	2
+j h j j	1
+j h j j </s>	1
+j h j e	1
+j h j e </s>	1
+j h j a	1
+j h j a h	1
+j h d	91
+j h d </s>	37
+j h d b	8
+j h d b </s>	8
+j h d h	8
+j h d h </s>	8
+j h d g	1
+j h d g </s>	1
+j h d c	27
+j h d c </s>	27
+j h d j	5
+j h d j </s>	5
+j h d d	3
+j h d d </s>	2
+j h d d h	1
+j h d i	2
+j h d i </s>	2
+j h g	58
+j h g </s>	13
+j h g b	5
+j h g b c	1
+j h g b </s>	3
+j h g b h	1
+j h g h	13
+j h g h g	3
+j h g h </s>	9
+j h g h d	1
+j h g e	2
+j h g e d	2
+j h g j	7
+j h g j </s>	6
+j h g j g	1
+j h g c	11
+j h g c </s>	11
+j h g d	3
+j h g d </s>	2
+j h g d c	1
+j h g a	1
+j h g a </s>	1
+j h g g	2
+j h g g b	1
+j h g g a	1
+j h g i	1
+j h g i d	1
+j h i	14
+j h i b	2
+j h i b c	1
+j h i b </s>	1
+j h i d	3
+j h i d j	1
+j h i d c	2
+j h i g	2
+j h i g c	1
+j h i g h	1
+j h i </s>	7
+j h a	10
+j h a b	1
+j h a b </s>	1
+j h a h	3
+j h a h </s>	3
+j h a j	1
+j h a j </s>	1
+j h a </s>	3
+j h a c	2
+j h a c </s>	2
+j h f	6
+j h f </s>	1
+j h f e	1
+j h f e d	1
+j h f c	1
+j h f c </s>	1
+j h f h	2
+j h f h </s>	2
+j h f d	1
+j h f d h	1
+j h c	4
+j h c h	1
+j h c h </s>	1
+j h c c	3
+j h c c </s>	3
+j g	278
+j g </s>	70
+j g b	9
+j g b </s>	8
+j g b g	1
+j g b g h	1
+j g h	91
+j g h </s>	50
+j g h b	5
+j g h b </s>	4
+j g h b c	1
+j g h h	1
+j g h h b	1
+j g h g	10
+j g h g b	1
+j g h g h	1
+j g h g c	3
+j g h g j	3
+j g h g </s>	2
+j g h e	4
+j g h e d	2
+j g h e e	1
+j g h e </s>	1
+j g h d	18
+j g h d </s>	6
+j g h d h	3
+j g h d c	7
+j g h d b	1
+j g h d j	1
+j g h c	2
+j g h c h	1
+j g h c j	1
+j g h j	1
+j g h j b	1
+j g e	37
+j g e </s>	12
+j g e a	1
+j g e a c	1
+j g e c	1
+j g e c </s>	1
+j g e d	15
+j g e d </s>	7
+j g e d b	1
+j g e d c	5
+j g e d h	2
+j g e g	7
+j g e g </s>	2
+j g e g b	1
+j g e g j	1
+j g e g c	2
+j g e g f	1
+j g e e	1
+j g e e h	1
+j g j	27
+j g j </s>	15
+j g j h	2
+j g j h </s>	1
+j g j h h	1
+j g j d	6
+j g j d </s>	4
+j g j d c	1
+j g j d d	1
+j g j a	1
+j g j a c	1
+j g j j	1
+j g j j c	1
+j g j b	1
+j g j b </s>	1
+j g j g	1
+j g j g c	1
+j g g	4
+j g g i	1
+j g g i d	1
+j g g </s>	1
+j g g j	1
+j g g j d	1
+j g g d	1
+j g g d </s>	1
+j g f	7
+j g f g	2
+j g f g </s>	1
+j g f g h	1
+j g f h	1
+j g f h h	1
+j g f </s>	3
+j g f d	1
+j g f d </s>	1
+j g i	7
+j g i d	3
+j g i d </s>	1
+j g i d d	1
+j g i d c	1
+j g i a	1
+j g i a j	1
+j g i g	1
+j g i g c	1
+j g i </s>	2
+j g d	9
+j g d g	2
+j g d g c	2
+j g d d	5
+j g d d </s>	4
+j g d d c	1
+j g d </s>	2
+j g a	2
+j g a d	1
+j g a d </s>	1
+j g a </s>	1
+j g c	15
+j g c </s>	15
+j f	254
+j f </s>	45
+j f b	2
+j f b e	1
+j f b e f	1
+j f b </s>	1
+j f h	111
+j f h </s>	35
+j f h h	37
+j f h h </s>	19
+j f h h e	1
+j f h h d	10
+j f h h g	5
+j f h h b	1
+j f h h c	1
+j f h e	23
+j f h e </s>	7
+j f h e a	2
+j f h e d	5
+j f h e b	4
+j f h e g	5
+j f h j	7
+j f h j </s>	5
+j f h j g	2
+j f h d	4
+j f h d </s>	2
+j f h d g	1
+j f h d c	1
+j f h i	3
+j f h i </s>	2
+j f h i d	1
+j f h g	1
+j f h g c	1
+j f h f	1
+j f h f c	1
+j f g	48
+j f g </s>	13
+j f g g	1
+j f g g </s>	1
+j f g j	5
+j f g j d	3
+j f g j g	2
+j f g e	7
+j f g e g	4
+j f g e </s>	2
+j f g e d	1
+j f g h	19
+j f g h </s>	9
+j f g h a	2
+j f g h d	6
+j f g h e	1
+j f g h b	1
+j f g d	2
+j f g d d	1
+j f g d g	1
+j f g i	1
+j f g i </s>	1
+j f a	1
+j f a i	1
+j f a i </s>	1
+j f d	16
+j f d </s>	10
+j f d h	4
+j f d h </s>	2
+j f d h g	1
+j f d h j	1
+j f d i	1
+j f d i </s>	1
+j f d e	1
+j f d e </s>	1
+j f j	23
+j f j </s>	9
+j f j h	7
+j f j h </s>	4
+j f j h c	1
+j f j h g	1
+j f j h d	1
+j f j i	2
+j f j i </s>	1
+j f j i g	1
+j f j e	2
+j f j e </s>	2
+j f j d	1
+j f j d a	1
+j f j j	2
+j f j j </s>	1
+j f j j g	1
+j f c	2
+j f c e	1
+j f c e h	1
+j f c h	1
+j f c h d	1
+j f e	3
+j f e d	1
+j f e d c	1
+j f e </s>	2
+j f f	3
+j f f h	1
+j f f h </s>	1
+j f f e	1
+j f f e g	1
+j f f </s>	1
+j a	20
+j a </s>	9
+j a e	2
+j a e </s>	2
+j a b	1
+j a b </s>	1
+j a h	2
+j a h </s>	2
+j a c	6
+j a c </s>	6
+j d	205
+j d </s>	70
+j d b	14
+j d b </s>	12
+j d b d	1
+j d b d c	1
+j d b h	1
+j d b h </s>	1
+j d h	42
+j d h </s>	34
+j d h e	4
+j d h e </s>	3
+j d h e h	1
+j d h d	2
+j d h d </s>	1
+j d h d j	1
+j d h i	1
+j d h i </s>	1
+j d h h	1
+j d h h </s>	1
+j d a	4
+j d a </s>	2
+j d a c	1
+j d a c </s>	1
+j d a h	1
+j d a h </s>	1
+j d c	39
+j d c </s>	39
+j d g	6
+j d g </s>	2
+j d g e	1
+j d g e </s>	1
+j d g c	1
+j d g c </s>	1
+j d g h	1
+j d g h </s>	1
+j d g j	1
+j d g j </s>	1
+j d d	15
+j d d c	4
+j d d c </s>	4
+j d d </s>	8
+j d d j	2
+j d d j </s>	2
+j d d h	1
+j d d h </s>	1
+j d e	10
+j d e </s>	5
+j d e d	3
+j d e d b	1
+j d e d c	1
+j d e d </s>	1
+j d e g	2
+j d e g </s>	1
+j d e g c	1
+j d j	5
+j d j j	2
+j d j j </s>	2
+j d j </s>	2
+j d j h	1
+j d j h </s>	1
+j j	199
+j j </s>	73
+j j b	4
+j j b c	2
+j j b c </s>	2
+j j b h	1
+j j b h </s>	1
+j j b </s>	1
+j j h	52
+j j h </s>	18
+j j h b	3
+j j h b </s>	3
+j j h h	8
+j j h h d	2
+j j h h </s>	4
+j j h h g	1
+j j h h e	1
+j j h g	6
+j j h g c	2
+j j h g d	1
+j j h g </s>	3
+j j h j	2
+j j h j d	1
+j j h j </s>	1
+j j h d	9
+j j h d g	1
+j j h d c	5
+j j h d d	1
+j j h d </s>	2
+j j h i	2
+j j h i d	2
+j j h e	3
+j j h e e	1
+j j h e </s>	1
+j j h e d	1
+j j h a	1
+j j h a </s>	1
+j j e	14
+j j e d	5
+j j e d c	2
+j j e d </s>	2
+j j e d h	1
+j j e b	1
+j j e b h	1
+j j e </s>	6
+j j e c	2
+j j e c </s>	2
+j j a	3
+j j a b	1
+j j a b </s>	1
+j j a c	2
+j j a c </s>	2
+j j d	18
+j j d </s>	8
+j j d a	1
+j j d a </s>	1
+j j d c	7
+j j d c </s>	7
+j j d d	1
+j j d d c	1
+j j d g	1
+j j d g h	1
+j j i	6
+j j i </s>	2
+j j i d	2
+j j i d h	1
+j j i d b	1
+j j i g	2
+j j i g h	2
+j j j	12
+j j j h	4
+j j j h d	2
+j j j h </s>	2
+j j j i	1
+j j j i d	1
+j j j </s>	6
+j j j d	1
+j j j d c	1
+j j f	1
+j j f d	1
+j j f d </s>	1
+j j c	2
+j j c </s>	2
+j j g	14
+j j g </s>	3
+j j g e	1
+j j g e d	1
+j j g h	7
+j j g h d	1
+j j g h </s>	5
+j j g h e	1
+j j g b	1
+j j g b </s>	1
+j j g j	1
+j j g j </s>	1
+j j g c	1
+j j g c </s>	1
+j e	139
+j e </s>	58
+j e b	9
+j e b c	3
+j e b c </s>	3
+j e b h	1
+j e b h </s>	1
+j e b </s>	4
+j e b d	1
+j e b d </s>	1
+j e h	4
+j e h h	2
+j e h h h	1
+j e h h </s>	1
+j e h </s>	1
+j e h j	1
+j e h j g	1
+j e g	15
+j e g </s>	5
+j e g h	2
+j e g h </s>	2
+j e g j	2
+j e g j </s>	2
+j e g c	4
+j e g c </s>	4
+j e g a	1
+j e g a </s>	1
+j e g b	1
+j e g b </s>	1
+j e a	2
+j e a c	1
+j e a c </s>	1
+j e a </s>	1
+j e d	34
+j e d </s>	13
+j e d h	7
+j e d h </s>	7
+j e d c	11
+j e d c </s>	11
+j e d j	2
+j e d j </s>	2
+j e d b	1
+j e d b </s>	1
+j e j	3
+j e j h	1
+j e j h g	1
+j e j </s>	1
+j e j f	1
+j e j f e	1
+j e f	6
+j e f g	2
+j e f g h	1
+j e f g j	1
+j e f </s>	4
+j e c	6
+j e c </s>	6
+j e i	1
+j e i c	1
+j e i c </s>	1
+j e e	1
+j e e </s>	1
+j i	43
+j i </s>	19
+j i b	5
+j i b </s>	2
+j i b b	1
+j i b b </s>	1
+j i b c	1
+j i b c </s>	1
+j i b d	1
+j i b d </s>	1
+j i h	2
+j i h </s>	1
+j i h h	1
+j i h h d	1
+j i e	1
+j i e j	1
+j i e j </s>	1
+j i j	1
+j i j c	1
+j i j c </s>	1
+j i d	8
+j i d h	2
+j i d h </s>	2
+j i d </s>	2
+j i d b	1
+j i d b </s>	1
+j i d c	3
+j i d c </s>	3
+j i g	5
+j i g c	1
+j i g c </s>	1
+j i g h	2
+j i g h </s>	2
+j i g b	1
+j i g b </s>	1
+j i g </s>	1
+j i i	1
+j i i </s>	1
+j i c	1
+j i c </s>	1
+j c	11
+j c </s>	7
+j c b	1
+j c b g	1
+j c b g f	1
+j c g	1
+j c g e	1
+j c g e d	1
+j c c	2
+j c c </s>	2
+c	4571
+c </s>	919
+c b	701
+c b </s>	90
+c b b	28
+c b b </s>	6
+c b b e	10
+c b b e </s>	1
+c b b e f	5
+c b b e j	1
+c b b e d	1
+c b b e g	1
+c b b e h	1
+c b b g	4
+c b b g f	1
+c b b g h	1
+c b b g j	2
+c b b h	4
+c b b h </s>	1
+c b b h f	2
+c b b h h	1
+c b b f	3
+c b b f h	1
+c b b f f	1
+c b b f g	1
+c b b j	1
+c b b j g	1
+c b f	21
+c b f </s>	4
+c b f f	12
+c b f f </s>	1
+c b f f h	6
+c b f f g	3
+c b f f j	1
+c b f f d	1
+c b f j	2
+c b f j h	2
+c b f h	1
+c b f h </s>	1
+c b f g	1
+c b f g h	1
+c b f i	1
+c b f i h	1
+c b e	296
+c b e </s>	55
+c b e f	124
+c b e f </s>	35
+c b e f h	43
+c b e f d	6
+c b e f f	3
+c b e f g	20
+c b e f j	16
+c b e f b	1
+c b e e	5
+c b e e f	2
+c b e e h	2
+c b e e </s>	1
+c b e j	29
+c b e j </s>	8
+c b e j h	11
+c b e j g	8
+c b e j d	1
+c b e j b	1
+c b e h	61
+c b e h </s>	15
+c b e h g	12
+c b e h h	27
+c b e h j	4
+c b e h d	1
+c b e h b	1
+c b e h f	1
+c b e d	13
+c b e d </s>	1
+c b e d h	7
+c b e d d	1
+c b e d g	3
+c b e d j	1
+c b e i	2
+c b e i h	1
+c b e i </s>	1
+c b e g	7
+c b e g g	1
+c b e g f	2
+c b e g h	3
+c b e g </s>	1
+c b g	142
+c b g </s>	25
+c b g h	32
+c b g h </s>	11
+c b g h h	12
+c b g h g	6
+c b g h j	2
+c b g h f	1
+c b g f	54
+c b g f </s>	15
+c b g f g	6
+c b g f h	27
+c b g f j	3
+c b g f d	2
+c b g f f	1
+c b g j	19
+c b g j </s>	3
+c b g j g	6
+c b g j d	1
+c b g j h	5
+c b g j j	3
+c b g j a	1
+c b g i	3
+c b g i g	1
+c b g i </s>	1
+c b g i h	1
+c b g d	7
+c b g d </s>	3
+c b g d j	3
+c b g d g	1
+c b g e	1
+c b g e h	1
+c b g g	1
+c b g g h	1
+c b a	6
+c b a f	3
+c b a f h	2
+c b a f </s>	1
+c b a j	1
+c b a j g	1
+c b a d	1
+c b a d h	1
+c b a e	1
+c b a e f	1
+c b j	40
+c b j </s>	10
+c b j g	1
+c b j g g	1
+c b j f	19
+c b j f </s>	4
+c b j f h	7
+c b j f d	2
+c b j f g	4
+c b j f j	2
+c b j h	7
+c b j h h	6
+c b j h g	1
+c b j j	2
+c b j j </s>	2
+c b j e	1
+c b j e h	1
+c b d	10
+c b d </s>	2
+c b d h	3
+c b d h </s>	1
+c b d h f	1
+c b d h h	1
+c b d f	2
+c b d f g	1
+c b d f </s>	1
+c b d j	3
+c b d j h	1
+c b d j j	1
+c b d j g	1
+c b c	4
+c b c h	1
+c b c h </s>	1
+c b c g	1
+c b c g </s>	1
+c b c e	1
+c b c e </s>	1
+c b c </s>	1
+c b h	63
+c b h </s>	10
+c b h h	13
+c b h h </s>	6
+c b h h g	1
+c b h h h	4
+c b h h a	1
+c b h h j	1
+c b h f	28
+c b h f </s>	7
+c b h f h	11
+c b h f g	5
+c b h f j	3
+c b h f d	2
+c b h j	7
+c b h j h	4
+c b h j g	1
+c b h j </s>	1
+c b h j j	1
+c b h d	4
+c b h d h	3
+c b h d </s>	1
+c b h e	1
+c b h e h	1
+c b i	1
+c b i j	1
+c b i j j	1
+c f	708
+c f </s>	13
+c f b	303
+c f b </s>	44
+c f b h	35
+c f b h </s>	6
+c f b h f	19
+c f b h h	7
+c f b h j	3
+c f b g	68
+c f b g </s>	8
+c f b g f	33
+c f b g h	16
+c f b g d	2
+c f b g g	1
+c f b g j	7
+c f b g i	1
+c f b e	130
+c f b e </s>	27
+c f b e f	51
+c f b e j	16
+c f b e h	28
+c f b e d	6
+c f b e i	1
+c f b e c	1
+c f b j	14
+c f b j </s>	1
+c f b j f	7
+c f b j d	3
+c f b j h	1
+c f b j j	2
+c f b d	3
+c f b d f	1
+c f b d h	1
+c f b d </s>	1
+c f b f	8
+c f b f </s>	1
+c f b f f	4
+c f b f h	1
+c f b f d	2
+c f b a	1
+c f b a f	1
+c f f	32
+c f f </s>	7
+c f f e	7
+c f f e f	2
+c f f e </s>	3
+c f f e j	1
+c f f e d	1
+c f f h	10
+c f f h </s>	6
+c f f h e	1
+c f f h d	1
+c f f h j	1
+c f f h h	1
+c f f g	5
+c f f g e	2
+c f f g h	3
+c f f d	1
+c f f d h	1
+c f f j	2
+c f f j h	2
+c f e	170
+c f e </s>	26
+c f e b	1
+c f e b f	1
+c f e f	10
+c f e f </s>	1
+c f e f f	3
+c f e f g	3
+c f e f j	1
+c f e f h	1
+c f e f d	1
+c f e e	64
+c f e e </s>	17
+c f e e f	28
+c f e e d	5
+c f e e j	4
+c f e e h	8
+c f e e g	2
+c f e j	17
+c f e j </s>	4
+c f e j f	7
+c f e j h	5
+c f e j j	1
+c f e g	32
+c f e g </s>	9
+c f e g f	12
+c f e g h	6
+c f e g i	1
+c f e g j	1
+c f e g e	1
+c f e g d	2
+c f e h	18
+c f e h </s>	4
+c f e h h	4
+c f e h j	3
+c f e h f	6
+c f e h d	1
+c f e a	1
+c f e a h	1
+c f e d	1
+c f e d f	1
+c f c	88
+c f c </s>	11
+c f c g	15
+c f c g </s>	1
+c f c g h	6
+c f c g f	5
+c f c g d	1
+c f c g j	2
+c f c j	5
+c f c j h	1
+c f c j j	2
+c f c j f	2
+c f c f	5
+c f c f f	2
+c f c f j	1
+c f c f h	1
+c f c f </s>	1
+c f c e	39
+c f c e </s>	8
+c f c e h	6
+c f c e j	6
+c f c e i	1
+c f c e f	15
+c f c e d	2
+c f c e g	1
+c f c h	13
+c f c h h	6
+c f c h f	4
+c f c h </s>	3
+c f a	46
+c f a </s>	8
+c f a g	9
+c f a g </s>	2
+c f a g f	7
+c f a e	19
+c f a e f	12
+c f a e j	3
+c f a e </s>	2
+c f a e h	2
+c f a h	5
+c f a h f	2
+c f a h </s>	1
+c f a h h	2
+c f a j	4
+c f a j j	1
+c f a j g	1
+c f a j h	1
+c f a j f	1
+c f a f	1
+c f a f f	1
+c f g	27
+c f g </s>	7
+c f g h	2
+c f g h g	1
+c f g h d	1
+c f g e	8
+c f g e f	4
+c f g e </s>	4
+c f g f	2
+c f g f d	1
+c f g f j	1
+c f g g	5
+c f g g f	4
+c f g g j	1
+c f g j	3
+c f g j </s>	2
+c f g j h	1
+c f h	9
+c f h </s>	5
+c f h f	1
+c f h f g	1
+c f h h	1
+c f h h d	1
+c f h g	2
+c f h g j	1
+c f h g </s>	1
+c f j	12
+c f j </s>	4
+c f j e	1
+c f j e f	1
+c f j h	3
+c f j h e	1
+c f j h </s>	2
+c f j f	2
+c f j f h	1
+c f j f </s>	1
+c f j g	2
+c f j g f	1
+c f j g h	1
+c f d	6
+c f d h	2
+c f d h </s>	2
+c f d </s>	4
+c f i	2
+c f i j	2
+c f i j f	1
+c f i j </s>	1
+c e	845
+c e </s>	156
+c e b	3
+c e b </s>	2
+c e b h	1
+c e b h h	1
+c e f	220
+c e f </s>	52
+c e f h	85
+c e f h </s>	22
+c e f h h	34
+c e f h e	10
+c e f h a	2
+c e f h d	1
+c e f h j	8
+c e f h i	6
+c e f h g	2
+c e f g	47
+c e f g </s>	9
+c e f g h	21
+c e f g e	10
+c e f g g	2
+c e f g j	4
+c e f g b	1
+c e f j	21
+c e f j </s>	5
+c e f j h	9
+c e f j e	5
+c e f j j	1
+c e f j i	1
+c e f d	5
+c e f d </s>	1
+c e f d e	2
+c e f d h	1
+c e f d j	1
+c e f f	7
+c e f f </s>	3
+c e f f h	1
+c e f f g	1
+c e f f d	1
+c e f f j	1
+c e f c	1
+c e f c h	1
+c e f a	2
+c e f a h	1
+c e f a </s>	1
+c e e	122
+c e e </s>	26
+c e e h	27
+c e e h </s>	7
+c e e h h	10
+c e e h j	4
+c e e h g	5
+c e e h b	1
+c e e f	45
+c e e f </s>	10
+c e e f h	17
+c e e f j	8
+c e e f g	8
+c e e f b	1
+c e e f d	1
+c e e c	1
+c e e c h	1
+c e e d	7
+c e e d </s>	1
+c e e d a	1
+c e e d g	2
+c e e d h	2
+c e e d j	1
+c e e i	2
+c e e i </s>	1
+c e e i g	1
+c e e j	12
+c e e j </s>	1
+c e e j h	4
+c e e j d	2
+c e e j g	3
+c e e j j	1
+c e e j f	1
+c e e g	2
+c e e g e	1
+c e e g g	1
+c e j	92
+c e j </s>	17
+c e j h	39
+c e j h </s>	17
+c e j h h	14
+c e j h e	4
+c e j h j	3
+c e j h g	1
+c e j j	6
+c e j j </s>	2
+c e j j h	2
+c e j j e	1
+c e j j j	1
+c e j g	17
+c e j g </s>	6
+c e j g h	6
+c e j g j	2
+c e j g e	2
+c e j g g	1
+c e j f	12
+c e j f </s>	2
+c e j f g	3
+c e j f d	1
+c e j f h	5
+c e j f j	1
+c e j d	1
+c e j d </s>	1
+c e g	82
+c e g </s>	19
+c e g f	31
+c e g f h	18
+c e g f g	6
+c e g f </s>	7
+c e g h	23
+c e g h </s>	8
+c e g h g	5
+c e g h j	4
+c e g h h	5
+c e g h e	1
+c e g e	1
+c e g e h	1
+c e g j	3
+c e g j g	2
+c e g j h	1
+c e g d	3
+c e g d h	3
+c e g i	2
+c e g i j	1
+c e g i h	1
+c e h	126
+c e h </s>	31
+c e h b	2
+c e h b h	2
+c e h f	9
+c e h f h	4
+c e h f d	1
+c e h f j	2
+c e h f a	1
+c e h f g	1
+c e h g	24
+c e h g </s>	6
+c e h g h	9
+c e h g j	2
+c e h g e	5
+c e h g d	1
+c e h g i	1
+c e h j	10
+c e h j </s>	1
+c e h j g	2
+c e h j e	4
+c e h j h	2
+c e h j d	1
+c e h h	41
+c e h h </s>	10
+c e h h h	19
+c e h h e	2
+c e h h i	1
+c e h h g	3
+c e h h j	5
+c e h h d	1
+c e h a	3
+c e h a e	1
+c e h a j	1
+c e h a </s>	1
+c e h d	6
+c e h d j	1
+c e h d </s>	2
+c e h d h	2
+c e h d f	1
+c e d	36
+c e d </s>	11
+c e d h	11
+c e d h </s>	5
+c e d h h	2
+c e d h j	2
+c e d h e	1
+c e d h i	1
+c e d g	4
+c e d g h	3
+c e d g e	1
+c e d f	4
+c e d f </s>	2
+c e d f h	2
+c e d j	5
+c e d j e	1
+c e d j </s>	1
+c e d j h	2
+c e d j i	1
+c e d d	1
+c e d d </s>	1
+c e i	5
+c e i h	2
+c e i h h	1
+c e i h </s>	1
+c e i d	1
+c e i d h	1
+c e i </s>	2
+c e a	3
+c e a f	2
+c e a f g	1
+c e a f h	1
+c e a g	1
+c e a g h	1
+c h	170
+c h </s>	43
+c h f	62
+c h f </s>	14
+c h f h	21
+c h f h </s>	7
+c h f h e	4
+c h f h j	3
+c h f h h	5
+c h f h d	1
+c h f h i	1
+c h f g	13
+c h f g </s>	3
+c h f g h	6
+c h f g g	1
+c h f g j	3
+c h f j	11
+c h f j </s>	2
+c h f j h	5
+c h f j j	2
+c h f j d	1
+c h f j e	1
+c h f b	1
+c h f b e	1
+c h f f	1
+c h f f h	1
+c h f d	1
+c h f d </s>	1
+c h h	33
+c h h </s>	7
+c h h h	14
+c h h h </s>	2
+c h h h h	8
+c h h h j	1
+c h h h e	2
+c h h h i	1
+c h h d	4
+c h h d </s>	1
+c h h d e	3
+c h h g	6
+c h h g j	2
+c h h g h	2
+c h h g </s>	1
+c h h g e	1
+c h h j	2
+c h h j h	1
+c h h j </s>	1
+c h g	4
+c h g h	1
+c h g h f	1
+c h g g	1
+c h g g h	1
+c h g f	1
+c h g f h	1
+c h g d	1
+c h g d </s>	1
+c h i	1
+c h i h	1
+c h i h h	1
+c h d	7
+c h d </s>	1
+c h d g	1
+c h d g </s>	1
+c h d j	1
+c h d j j	1
+c h d d	1
+c h d d </s>	1
+c h d h	3
+c h d h e	1
+c h d h </s>	2
+c h j	15
+c h j h	8
+c h j h h	3
+c h j h </s>	3
+c h j h e	1
+c h j h g	1
+c h j j	2
+c h j j i	2
+c h j </s>	2
+c h j g	3
+c h j g e	2
+c h j g </s>	1
+c h c	1
+c h c e	1
+c h c e f	1
+c h e	3
+c h e </s>	2
+c h e e	1
+c h e e f	1
+c h a	1
+c h a h	1
+c h a h h	1
+c g	618
+c g </s>	55
+c g b	139
+c g b </s>	20
+c g b h	17
+c g b h h	7
+c g b h f	7
+c g b h j	1
+c g b h d	2
+c g b e	62
+c g b e </s>	11
+c g b e f	23
+c g b e j	14
+c g b e i	1
+c g b e h	10
+c g b e d	2
+c g b e g	1
+c g b g	22
+c g b g </s>	7
+c g b g f	7
+c g b g h	5
+c g b g j	3
+c g b a	1
+c g b a </s>	1
+c g b i	1
+c g b i f	1
+c g b f	6
+c g b f h	3
+c g b f f	1
+c g b f </s>	2
+c g b d	4
+c g b d d	1
+c g b d </s>	1
+c g b d f	1
+c g b d h	1
+c g b j	6
+c g b j f	3
+c g b j h	2
+c g b j g	1
+c g h	67
+c g h </s>	17
+c g h h	27
+c g h h h	18
+c g h h e	7
+c g h h g	1
+c g h h i	1
+c g h j	5
+c g h j h	3
+c g h j </s>	2
+c g h g	12
+c g h g </s>	4
+c g h g h	2
+c g h g j	2
+c g h g e	2
+c g h g i	2
+c g h d	4
+c g h d h	1
+c g h d e	1
+c g h d </s>	2
+c g h f	2
+c g h f d	1
+c g h f </s>	1
+c g f	126
+c g f </s>	30
+c g f h	49
+c g f h </s>	12
+c g f h e	10
+c g f h j	4
+c g f h d	3
+c g f h h	18
+c g f h g	2
+c g f d	6
+c g f d h	2
+c g f d e	1
+c g f d </s>	2
+c g f d i	1
+c g f j	9
+c g f j </s>	4
+c g f j h	3
+c g f j e	2
+c g f g	29
+c g f g </s>	11
+c g f g h	6
+c g f g j	4
+c g f g i	1
+c g f g e	6
+c g f g f	1
+c g f b	1
+c g f b </s>	1
+c g f e	2
+c g f e f	1
+c g f e h	1
+c g j	32
+c g j </s>	11
+c g j h	7
+c g j h h	3
+c g j h </s>	2
+c g j h j	1
+c g j h e	1
+c g j g	7
+c g j g </s>	3
+c g j g h	2
+c g j g j	1
+c g j g i	1
+c g j j	3
+c g j j h	1
+c g j j </s>	2
+c g j i	1
+c g j i </s>	1
+c g j f	2
+c g j f g	1
+c g j f e	1
+c g j b	1
+c g j b </s>	1
+c g e	96
+c g e </s>	13
+c g e h	18
+c g e h </s>	2
+c g e h h	5
+c g e h d	2
+c g e h j	2
+c g e h g	2
+c g e h f	5
+c g e e	32
+c g e e </s>	9
+c g e e g	1
+c g e e h	4
+c g e e f	15
+c g e e j	1
+c g e e d	2
+c g e f	8
+c g e f </s>	2
+c g e f g	3
+c g e f j	1
+c g e f h	2
+c g e g	20
+c g e g h	5
+c g e g c	1
+c g e g f	11
+c g e g </s>	3
+c g e i	1
+c g e i g	1
+c g e d	1
+c g e d </s>	1
+c g e j	2
+c g e j f	1
+c g e j h	1
+c g e a	1
+c g e a f	1
+c g d	19
+c g d </s>	5
+c g d h	5
+c g d h </s>	3
+c g d h h	1
+c g d h j	1
+c g d g	2
+c g d g </s>	2
+c g d d	2
+c g d d </s>	2
+c g d b	1
+c g d b j	1
+c g d f	1
+c g d f f	1
+c g d e	3
+c g d e h	2
+c g d e j	1
+c g c	43
+c g c g	13
+c g c g f	7
+c g c g </s>	2
+c g c g j	2
+c g c g h	2
+c g c h	5
+c g c h f	1
+c g c h </s>	3
+c g c h g	1
+c g c e	17
+c g c e h	6
+c g c e f	8
+c g c e j	1
+c g c e </s>	2
+c g c </s>	8
+c g a	21
+c g a </s>	2
+c g a h	3
+c g a h f	2
+c g a h h	1
+c g a e	10
+c g a e </s>	4
+c g a e h	4
+c g a e j	1
+c g a e f	1
+c g a g	5
+c g a g f	3
+c g a g j	1
+c g a g h	1
+c g a d	1
+c g a d g	1
+c g g	17
+c g g </s>	4
+c g g g	3
+c g g g h	2
+c g g g i	1
+c g g e	3
+c g g e d	1
+c g g e </s>	1
+c g g e f	1
+c g g h	3
+c g g h </s>	1
+c g g h h	1
+c g g h d	1
+c g g j	1
+c g g j </s>	1
+c g g f	3
+c g g f h	1
+c g g f </s>	1
+c g g f g	1
+c g i	3
+c g i j	2
+c g i j h	1
+c g i j d	1
+c g i g	1
+c g i g f	1
+c c	314
+c c </s>	33
+c c b	82
+c c b </s>	12
+c c b e	37
+c c b e </s>	9
+c c b e f	16
+c c b e d	1
+c c b e h	9
+c c b e j	2
+c c b g	16
+c c b g </s>	2
+c c b g f	6
+c c b g i	1
+c c b g h	5
+c c b g j	1
+c c b g e	1
+c c b f	2
+c c b f </s>	1
+c c b f f	1
+c c b h	10
+c c b h j	2
+c c b h h	1
+c c b h f	6
+c c b h </s>	1
+c c b j	4
+c c b j </s>	1
+c c b j f	2
+c c b j h	1
+c c b b	1
+c c b b j	1
+c c h	14
+c c h </s>	3
+c c h f	5
+c c h f g	2
+c c h f h	1
+c c h f j	1
+c c h f </s>	1
+c c h h	3
+c c h h h	1
+c c h h g	2
+c c h g	1
+c c h g f	1
+c c h j	2
+c c h j j	1
+c c h j h	1
+c c e	96
+c c e </s>	18
+c c e h	10
+c c e h h	5
+c c e h </s>	3
+c c e h f	2
+c c e e	14
+c c e e </s>	3
+c c e e f	4
+c c e e d	2
+c c e e h	3
+c c e e j	2
+c c e j	16
+c c e j h	5
+c c e j f	3
+c c e j g	4
+c c e j </s>	4
+c c e d	6
+c c e d </s>	2
+c c e d g	1
+c c e d h	2
+c c e d j	1
+c c e f	22
+c c e f </s>	5
+c c e f f	1
+c c e f j	6
+c c e f h	7
+c c e f g	3
+c c e g	8
+c c e g f	3
+c c e g </s>	2
+c c e g d	1
+c c e g h	2
+c c e i	2
+c c e i d	1
+c c e i </s>	1
+c c a	17
+c c a </s>	2
+c c a e	6
+c c a e f	3
+c c a e h	2
+c c a e </s>	1
+c c a f	1
+c c a f </s>	1
+c c a j	2
+c c a j f	1
+c c a j </s>	1
+c c a g	5
+c c a g f	3
+c c a g </s>	2
+c c a h	1
+c c a h h	1
+c c c	17
+c c c </s>	1
+c c c g	3
+c c c g f	2
+c c c g </s>	1
+c c c e	8
+c c c e j	2
+c c c e </s>	4
+c c c e f	1
+c c c e i	1
+c c c j	1
+c c c j f	1
+c c c h	4
+c c c h j	1
+c c c h h	1
+c c c h f	1
+c c c h </s>	1
+c c g	35
+c c g </s>	7
+c c g f	15
+c c g f </s>	3
+c c g f h	5
+c c g f g	4
+c c g f d	2
+c c g f j	1
+c c g h	7
+c c g h h	4
+c c g h d	1
+c c g h </s>	1
+c c g h j	1
+c c g j	3
+c c g j j	1
+c c g j i	1
+c c g j g	1
+c c g e	2
+c c g e f	2
+c c g g	1
+c c g g j	1
+c c j	13
+c c j f	5
+c c j f g	2
+c c j f h	1
+c c j f </s>	1
+c c j f j	1
+c c j </s>	4
+c c j h	3
+c c j h </s>	1
+c c j h a	1
+c c j h f	1
+c c j g	1
+c c j g f	1
+c c d	3
+c c d e	1
+c c d e f	1
+c c d </s>	2
+c c f	3
+c c f j	2
+c c f j </s>	1
+c c f j f	1
+c c f </s>	1
+c c i	1
+c c i f	1
+c c i f g	1
+c a	175
+c a </s>	12
+c a b	43
+c a b </s>	7
+c a b g	11
+c a b g </s>	3
+c a b g f	5
+c a b g d	1
+c a b g h	1
+c a b g j	1
+c a b e	16
+c a b e j	4
+c a b e f	3
+c a b e </s>	3
+c a b e h	6
+c a b j	3
+c a b j f	2
+c a b j h	1
+c a b h	3
+c a b h f	1
+c a b h d	1
+c a b h h	1
+c a b d	1
+c a b d d	1
+c a b f	2
+c a b f f	2
+c a h	13
+c a h </s>	5
+c a h h	6
+c a h h d	1
+c a h h h	3
+c a h h </s>	1
+c a h h j	1
+c a h f	2
+c a h f f	1
+c a h f </s>	1
+c a e	53
+c a e </s>	10
+c a e f	19
+c a e f </s>	4
+c a e f h	10
+c a e f j	2
+c a e f g	1
+c a e f b	2
+c a e h	6
+c a e h g	1
+c a e h h	3
+c a e h f	1
+c a e h j	1
+c a e d	3
+c a e d g	1
+c a e d f	1
+c a e d h	1
+c a e e	10
+c a e e f	7
+c a e e h	2
+c a e e </s>	1
+c a e j	1
+c a e j g	1
+c a e g	4
+c a e g </s>	3
+c a e g f	1
+c a c	10
+c a c </s>	2
+c a c e	2
+c a c e f	1
+c a c e </s>	1
+c a c j	1
+c a c j j	1
+c a c h	1
+c a c h f	1
+c a c g	4
+c a c g h	1
+c a c g </s>	1
+c a c g j	1
+c a c g f	1
+c a j	8
+c a j f	4
+c a j f g	1
+c a j f h	3
+c a j j	2
+c a j j </s>	1
+c a j j j	1
+c a j </s>	2
+c a f	6
+c a f </s>	1
+c a f d	1
+c a f d </s>	1
+c a f h	3
+c a f h e	1
+c a f h j	1
+c a f h h	1
+c a f j	1
+c a f j e	1
+c a g	26
+c a g </s>	5
+c a g h	4
+c a g h h	1
+c a g h g	2
+c a g h d	1
+c a g j	3
+c a g j h	1
+c a g j d	1
+c a g j </s>	1
+c a g f	12
+c a g f </s>	3
+c a g f h	6
+c a g f g	1
+c a g f j	1
+c a g f f	1
+c a g d	1
+c a g d h	1
+c a g g	1
+c a g g </s>	1
+c a a	4
+c a a e	3
+c a a e h	1
+c a a e f	2
+c a a h	1
+c a a h f	1
+c j	74
+c j </s>	14
+c j h	12
+c j h </s>	6
+c j h h	3
+c j h h h	2
+c j h h </s>	1
+c j h a	1
+c j h a h	1
+c j h f	1
+c j h f d	1
+c j h g	1
+c j h g i	1
+c j j	8
+c j j </s>	2
+c j j h	2
+c j j h j	1
+c j j h </s>	1
+c j j d	2
+c j j d </s>	2
+c j j b	1
+c j j b </s>	1
+c j j g	1
+c j j g h	1
+c j f	31
+c j f </s>	5
+c j f g	10
+c j f g h	4
+c j f g j	2
+c j f g e	2
+c j f g </s>	2
+c j f d	3
+c j f d h	2
+c j f d e	1
+c j f h	9
+c j f h h	3
+c j f h </s>	4
+c j f h e	2
+c j f j	3
+c j f j </s>	2
+c j f j h	1
+c j f c	1
+c j f c h	1
+c j g	5
+c j g h	1
+c j g h e	1
+c j g f	3
+c j g f </s>	2
+c j g f g	1
+c j g g	1
+c j g g j	1
+c j d	3
+c j d </s>	2
+c j d h	1
+c j d h h	1
+c j e	1
+c j e f	1
+c j e f </s>	1
+c d	24
+c d </s>	3
+c d b	3
+c d b </s>	2
+c d b g	1
+c d b g f	1
+c d h	5
+c d h </s>	1
+c d h f	1
+c d h f h	1
+c d h h	2
+c d h h </s>	1
+c d h h e	1
+c d h d	1
+c d h d </s>	1
+c d g	2
+c d g f	1
+c d g f j	1
+c d g h	1
+c d g h h	1
+c d j	2
+c d j </s>	1
+c d j h	1
+c d j h e	1
+c d e	4
+c d e </s>	2
+c d e f	1
+c d e f g	1
+c d e h	1
+c d e h h	1
+c d f	4
+c d f i	1
+c d f i </s>	1
+c d f f	1
+c d f f g	1
+c d f g	1
+c d f g e	1
+c d f j	1
+c d f j h	1
+c d a	1
+c d a h	1
+c d a h f	1
+c i	23
+c i b	8
+c i b e	5
+c i b e f	4
+c i b e j	1
+c i b h	1
+c i b h h	1
+c i b g	2
+c i b g f	2
+c i g	3
+c i g </s>	2
+c i g g	1
+c i g g h	1
+c i f	2
+c i f g	2
+c i f g h	2
+c i e	7
+c i e g	1
+c i e g h	1
+c i e f	2
+c i e f d	1
+c i e f h	1
+c i e e	2
+c i e e j	1
+c i e e h	1
+c i e h	2
+c i e h h	2
+c i c	2
+c i c e	2
+c i c e </s>	1
+c i c e f	1
+c i h	1
+c i h g	1
+c i h g h	1
+i	489
+i </s>	145
+i b	79
+i b </s>	14
+i b b	3
+i b b </s>	3
+i b h	12
+i b h </s>	5
+i b h f	1
+i b h f j	1
+i b h i	1
+i b h i g	1
+i b h h	4
+i b h h </s>	3
+i b h h h	1
+i b h j	1
+i b h j j	1
+i b e	25
+i b e </s>	4
+i b e h	6
+i b e h </s>	1
+i b e h h	4
+i b e h g	1
+i b e f	12
+i b e f j	4
+i b e f h	4
+i b e f </s>	2
+i b e f g	2
+i b e d	1
+i b e d d	1
+i b e j	2
+i b e j </s>	1
+i b e j g	1
+i b c	7
+i b c </s>	7
+i b j	5
+i b j f	3
+i b j f g	1
+i b j f h	1
+i b j f </s>	1
+i b j </s>	2
+i b g	10
+i b g f	5
+i b g f </s>	1
+i b g f d	1
+i b g f g	2
+i b g f h	1
+i b g j	2
+i b g j h	1
+i b g j j	1
+i b g </s>	1
+i b g h	2
+i b g h h	1
+i b g h g	1
+i b d	3
+i b d f	1
+i b d f </s>	1
+i b d d	1
+i b d d h	1
+i b d </s>	1
+i h	29
+i h </s>	4
+i h h	10
+i h h d	4
+i h h d </s>	1
+i h h d c	2
+i h h d b	1
+i h h g	2
+i h h g h	1
+i h h g </s>	1
+i h h b	1
+i h h b </s>	1
+i h h </s>	3
+i h e	6
+i h e d	2
+i h e d </s>	2
+i h e </s>	2
+i h e g	2
+i h e g c	1
+i h e g h	1
+i h j	3
+i h j d	2
+i h j d h	1
+i h j d </s>	1
+i h j </s>	1
+i h i	1
+i h i h	1
+i h i h h	1
+i h f	1
+i h f h	1
+i h f h </s>	1
+i h d	1
+i h d d	1
+i h d d b	1
+i h g	3
+i h g </s>	2
+i h g h	1
+i h g h </s>	1
+i e	58
+i e </s>	10
+i e b	1
+i e b </s>	1
+i e h	7
+i e h </s>	3
+i e h h	3
+i e h h j	2
+i e h h h	1
+i e h j	1
+i e h j g	1
+i e e	21
+i e e </s>	2
+i e e h	10
+i e e h h	5
+i e e h g	3
+i e e h </s>	1
+i e e h d	1
+i e e i	1
+i e e i h	1
+i e e j	6
+i e e j g	1
+i e e j h	4
+i e e j </s>	1
+i e e f	2
+i e e f h	2
+i e j	1
+i e j </s>	1
+i e d	3
+i e d </s>	2
+i e d c	1
+i e d c </s>	1
+i e g	10
+i e g f	6
+i e g f j	2
+i e g f g	1
+i e g f h	2
+i e g f </s>	1
+i e g h	1
+i e g h h	1
+i e g j	2
+i e g j h	2
+i e g d	1
+i e g d g	1
+i e f	3
+i e f d	1
+i e f d d	1
+i e f h	1
+i e f h e	1
+i e f f	1
+i e f f j	1
+i e a	1
+i e a j	1
+i e a j j	1
+i e c	1
+i e c </s>	1
+i g	52
+i g </s>	15
+i g b	4
+i g b g	1
+i g b g f	1
+i g b j	1
+i g b j h	1
+i g b </s>	1
+i g b e	1
+i g b e h	1
+i g h	16
+i g h </s>	12
+i g h e	1
+i g h e </s>	1
+i g h d	1
+i g h d </s>	1
+i g h a	1
+i g h a </s>	1
+i g h g	1
+i g h g </s>	1
+i g e	2
+i g e </s>	1
+i g e h	1
+i g e h </s>	1
+i g c	8
+i g c </s>	8
+i g d	3
+i g d </s>	2
+i g d a	1
+i g d a </s>	1
+i g g	1
+i g g h	1
+i g g h h	1
+i g j	1
+i g j d	1
+i g j d </s>	1
+i g f	2
+i g f g	2
+i g f g h	1
+i g f g </s>	1
+i d	59
+i d </s>	19
+i d b	8
+i d b </s>	8
+i d c	17
+i d c </s>	17
+i d a	1
+i d a </s>	1
+i d h	12
+i d h </s>	9
+i d h b	1
+i d h b </s>	1
+i d h g	1
+i d h g c	1
+i d h h	1
+i d h h h	1
+i d j	1
+i d j </s>	1
+i d d	1
+i d d </s>	1
+i j	11
+i j </s>	3
+i j h	3
+i j h h	1
+i j h h h	1
+i j h b	1
+i j h b c	1
+i j h </s>	1
+i j c	1
+i j c </s>	1
+i j j	1
+i j j </s>	1
+i j d	2
+i j d d	1
+i j d d </s>	1
+i j d h	1
+i j d h </s>	1
+i j f	1
+i j f j	1
+i j f j h	1
+i c	25
+i c </s>	8
+i c e	8
+i c e </s>	1
+i c e f	3
+i c e f h	3
+i c e j	2
+i c e j g	1
+i c e j h	1
+i c e e	1
+i c e e </s>	1
+i c e h	1
+i c e h f	1
+i c j	1
+i c j f	1
+i c j f h	1
+i c g	3
+i c g f	3
+i c g f </s>	1
+i c g f g	1
+i c g f d	1
+i c c	1
+i c c e	1
+i c c e h	1
+i c b	3
+i c b </s>	1
+i c b g	1
+i c b g d	1
+i c b h	1
+i c b h f	1
+i c h	1
+i c h f	1
+i c h f h	1
+i a	16
+i a </s>	5
+i a h	1
+i a h h	1
+i a h h h	1
+i a c	2
+i a c </s>	2
+i a e	7
+i a e </s>	1
+i a e h	2
+i a e h h	2
+i a e f	1
+i a e f b	1
+i a e j	2
+i a e j </s>	1
+i a e j g	1
+i a e g	1
+i a e g f	1
+i a j	1
+i a j </s>	1
+i f	13
+i f b	6
+i f b g	3
+i f b g f	1
+i f b g </s>	1
+i f b g j	1
+i f b e	2
+i f b e f	2
+i f b </s>	1
+i f g	3
+i f g h	2
+i f g h e	1
+i f g h </s>	1
+i f g g	1
+i f g g </s>	1
+i f j	1
+i f j f	1
+i f j f </s>	1
+i f e	2
+i f e </s>	2
+i f a	1
+i f a e	1
+i f a e d	1
+i i	2
+i i </s>	2
+d	2779
+d </s>	699
+d b	152
+d b </s>	106
+d b b	10
+d b b e	5
+d b b e d	1
+d b b e f	4
+d b b </s>	1
+d b b h	2
+d b b h h	1
+d b b h f	1
+d b b g	2
+d b b g </s>	1
+d b b g f	1
+d b h	3
+d b h </s>	2
+d b h j	1
+d b h j d	1
+d b g	11
+d b g </s>	1
+d b g f	3
+d b g f </s>	2
+d b g f j	1
+d b g j	2
+d b g j </s>	1
+d b g j h	1
+d b g g	1
+d b g g h	1
+d b g h	4
+d b g h g	1
+d b g h h	2
+d b g h </s>	1
+d b e	9
+d b e </s>	2
+d b e e	3
+d b e e </s>	1
+d b e e f	2
+d b e h	1
+d b e h h	1
+d b e g	2
+d b e g </s>	1
+d b e g f	1
+d b e f	1
+d b e f h	1
+d b d	2
+d b d e	1
+d b d e f	1
+d b d c	1
+d b d c </s>	1
+d b c	6
+d b c </s>	6
+d b j	2
+d b j </s>	1
+d b j f	1
+d b j f h	1
+d b a	3
+d b a </s>	1
+d b a g	1
+d b a g </s>	1
+d b a j	1
+d b a j </s>	1
+d f	367
+d f </s>	17
+d f b	162
+d f b </s>	25
+d f b g	31
+d f b g f	14
+d f b g h	6
+d f b g </s>	7
+d f b g j	4
+d f b e	77
+d f b e </s>	12
+d f b e b	1
+d f b e h	20
+d f b e f	28
+d f b e j	10
+d f b e d	4
+d f b e i	1
+d f b e g	1
+d f b d	2
+d f b d j	1
+d f b d </s>	1
+d f b h	19
+d f b h </s>	2
+d f b h h	7
+d f b h j	3
+d f b h f	6
+d f b h d	1
+d f b f	6
+d f b f h	2
+d f b f </s>	3
+d f b f f	1
+d f b j	2
+d f b j j	1
+d f b j f	1
+d f h	15
+d f h </s>	3
+d f h e	5
+d f h e </s>	1
+d f h e g	1
+d f h e b	1
+d f h e d	2
+d f h g	1
+d f h g c	1
+d f h h	4
+d f h h b	1
+d f h h g	1
+d f h h </s>	1
+d f h h d	1
+d f h d	2
+d f h d a	1
+d f h d c	1
+d f e	69
+d f e </s>	13
+d f e f	3
+d f e f j	1
+d f e f f	1
+d f e f h	1
+d f e e	30
+d f e e </s>	9
+d f e e f	10
+d f e e j	5
+d f e e h	5
+d f e e d	1
+d f e g	11
+d f e g </s>	1
+d f e g f	4
+d f e g d	3
+d f e g h	2
+d f e g c	1
+d f e j	5
+d f e j f	3
+d f e j h	1
+d f e j </s>	1
+d f e h	5
+d f e h </s>	3
+d f e h h	1
+d f e h f	1
+d f e c	1
+d f e c </s>	1
+d f e d	1
+d f e d f	1
+d f j	6
+d f j j	2
+d f j j </s>	1
+d f j j h	1
+d f j h	3
+d f j h </s>	3
+d f j </s>	1
+d f c	45
+d f c </s>	10
+d f c e	21
+d f c e </s>	1
+d f c e h	7
+d f c e j	3
+d f c e f	7
+d f c e d	3
+d f c h	5
+d f c h f	3
+d f c h </s>	1
+d f c h h	1
+d f c d	1
+d f c d j	1
+d f c g	6
+d f c g f	3
+d f c g </s>	2
+d f c g h	1
+d f c j	2
+d f c j d	1
+d f c j h	1
+d f f	14
+d f f </s>	2
+d f f h	3
+d f f h f	1
+d f f h e	1
+d f f h </s>	1
+d f f j	1
+d f f j f	1
+d f f e	5
+d f f e h	2
+d f f e </s>	3
+d f f g	2
+d f f g </s>	1
+d f f g h	1
+d f f a	1
+d f f a i	1
+d f a	20
+d f a </s>	2
+d f a e	7
+d f a e j	1
+d f a e h	1
+d f a e f	3
+d f a e </s>	2
+d f a d	1
+d f a d f	1
+d f a j	4
+d f a j h	1
+d f a j d	1
+d f a j f	2
+d f a h	2
+d f a h f	1
+d f a h h	1
+d f a f	2
+d f a f h	1
+d f a f </s>	1
+d f a g	2
+d f a g h	1
+d f a g </s>	1
+d f g	17
+d f g </s>	3
+d f g e	6
+d f g e d	1
+d f g e h	2
+d f g e f	1
+d f g e </s>	2
+d f g h	5
+d f g h </s>	2
+d f g h b	1
+d f g h g	1
+d f g h f	1
+d f g j	2
+d f g j </s>	1
+d f g j g	1
+d f g g	1
+d f g g f	1
+d f i	1
+d f i </s>	1
+d f d	1
+d f d h	1
+d f d h d	1
+d a	74
+d a </s>	19
+d a b	23
+d a b </s>	4
+d a b e	5
+d a b e h	1
+d a b e d	1
+d a b e j	2
+d a b e g	1
+d a b j	1
+d a b j f	1
+d a b g	9
+d a b g f	3
+d a b g h	1
+d a b g </s>	2
+d a b g j	3
+d a b h	4
+d a b h j	1
+d a b h h	3
+d a f	2
+d a f e	2
+d a f e f	1
+d a f e </s>	1
+d a e	13
+d a e </s>	3
+d a e h	1
+d a e h h	1
+d a e g	3
+d a e g </s>	1
+d a e g j	1
+d a e g h	1
+d a e j	1
+d a e j f	1
+d a e e	4
+d a e e j	1
+d a e e </s>	1
+d a e e f	2
+d a e f	1
+d a e f </s>	1
+d a j	1
+d a j e	1
+d a j e j	1
+d a g	3
+d a g e	2
+d a g e f	2
+d a g f	1
+d a g f </s>	1
+d a c	6
+d a c </s>	5
+d a c j	1
+d a c j f	1
+d a a	2
+d a a e	2
+d a a e </s>	1
+d a a e h	1
+d a d	1
+d a d </s>	1
+d a h	4
+d a h </s>	2
+d a h f	1
+d a h f d	1
+d a h e	1
+d a h e </s>	1
+d g	261
+d g </s>	35
+d g b	80
+d g b </s>	15
+d g b h	11
+d g b h f	3
+d g b h </s>	2
+d g b h h	4
+d g b h d	2
+d g b g	17
+d g b g f	9
+d g b g j	2
+d g b g </s>	4
+d g b g h	2
+d g b e	29
+d g b e </s>	4
+d g b e f	12
+d g b e j	4
+d g b e h	5
+d g b e d	4
+d g b f	1
+d g b f a	1
+d g b j	4
+d g b j f	3
+d g b j </s>	1
+d g b d	2
+d g b d f	2
+d g b a	1
+d g b a h	1
+d g h	27
+d g h b	1
+d g h b </s>	1
+d g h h	4
+d g h h </s>	3
+d g h h d	1
+d g h d	10
+d g h d h	2
+d g h d </s>	6
+d g h d c	2
+d g h </s>	7
+d g h g	5
+d g h g </s>	1
+d g h g b	1
+d g h g c	2
+d g h g h	1
+d g e	43
+d g e </s>	12
+d g e e	10
+d g e e j	1
+d g e e f	6
+d g e e </s>	1
+d g e e h	2
+d g e j	3
+d g e j h	1
+d g e j </s>	1
+d g e j j	1
+d g e d	4
+d g e d h	2
+d g e d c	1
+d g e d </s>	1
+d g e h	4
+d g e h g	1
+d g e h h	1
+d g e h f	2
+d g e f	2
+d g e f f	1
+d g e f </s>	1
+d g e g	8
+d g e g h	2
+d g e g c	1
+d g e g </s>	1
+d g e g j	4
+d g c	26
+d g c </s>	7
+d g c g	6
+d g c g d	2
+d g c g f	2
+d g c g h	1
+d g c g </s>	1
+d g c e	8
+d g c e f	2
+d g c e j	2
+d g c e </s>	4
+d g c h	2
+d g c h f	2
+d g c f	1
+d g c f h	1
+d g c j	1
+d g c j </s>	1
+d g c a	1
+d g c a f	1
+d g g	8
+d g g </s>	1
+d g g e	2
+d g g e </s>	1
+d g g e h	1
+d g g f	1
+d g g f j	1
+d g g g	1
+d g g g </s>	1
+d g g h	3
+d g g h f	2
+d g g h h	1
+d g d	9
+d g d </s>	4
+d g d d	2
+d g d d c	1
+d g d d b	1
+d g d c	1
+d g d c </s>	1
+d g d h	2
+d g d h h	2
+d g a	14
+d g a </s>	3
+d g a h	2
+d g a h h	2
+d g a j	2
+d g a j </s>	1
+d g a j f	1
+d g a e	4
+d g a e f	1
+d g a e h	2
+d g a e d	1
+d g a g	3
+d g a g </s>	1
+d g a g c	1
+d g a g f	1
+d g j	9
+d g j </s>	7
+d g j g	1
+d g j g b	1
+d g j e	1
+d g j e j	1
+d g f	8
+d g f j	3
+d g f j e	2
+d g f j h	1
+d g f </s>	2
+d g f h	2
+d g f h j	1
+d g f h h	1
+d g f g	1
+d g f g </s>	1
+d g i	2
+d g i </s>	1
+d g i a	1
+d g i a </s>	1
+d h	496
+d h </s>	285
+d h b	8
+d h b j	1
+d h b j </s>	1
+d h b c	4
+d h b c </s>	4
+d h b </s>	2
+d h b h	1
+d h b h </s>	1
+d h h	69
+d h h </s>	34
+d h h b	7
+d h h b c	3
+d h h b </s>	1
+d h h b j	1
+d h h b h	2
+d h h h	5
+d h h h h	1
+d h h h d	2
+d h h h </s>	2
+d h h g	7
+d h h g </s>	1
+d h h g h	1
+d h h g c	3
+d h h g d	1
+d h h g e	1
+d h h c	1
+d h h c </s>	1
+d h h d	10
+d h h d </s>	3
+d h h d c	3
+d h h d d	2
+d h h d b	2
+d h h e	3
+d h h e d	1
+d h h e c	1
+d h h e </s>	1
+d h h a	2
+d h h a c	2
+d h g	19
+d h g </s>	8
+d h g h	3
+d h g h </s>	2
+d h g h b	1
+d h g c	6
+d h g c </s>	6
+d h g j	1
+d h g j </s>	1
+d h g e	1
+d h g e d	1
+d h f	7
+d h f f	1
+d h f f </s>	1
+d h f h	3
+d h f h j	1
+d h f h e	1
+d h f h </s>	1
+d h f </s>	2
+d h f j	1
+d h f j e	1
+d h e	40
+d h e b	5
+d h e b c	2
+d h e b </s>	3
+d h e </s>	15
+d h e d	8
+d h e d h	2
+d h e d </s>	3
+d h e d f	1
+d h e d c	2
+d h e g	8
+d h e g c	6
+d h e g </s>	2
+d h e a	2
+d h e a </s>	1
+d h e a h	1
+d h e h	1
+d h e h </s>	1
+d h e e	1
+d h e e b	1
+d h j	18
+d h j </s>	6
+d h j g	1
+d h j g i	1
+d h j d	7
+d h j d b	3
+d h j d </s>	3
+d h j d c	1
+d h j i	2
+d h j i h	1
+d h j i c	1
+d h j h	1
+d h j h </s>	1
+d h j b	1
+d h j b h	1
+d h d	38
+d h d </s>	15
+d h d b	4
+d h d b </s>	4
+d h d h	6
+d h d h </s>	6
+d h d e	1
+d h d e </s>	1
+d h d a	1
+d h d a </s>	1
+d h d c	7
+d h d c </s>	7
+d h d g	1
+d h d g </s>	1
+d h d j	3
+d h d j </s>	3
+d h i	8
+d h i </s>	5
+d h i g	2
+d h i g c	1
+d h i g h	1
+d h i d	1
+d h i d b	1
+d h a	3
+d h a </s>	3
+d h c	1
+d h c e	1
+d h c e h	1
+d c	410
+d c </s>	329
+d c b	46
+d c b </s>	6
+d c b f	3
+d c b f j	1
+d c b f f	1
+d c b f </s>	1
+d c b e	24
+d c b e </s>	7
+d c b e h	6
+d c b e f	7
+d c b e i	1
+d c b e j	2
+d c b e g	1
+d c b g	8
+d c b g </s>	2
+d c b g j	2
+d c b g f	4
+d c b h	1
+d c b h j	1
+d c b j	4
+d c b j f	2
+d c b j </s>	1
+d c b j h	1
+d c f	3
+d c f </s>	1
+d c f h	1
+d c f h </s>	1
+d c f e	1
+d c f e j	1
+d c e	17
+d c e </s>	7
+d c e e	5
+d c e e h	3
+d c e e </s>	1
+d c e e f	1
+d c e d	1
+d c e d f	1
+d c e g	3
+d c e g f	2
+d c e g h	1
+d c e h	1
+d c e h h	1
+d c c	9
+d c c g	2
+d c c g </s>	2
+d c c e	4
+d c c e i	1
+d c c e f	1
+d c c e j	1
+d c c e h	1
+d c c f	1
+d c c f j	1
+d c c </s>	2
+d c g	3
+d c g j	1
+d c g j f	1
+d c g g	1
+d c g g f	1
+d c g i	1
+d c g i j	1
+d c a	2
+d c a e	1
+d c a e f	1
+d c a g	1
+d c a g f	1
+d c h	1
+d c h e	1
+d c h e </s>	1
+d i	27
+d i </s>	9
+d i b	4
+d i b h	2
+d i b h h	1
+d i b h </s>	1
+d i b e	1
+d i b e h	1
+d i b </s>	1
+d i e	2
+d i e d	1
+d i e d c	1
+d i e g	1
+d i e g f	1
+d i g	3
+d i g h	1
+d i g h </s>	1
+d i g </s>	1
+d i g d	1
+d i g d </s>	1
+d i d	4
+d i d c	3
+d i d c </s>	3
+d i d </s>	1
+d i c	2
+d i c e	1
+d i c e f	1
+d i c </s>	1
+d i a	2
+d i a e	2
+d i a e h	1
+d i a e </s>	1
+d i j	1
+d i j h	1
+d i j h </s>	1
+d e	88
+d e </s>	41
+d e b	1
+d e b c	1
+d e b c </s>	1
+d e h	6
+d e h h	3
+d e h h i	1
+d e h h </s>	1
+d e h h h	1
+d e h g	2
+d e h g h	1
+d e h g i	1
+d e h </s>	1
+d e f	6
+d e f h	3
+d e f h i	1
+d e f h </s>	1
+d e f h h	1
+d e f g	2
+d e f g </s>	1
+d e f g h	1
+d e f d	1
+d e f d </s>	1
+d e g	11
+d e g </s>	3
+d e g h	2
+d e g h </s>	2
+d e g c	4
+d e g c </s>	4
+d e g d	1
+d e g d </s>	1
+d e g e	1
+d e g e b	1
+d e d	12
+d e d b	2
+d e d b </s>	2
+d e d </s>	6
+d e d c	3
+d e d c </s>	3
+d e d j	1
+d e d j </s>	1
+d e e	5
+d e e c	2
+d e e c </s>	2
+d e e h	2
+d e e h </s>	1
+d e e h j	1
+d e e f	1
+d e e f h	1
+d e j	4
+d e j h	1
+d e j h </s>	1
+d e j g	1
+d e j g d	1
+d e j </s>	1
+d e j j	1
+d e j j </s>	1
+d e c	2
+d e c </s>	2
+d j	105
+d j </s>	55
+d j b	1
+d j b c	1
+d j b c </s>	1
+d j h	17
+d j h </s>	5
+d j h h	4
+d j h h d	1
+d j h h </s>	1
+d j h h g	2
+d j h j	1
+d j h j h	1
+d j h d	3
+d j h d </s>	2
+d j h d j	1
+d j h e	2
+d j h e d	1
+d j h e </s>	1
+d j h c	1
+d j h c c	1
+d j h g	1
+d j h g c	1
+d j e	10
+d j e d	2
+d j e d c	1
+d j e d h	1
+d j e </s>	5
+d j e b	2
+d j e b </s>	2
+d j e c	1
+d j e c </s>	1
+d j j	6
+d j j d	1
+d j j d </s>	1
+d j j </s>	4
+d j j c	1
+d j j c </s>	1
+d j i	3
+d j i j	1
+d j i j c	1
+d j i d	2
+d j i d c	2
+d j g	4
+d j g h	2
+d j g h b	1
+d j g h </s>	1
+d j g e	1
+d j g e d	1
+d j g </s>	1
+d j d	7
+d j d b	1
+d j d b </s>	1
+d j d </s>	2
+d j d h	2
+d j d h </s>	2
+d j d j	1
+d j d j </s>	1
+d j d c	1
+d j d c </s>	1
+d j a	1
+d j a c	1
+d j a c </s>	1
+d j f	1
+d j f h	1
+d j f h d	1
+d d	100
+d d </s>	47
+d d b	5
+d d b </s>	4
+d d b c	1
+d d b c </s>	1
+d d h	19
+d d h </s>	13
+d d h e	2
+d d h e </s>	2
+d d h d	2
+d d h d a	1
+d d h d </s>	1
+d d h i	1
+d d h i </s>	1
+d d h b	1
+d d h b c	1
+d d e	6
+d d e g	1
+d d e g c	1
+d d e </s>	4
+d d e d	1
+d d e d </s>	1
+d d j	5
+d d j </s>	5
+d d c	10
+d d c </s>	10
+d d d	6
+d d d </s>	2
+d d d e	1
+d d d e d	1
+d d d c	1
+d d d c </s>	1
+d d d h	1
+d d d h </s>	1
+d d d b	1
+d d d b </s>	1
+d d i	2
+d d i g	1
+d d i g d	1
+d d i </s>	1

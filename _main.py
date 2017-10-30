@@ -36,10 +36,10 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
         lr = tf.placeholder(tf.float32, shape=[], name='learning_rate')
         __nodes = train_model.build_graph(model_opt)
         # reset_op = __nodes['reset_cache_op']
-        if model_class == sq.SeqModel:
-            train_model.set_default_feed('train_loss_denom', opt['batch_size'])
-        else:
-            train_model.set_default_feed('dec.train_loss_denom', opt['batch_size'])
+        # if model_class == sq.SeqModel:
+        train_model.set_default_feed('train_loss_denom', opt['batch_size'], set_all=True)
+        # else:
+        #     train_model.set_default_feed('dec.train_loss_denom', opt['batch_size'])
         if pg:
             return_ph = tf.placeholder(tf.float32, shape=(None, None), name='return')
             train_op = sq.create_pg_train_op(

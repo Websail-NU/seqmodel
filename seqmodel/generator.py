@@ -21,17 +21,7 @@ __all__ = ['open_files', 'read_lines', 'read_seq_data', 'read_seq2seq_data',
            'word2def_batch_iter', 'reward_ngram_lm', 'concat_word2def_batch',
            'make_ngrams', 'reward_constant', 'reward_progressive_match_label',
            'reward_bleu', 'lseq2seq_batch_iter', 'read_lseq2seq_data',
-           'concat_seq_batch']
-
-##################################################
-#    ######## #### ##       ########  ######     #
-#    ##        ##  ##       ##       ##    ##    #
-#    ##        ##  ##       ##       ##          #
-#    ######    ##  ##       ######    ######     #
-#    ##        ##  ##       ##             ##    #
-#    ##        ##  ##       ##       ##    ##    #
-#    ##       #### ######## ########  ######     #
-##################################################
+           'concat_seq_batch', 'read_ngram_data', 'ngram_batch_iter']
 
 
 @contextmanager
@@ -63,120 +53,6 @@ def read_lines(filepaths, token_split=None, part_split=None, part_indices=None):
             if part_indices is not None:
                 line = [line[i] for i in part_indices]
             yield [maybe_split(line_, token_split) for line_ in line]
-
-
-def read_seq_data(tokenized_lines, in_vocab, out_vocab, keep_sentence=True, seq_len=20):
-    """read data in format of [[['tk1_seq1', 'tk2_seq1']], [['tk1_seq2', 'tk2_seq2']]].
-    Add start sequence and end sequence symbol.
-    If keep_sentence is False, chunk sequence in length of seq_len (except last one)"""
-    # sos_sym = ds.Vocabulary.special_symbols['start_seq']
-    sos_sym = ds.Vocabulary.special_symbols['end_seq']
-    eos_sym = ds.Vocabulary.special_symbols['end_seq']
-    in_data, out_data = [], []
-    for line in tokenized_lines:
-        if len(line[0][0]) == 0:  # empty line
-            line = [eos_sym]
-        else:
-            line = line[0] + [eos_sym]  # assume many parts, but only take first
-        if keep_sentence:
-            line.insert(0, sos_sym)
-            # if len(line) < 5:
-            #     line = line + [eos_sym]
-            in_data.append(in_vocab.w2i(line[:-1]))
-            out_data.append(out_vocab.w2i(line[1:]))
-        else:
-            in_data.extend(in_vocab.w2i(line))
-            out_data.extend(out_vocab.w2i(line))
-    if not keep_sentence:
-        in_data.insert(0, in_vocab.w2i(sos_sym))
-        in_data = in_data[:-1]
-        chunk_in_data, chunk_out_data = [], []
-        for i in range(0, len(in_data), seq_len):
-            chunk_in_data.append(in_data[i: i + seq_len])
-            chunk_out_data.append(out_data[i: i + seq_len])
-        in_data, out_data = chunk_in_data, chunk_out_data
-    return in_data, out_data
-
-
-def read_seq2seq_data(tokenized_lines, in_vocab, out_vocab):
-    """read data in format of [[['tk1_enc1', 'tk2_enc1'], ['tk1_dec1', 'tk2_dec1']], ].
-    Add end end_encode to enc data, and add start seq and end seq to decode data.
-    """
-    eoe_sym = ds.Vocabulary.special_symbols['end_encode']
-    sod_sym = ds.Vocabulary.special_symbols['start_seq']
-    eod_sym = ds.Vocabulary.special_symbols['end_seq']
-    enc_data, dec_data = [], []
-    for part in tokenized_lines:
-        enc_, dec_ = part[:2]
-        enc_ = in_vocab.w2i(enc_ + [eoe_sym])
-        dec_ = out_vocab.w2i([sod_sym] + dec_ + [eod_sym])
-        enc_data.append(enc_)
-        dec_data.append(dec_)
-    return enc_data, dec_data
-
-
-def read_lseq2seq_data(tokenized_lines, in_vocab, out_vocab, l_vocab):
-    """this is a copy of read_seq2seq_data with label data"""
-    eoe_sym = ds.Vocabulary.special_symbols['end_encode']
-    sod_sym = ds.Vocabulary.special_symbols['start_seq']
-    eod_sym = ds.Vocabulary.special_symbols['end_seq']
-    enc_data, dec_data, label_data, mask_data = [], [], [], []
-    for part in tokenized_lines:
-        enc_, dec_, label_ = part[:3]
-        enc_data.append(in_vocab.w2i(enc_ + [eoe_sym]))
-        dec_data.append(out_vocab.w2i([sod_sym] + dec_ + [eod_sym]))
-        label_data.append(l_vocab.w2i(' '.join(label_)))
-        mask_data.append(out_vocab.w2i(' '.join(label_), unk_id=2))
-    return enc_data, dec_data, label_data, mask_data
-
-
-def read_word2def_data(
-        tokenized_lines, in_vocab, out_vocab, char_vocab, freq_down_weight=False,
-        init_seq_weight=1.0):
-    """this is a copy of read_seq2seq_data with character data"""
-
-    def tokens2chars(tokens):
-        tokens[0] = '<' + tokens[0]
-        tokens[-1] += '>'
-        phrase = '><'.join(tokens)
-        return list(phrase)
-
-    eoe_sym = ds.Vocabulary.special_symbols['end_encode']
-    sod_sym = ds.Vocabulary.special_symbols['start_seq']
-    eod_sym = ds.Vocabulary.special_symbols['end_seq']
-    enc_data, char_data, word_data, dec_data, mask_data = [], [], [], [], []
-    freq = defaultdict(int)
-    for part in tokenized_lines:
-        enc_, dec_ = part[:2]
-        mask_ = out_vocab.w2i(enc_[0], unk_id=-1)
-        enc_ = in_vocab.w2i(enc_ + [eoe_sym])
-        if dec_ == ['']:
-            dec_ = []
-        dec_ = out_vocab.w2i([sod_sym] + dec_ + [eod_sym])
-        word_ = enc_[0]
-        char_ = char_vocab.w2i(tokens2chars(part[0]))
-        freq[word_] += 1
-        enc_data.append(enc_)
-        dec_data.append(dec_)
-        char_data.append(char_)
-        word_data.append(word_)
-        mask_data.append(mask_)
-    if freq_down_weight:
-        seq_weight_data = [init_seq_weight / freq[w] for w in word_data]
-    else:
-        seq_weight_data = [init_seq_weight for __ in range(len(enc_data))]
-    return enc_data, word_data, char_data, mask_data, dec_data, seq_weight_data
-
-
-#########################################################
-#    ########     ###    ########  ######  ##     ##    #
-#    ##     ##   ## ##      ##    ##    ## ##     ##    #
-#    ##     ##  ##   ##     ##    ##       ##     ##    #
-#    ########  ##     ##    ##    ##       #########    #
-#    ##     ## #########    ##    ##       ##     ##    #
-#    ##     ## ##     ##    ##    ##    ## ##     ##    #
-#    ########  ##     ##    ##     ######  ##     ##    #
-#########################################################
 
 
 def batch_iter(batch_size, shuffle, data, *more_data, pad=[[]]):
@@ -242,37 +118,37 @@ def get_batch_data(
     return batch
 
 
-def concat_seq_batch(batch1, batch2):
-    _f1, _l1, _n1, _k1 = batch1
-    _f2, _l2, _n2, _k2 = batch2
-    inputs = util.hstack_with_padding(_f1.inputs, _f2.inputs)
-    seq_len = np.concatenate((_f1.seq_len, _f2.seq_len))
-    f = ds.SeqFeatureTuple(inputs, seq_len)
-    label = util.hstack_with_padding(_l1.label, _l2.label)
-    label_weight = util.hstack_with_padding(_l1.label_weight, _l2.label_weight)
-    _l2.seq_weight[:] = 0
-    seq_weight = np.concatenate((_l1.seq_weight, _l2.seq_weight))
-    l = ds.SeqLabelTuple(label, label_weight, seq_weight)
-    return ds.BatchTuple(f, l, _n1 + _n2, _k1)
-
-
-def concat_word2def_batch(batch1, batch2):
-    _f1, _l1, _n1, _k1 = batch1
-    _f2, _l2, _n2, _k2 = batch2
-    enc_inputs = util.hstack_with_padding(_f1.enc_inputs, _f2.enc_inputs)
-    enc_seq_len = np.concatenate((_f1.enc_seq_len, _f2.enc_seq_len))
-    words = np.concatenate((_f1.words, _f2.words))
-    chars = util.vstack_with_padding(_f1.chars, _f2.chars)
-    char_len = np.concatenate((_f1.char_len, _f2.char_len))
-    dec_inputs = util.hstack_with_padding(_f1.dec_inputs, _f2.dec_inputs)
-    dec_seq_len = np.concatenate((_f1.dec_seq_len, _f2.dec_seq_len))
-    f = ds.Word2DefFeatureTuple(enc_inputs, enc_seq_len, words, chars, char_len,
-                                dec_inputs, dec_seq_len)
-    label = util.hstack_with_padding(_l1.label, _l2.label)
-    label_weight = util.hstack_with_padding(_l1.label_weight, _l2.label_weight)
-    seq_weight = np.concatenate((_l1.seq_weight, _l2.seq_weight))
-    l = ds.SeqLabelTuple(label, label_weight, seq_weight)
-    return ds.BatchTuple(f, l, _n1 + _n2, False)
+def read_seq_data(tokenized_lines, in_vocab, out_vocab, keep_sentence=True, seq_len=20):
+    """read data in format of [[['tk1_seq1', 'tk2_seq1']], [['tk1_seq2', 'tk2_seq2']]].
+    Add start sequence and end sequence symbol.
+    If keep_sentence is False, chunk sequence in length of seq_len (except last one)"""
+    # sos_sym = ds.Vocabulary.special_symbols['start_seq']
+    sos_sym = ds.Vocabulary.special_symbols['end_seq']
+    eos_sym = ds.Vocabulary.special_symbols['end_seq']
+    in_data, out_data = [], []
+    for line in tokenized_lines:
+        if len(line[0][0]) == 0:  # empty line
+            line = [eos_sym]
+        else:
+            line = line[0] + [eos_sym]  # assume many parts, but only take first
+        if keep_sentence:
+            line.insert(0, sos_sym)
+            # if len(line) < 5:
+            #     line = line + [eos_sym]
+            in_data.append(in_vocab.w2i(line[:-1]))
+            out_data.append(out_vocab.w2i(line[1:]))
+        else:
+            in_data.extend(in_vocab.w2i(line))
+            out_data.extend(out_vocab.w2i(line))
+    if not keep_sentence:
+        in_data.insert(0, in_vocab.w2i(sos_sym))
+        in_data = in_data[:-1]
+        chunk_in_data, chunk_out_data = [], []
+        for i in range(0, len(in_data), seq_len):
+            chunk_in_data.append(in_data[i: i + seq_len])
+            chunk_out_data.append(out_data[i: i + seq_len])
+        in_data, out_data = chunk_in_data, chunk_out_data
+    return in_data, out_data
 
 
 def seq_batch_iter(in_data, out_data, batch_size=1, shuffle=True, keep_sentence=True):
@@ -287,6 +163,37 @@ def seq_batch_iter(in_data, out_data, batch_size=1, shuffle=True, keep_sentence=
         features = ds.SeqFeatureTuple(x_arr, x_len)
         labels = ds.SeqLabelTuple(y_arr, token_weight, seq_weight)
         yield ds.BatchTuple(features, labels, num_tokens, keep_state)
+
+
+def concat_seq_batch(batch1, batch2):
+    _f1, _l1, _n1, _k1 = batch1
+    _f2, _l2, _n2, _k2 = batch2
+    inputs = util.hstack_with_padding(_f1.inputs, _f2.inputs)
+    seq_len = np.concatenate((_f1.seq_len, _f2.seq_len))
+    f = ds.SeqFeatureTuple(inputs, seq_len)
+    label = util.hstack_with_padding(_l1.label, _l2.label)
+    label_weight = util.hstack_with_padding(_l1.label_weight, _l2.label_weight)
+    _l2.seq_weight[:] = 0
+    seq_weight = np.concatenate((_l1.seq_weight, _l2.seq_weight))
+    l = ds.SeqLabelTuple(label, label_weight, seq_weight)
+    return ds.BatchTuple(f, l, _n1 + _n2, _k1)
+
+
+def read_seq2seq_data(tokenized_lines, in_vocab, out_vocab):
+    """read data in format of [[['tk1_enc1', 'tk2_enc1'], ['tk1_dec1', 'tk2_dec1']], ].
+    Add end end_encode to enc data, and add start seq and end seq to decode data.
+    """
+    eoe_sym = ds.Vocabulary.special_symbols['end_encode']
+    sod_sym = ds.Vocabulary.special_symbols['start_seq']
+    eod_sym = ds.Vocabulary.special_symbols['end_seq']
+    enc_data, dec_data = [], []
+    for part in tokenized_lines:
+        enc_, dec_ = part[:2]
+        enc_ = in_vocab.w2i(enc_ + [eoe_sym])
+        dec_ = out_vocab.w2i([sod_sym] + dec_ + [eod_sym])
+        enc_data.append(enc_)
+        dec_data.append(dec_)
+    return enc_data, dec_data
 
 
 def seq2seq_batch_iter(enc_data, dec_data, batch_size=1, shuffle=True):
@@ -304,6 +211,21 @@ def seq2seq_batch_iter(enc_data, dec_data, batch_size=1, shuffle=True):
         features = ds.Seq2SeqFeatureTuple(enc, enc_len, in_dec, dec_len)
         labels = ds.SeqLabelTuple(out_dec, token_weight, seq_weight)
         yield ds.BatchTuple(features, labels, num_tokens, False)
+
+
+def read_lseq2seq_data(tokenized_lines, in_vocab, out_vocab, l_vocab):
+    """this is a copy of read_seq2seq_data with label data"""
+    eoe_sym = ds.Vocabulary.special_symbols['end_encode']
+    sod_sym = ds.Vocabulary.special_symbols['start_seq']
+    eod_sym = ds.Vocabulary.special_symbols['end_seq']
+    enc_data, dec_data, label_data, mask_data = [], [], [], []
+    for part in tokenized_lines:
+        enc_, dec_, label_ = part[:3]
+        enc_data.append(in_vocab.w2i(enc_ + [eoe_sym]))
+        dec_data.append(out_vocab.w2i([sod_sym] + dec_ + [eod_sym]))
+        label_data.append(l_vocab.w2i(' '.join(label_)))
+        mask_data.append(out_vocab.w2i(' '.join(label_), unk_id=2))
+    return enc_data, dec_data, label_data, mask_data
 
 
 def lseq2seq_batch_iter(
@@ -325,6 +247,44 @@ def lseq2seq_batch_iter(
         features = ds.LSeq2SeqFeatureTuple(enc, enc_len, in_dec, dec_len, label, mask)
         labels = ds.SeqLabelTuple(out_dec, token_weight, seq_weight)
         yield ds.BatchTuple(features, labels, num_tokens, False)
+
+
+def read_word2def_data(
+        tokenized_lines, in_vocab, out_vocab, char_vocab, freq_down_weight=False,
+        init_seq_weight=1.0):
+    """this is a copy of read_seq2seq_data with character data"""
+
+    def tokens2chars(tokens):
+        tokens[0] = '<' + tokens[0]
+        tokens[-1] += '>'
+        phrase = '><'.join(tokens)
+        return list(phrase)
+
+    eoe_sym = ds.Vocabulary.special_symbols['end_encode']
+    sod_sym = ds.Vocabulary.special_symbols['start_seq']
+    eod_sym = ds.Vocabulary.special_symbols['end_seq']
+    enc_data, char_data, word_data, dec_data, mask_data = [], [], [], [], []
+    freq = defaultdict(int)
+    for part in tokenized_lines:
+        enc_, dec_ = part[:2]
+        mask_ = out_vocab.w2i(enc_[0], unk_id=-1)
+        enc_ = in_vocab.w2i(enc_ + [eoe_sym])
+        if dec_ == ['']:
+            dec_ = []
+        dec_ = out_vocab.w2i([sod_sym] + dec_ + [eod_sym])
+        word_ = enc_[0]
+        char_ = char_vocab.w2i(tokens2chars(part[0]))
+        freq[word_] += 1
+        enc_data.append(enc_)
+        dec_data.append(dec_)
+        char_data.append(char_)
+        word_data.append(word_)
+        mask_data.append(mask_)
+    if freq_down_weight:
+        seq_weight_data = [init_seq_weight / freq[w] for w in word_data]
+    else:
+        seq_weight_data = [init_seq_weight for __ in range(len(enc_data))]
+    return enc_data, word_data, char_data, mask_data, dec_data, seq_weight_data
 
 
 def word2def_batch_iter(
@@ -356,15 +316,97 @@ def _format_word2def(x, w, c, m, y, sw):
     return ds.BatchTuple(features, labels, num_tokens, False)
 
 
-#####################################################################
-#    ########  ######## ##      ##    ###    ########  ########     #
-#    ##     ## ##       ##  ##  ##   ## ##   ##     ## ##     ##    #
-#    ##     ## ##       ##  ##  ##  ##   ##  ##     ## ##     ##    #
-#    ########  ######   ##  ##  ## ##     ## ########  ##     ##    #
-#    ##   ##   ##       ##  ##  ## ######### ##   ##   ##     ##    #
-#    ##    ##  ##       ##  ##  ## ##     ## ##    ##  ##     ##    #
-#    ##     ## ########  ###  ###  ##     ## ##     ## ########     #
-#####################################################################
+def concat_word2def_batch(batch1, batch2):
+    _f1, _l1, _n1, _k1 = batch1
+    _f2, _l2, _n2, _k2 = batch2
+    enc_inputs = util.hstack_with_padding(_f1.enc_inputs, _f2.enc_inputs)
+    enc_seq_len = np.concatenate((_f1.enc_seq_len, _f2.enc_seq_len))
+    words = np.concatenate((_f1.words, _f2.words))
+    chars = util.vstack_with_padding(_f1.chars, _f2.chars)
+    char_len = np.concatenate((_f1.char_len, _f2.char_len))
+    dec_inputs = util.hstack_with_padding(_f1.dec_inputs, _f2.dec_inputs)
+    dec_seq_len = np.concatenate((_f1.dec_seq_len, _f2.dec_seq_len))
+    f = ds.Word2DefFeatureTuple(enc_inputs, enc_seq_len, words, chars, char_len,
+                                dec_inputs, dec_seq_len)
+    label = util.hstack_with_padding(_l1.label, _l2.label)
+    label_weight = util.hstack_with_padding(_l1.label_weight, _l2.label_weight)
+    seq_weight = np.concatenate((_l1.seq_weight, _l2.seq_weight))
+    l = ds.SeqLabelTuple(label, label_weight, seq_weight)
+    return ds.BatchTuple(f, l, _n1 + _n2, False)
+
+
+def read_ngram_data(
+        tokenized_lines, in_vocab, out_vocab, normalized=True,
+        min_order=-1, max_order=-1):
+    if max_order == -1:
+        max_order = float('inf')
+    in_data, out_data, seq_weight_data = [], [], []
+    for line in tokenized_lines:
+        num_tokens = len(line[0][0])
+        if num_tokens == 0 or num_tokens < min_order or num_tokens > max_order:
+            continue
+        else:
+            tokens = ['<begin>'] + line[0]
+        in_data.append(in_vocab.w2i(tokens[:-1]))
+        out_data.append([out_vocab.w2i(tokens[-1])])
+        seq_weight_data.append(float(line[-1][0]))
+    if normalized:
+        seq_weight_data = np.array(seq_weight_data)
+        seq_weight_data = seq_weight_data / np.sum(seq_weight_data)
+    return in_data, out_data, seq_weight_data
+
+
+def ngram_batch_iter(
+        in_data, out_data, seq_weight_data, batch_size=1, shuffle=True):
+    for x, y, w in batch_iter(
+            batch_size, shuffle, in_data, out_data, seq_weight_data, pad=[[], [], 0.0]):
+        x_arr, x_len = util.hstack_list(x)
+        y_arr, y_len = util.hstack_list(y)
+        seq_weight = np.array(w, dtype=np.float32)
+        token_weight, num_tokens = util.masked_last_like(
+            y_arr, 1, num_non_padding=y_len)
+        features = ds.SeqFeatureTuple(x_arr, x_len)
+        labels = ds.SeqLabelTuple(y_arr, token_weight, seq_weight)
+        yield ds.BatchTuple(features, labels, num_tokens, False)
+
+
+# def read_ngram_data(
+#         tokenized_lines, in_vocab, out_vocab, normalized=True,
+#         min_order=-1, max_order=-1):
+#     sod_sym_id = out_vocab['<begin>']
+#     if max_order == -1:
+#         max_order = float('inf')
+#     in_data, out_data, seq_weight_data = [], [], []
+#     for line in tokenized_lines:
+#         num_tokens = len(line[0][0])
+#         if num_tokens == 0 or num_tokens < min_order or num_tokens > max_order:
+#             continue
+#         else:
+#             tokens = line[0]
+#         in_data.append(in_vocab.w2i(tokens[:-1]))
+#         out_data.append([sod_sym_id, out_vocab.w2i(tokens[-1])])
+#         seq_weight_data.append(float(line[-1][0]))
+#     if normalized:
+#         seq_weight_data = np.array(seq_weight_data)
+#         seq_weight_data = seq_weight_data / np.sum(seq_weight_data)
+#     return in_data, out_data, seq_weight_data
+
+
+# def ngram_batch_iter(
+#         in_data, out_data, seq_weight_data, batch_size=1, shuffle=True):
+#     for x, y, w in batch_iter(
+#             batch_size, shuffle, in_data, out_data, seq_weight_data, pad=[[], [], 0.0]):
+#         enc, enc_len = util.hstack_list(x)
+#         dec, dec_len = util.hstack_list(y)
+#         in_dec = dec[:-1, :]
+#         out_dec = dec[1:, :]
+#         seq_weight = np.array(w, dtype=np.float32)
+#         dec_len[:] = (seq_weight != 0.0).astype(np.int32)
+#         token_weight, num_tokens = util.masked_full_like(
+#             out_dec, 1, num_non_padding=dec_len)
+#         features = ds.Seq2SeqFeatureTuple(enc, enc_len, in_dec, dec_len)
+#         labels = ds.SeqLabelTuple(out_dec, token_weight, seq_weight)
+#         yield ds.BatchTuple(features, labels, num_tokens, False)
 
 
 def reward_constant(sample, batch, constant=-0.1, sample_score=None):
