@@ -291,6 +291,7 @@ class SeqModel(Model):
             'add_to_collection': True, 'collect_key': collect_key, 'prefix': prefix}
         # input and embedding
         input_, seq_len_ = tfg.get_seq_input_placeholders(**collect_kwargs)
+        self._input = input_
         self._seq_len = seq_len_
         emb_opt = util.dict_with_key_startswith(opt, 'emb:')
         _emb_scope = reuse_scope[self._RSK_EMB_]
@@ -524,6 +525,7 @@ class Seq2SeqModel(SeqModel):
         decoder_opt.update({'share:enc_dec_rnn': False, 'share:enc_dec_emb': False,
                             'dec:out:decode': True, 'dec:decode:add_greedy': True,
                             'dec:decode:add_sampling': True,
+                            'dec:reset_enc_final_state': False,
                             'dec:attn_enc_output': False})
         return {**encoder_opt, **decoder_opt}
 
@@ -575,6 +577,8 @@ class Seq2SeqModel(SeqModel):
         if bridge_fn is not None:
             dec_initial_state, b_nodes = bridge_fn(
                 opt, reuse, enc_nodes, enc_scope, collect_key, **kwargs)
+        elif opt['dec:reset_enc_final_state']:
+            dec_initial_state, b_nodes = None, {}
         else:
             dec_initial_state, b_nodes = enc_nodes['final_state'], {}
         # attention
@@ -632,6 +636,9 @@ class Seq2SeqModel(SeqModel):
             attn_dec_output_ = tf.layers.dense(
                 attn_dec_output_, cell_output.get_shape()[-1], use_bias=True, reuse=True)
         return attn_dec_output_
+
+    def _empty_bridge(self, *args, **kwargs):
+        return None, {}
 
 
 #############################

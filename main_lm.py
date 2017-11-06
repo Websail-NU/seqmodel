@@ -16,6 +16,7 @@ if __name__ == '__main__':
                      'train': sq.default_training_opt(),
                      'decode': sq.default_decoding_opt()}
     parser = sq.get_common_argparser('main_lm.py')
+    parser.add_argument('--char_data', action=store_true, help=' ')
     parser.add_argument('--seq_len', type=int, default=20, help=' ')
     parser.add_argument('--sentence_level', action='store_true', help=' ')
     sq.add_arg_group_defaults(parser, group_default)
@@ -26,9 +27,11 @@ if __name__ == '__main__':
     def data_fn():
         dpath = partial(os.path.join, opt['data_dir'])
         vocab = sq.Vocabulary.from_vocab_file(dpath('vocab.txt'))
-        data_fn = partial(sq.read_seq_data, in_vocab=vocab, out_vocab=vocab,
-                          keep_sentence=opt['sentence_level'], seq_len=opt['seq_len'])
-        data = [data_fn(sq.read_lines(dpath(f), token_split=' '))
+        data_fn = partial(
+            sq.read_seq_data, in_vocab=vocab, out_vocab=vocab,
+            keep_sentence=opt['sentence_level'], seq_len=opt['seq_len'])
+        sep = '' if opt['char_data'] else ' '
+        data = [data_fn(sq.read_lines(dpath(f), token_split=sep))
                 for f in (opt['train_file'], opt['valid_file'], opt['eval_file'])]
 
         batch_iter = partial(sq.seq_batch_iter, batch_size=opt['batch_size'],
@@ -45,13 +48,16 @@ if __name__ == '__main__':
         max_tokens = 887521 + 42068
         if 'wikitext' in opt['data_dir']:
             max_tokens = 2051910 + 36718
+        if opt['char_data']:
+            max_tokens = 4000000
         with sq.open_files(tmp_paths, mode='w') as ofps:
             seed_in = np.array([[0] * _b], dtype=np.int32)
             seed_len = np.array([1] * _b, dtype=np.int32)
             features = sq.SeqFeatureTuple(seed_in, seed_len)
             n_tokens = 0
             for b_sample, vocabs in decode_lm(
-                    opt, sq.SeqModel, model_opt, data_fn, logger, decode_opt, features):
+                    opt, sq.SeqModel, model_opt, data_fn,
+                    logger, decode_opt, features):
                 for i in range(_b):
                     word = vocabs[-1].i2w(b_sample[0, i])
                     if word == '</s>':

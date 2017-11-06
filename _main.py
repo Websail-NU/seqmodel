@@ -67,6 +67,7 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
     with tf.Session(config=sess_config) as sess:
         sess.run(tf.global_variables_initializer())
         saver = tf.train.Saver(tf.trainable_variables())
+        # saver = tf.train.Saver()
         if is_training:
             logger.info('Training...')
             success, train_state = sq.load_exp(sess, saver, opt['exp_dir'], latest=True,

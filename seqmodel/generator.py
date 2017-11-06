@@ -39,7 +39,11 @@ def open_files(filepaths, open_fn=open, mode='r', encoding=None):
 def read_lines(filepaths, token_split=None, part_split=None, part_indices=None):
     """read lines from files, split into parts and select parts, split into tokens"""
     def maybe_split(line, split):
-        if split is not None:
+        if split == '':
+            line = list(line.replace(' ', '_'))
+            if len(line) == 0:
+                line = ['']
+        elif split is not None:
             line = [line_.strip() for line_ in line.split(split)]
         else:
             line = [line.strip()]

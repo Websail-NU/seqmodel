@@ -11,11 +11,13 @@ import tensorflow as tf
 from seqmodel import util
 from seqmodel import graph as tfg
 from seqmodel.model import Seq2SeqModel
+from seqmodel.model import SeqModel
 
 
 __all__ = ['NGramCell', 'create_anticache_rnn', 'apply_anticache', 'QStochasticRNN',
            'create_decode_ac', 'progression_regularizer', 'StochasticRNN',
-           'tensor2gaussian', 'sample_normal', 'kl_normal_normal', 'FWIRNN', 'IRNN']
+           'tensor2gaussian', 'sample_normal', 'kl_normal_normal', 'FWIRNN', 'IRNN',
+           'AutoSeqModel', 'VAutoSeqModel']
 
 
 def clipped_lrelu(x, alpha=1/3):
@@ -644,6 +646,126 @@ class BiDiSeqModel(SeqModel):
             logit, label, weight, seq_weight, train_loss_denom_)
         train_loss_ += self.regularizer / train_loss_denom_
         mean_loss_ += self.regularizer / tf.reduce_sum(weight)
+        train_fetch = {'train_loss': train_loss_, 'eval_loss': mean_loss_}
+        eval_fetch = {'eval_loss': mean_loss_}
+        nodes = util.dict_with_key_endswith(locals(), '_')
+        return train_fetch, eval_fetch, nodes
+
+
+class AutoSeqModel(SeqModel):
+
+    @classmethod
+    def default_opt(cls):
+        opt = super().default_opt()
+        opt['rnn:use_bw_state'] = False
+        opt['loss:add_first_token'] = False
+        opt['loss:eval_nll'] = False
+        return opt
+
+    def _build_rnn(
+            self, opt, lookup, seq_len, initial_state, batch_size, reuse_scope, reuse):
+        cell_opt = util.dict_with_key_startswith(opt, 'cell:')
+
+        with tf.variable_scope('bw'):
+            bw_lookup = tf.reverse_sequence(
+                lookup, seq_len, seq_axis=0, batch_axis=1)
+            bw_cell = tfg.create_cells(input_size=opt['emb:dim'], **cell_opt)
+            _co, _is, final_state = tfg.create_rnn(
+                bw_cell, bw_lookup, seq_len, None, rnn_fn=opt['rnn:fn'],
+                batch_size=batch_size)
+            if opt['rnn:use_bw_state']:
+                initial_state = final_state
+        with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
+            _reuse = reuse or scope is not None
+            cell_ = tfg.create_cells(reuse=_reuse, input_size=opt['emb:dim'], **cell_opt)
+            cell_output_, initial_state_, final_state_ = tfg.create_rnn(
+                cell_, lookup, seq_len, initial_state, rnn_fn=opt['rnn:fn'],
+                batch_size=batch_size)
+        self.regularizer = 0.0
+        first_state = initial_state_
+        if opt['rnn:use_bw_state']:
+            initial_state_ = cell_.zero_state(batch_size, tf.float32)
+            for fw_state, bw_state in zip(initial_state_, final_state):
+                self.regularizer += tf.nn.l2_loss(fw_state - bw_state)
+        if opt['loss:add_first_token']:
+            cell_output_ = tf.concat(
+                [tf.expand_dims(first_state[-1], 1), cell_output_], 0)
+        return cell_, cell_output_, initial_state_, final_state_
+
+    def _build_loss(
+            self, opt, logit, label, weight, seq_weight, nodes, collect_key,
+            add_to_collection, inputs=None, cell_output=None, initial_state=None):
+        if opt['loss:add_first_token']:
+            label = tf.concat([tf.expand_dims(inputs[0], 1), label], 0)
+            weight = tf.concat(
+                [tf.ones((1, self._get_batch_size(weight)), dtype=tf.float32), weight], 0)
+        with tfg.tfph_collection(collect_key, add_to_collection) as get:
+            name = 'train_loss_denom'
+            train_loss_denom_ = get(name, tf.float32, shape=[])
+        mean_loss_, train_loss_, batch_loss_, nll_ = tfg.create_xent_loss(
+            logit, label, weight, seq_weight, train_loss_denom_)
+        train_loss_ += self.regularizer / train_loss_denom_
+        # train_loss_ = tf.Print(train_loss_, [train_loss_])
+        # mean_loss_ += self.regularizer / tf.reduce_sum(weight)
+        train_fetch = {'train_loss': train_loss_, 'eval_loss': mean_loss_}
+        eval_fetch = {'eval_loss': mean_loss_}
+        if opt['loss:eval_nll']:
+            eval_fetch['nll'] = nll_
+        nodes = util.dict_with_key_endswith(locals(), '_')
+        return train_fetch, eval_fetch, nodes
+
+
+class VAutoSeqModel(SeqModel):
+
+    def _build_rnn(
+            self, opt, lookup, seq_len, initial_state, batch_size, reuse_scope, reuse):
+        cell_opt = util.dict_with_key_startswith(opt, 'cell:')
+
+        with tf.variable_scope('bw'):
+            bw_lookup = tf.reverse_sequence(
+                lookup, seq_len, seq_axis=0, batch_axis=1)
+            bw_cell = tfg.create_cells(input_size=opt['emb:dim'], **cell_opt)
+            _co, _is, final_state = tfg.create_rnn(
+                bw_cell, bw_lookup, seq_len, None, rnn_fn=opt['rnn:fn'],
+                batch_size=batch_size)
+            # initial_state = final_state
+        with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
+            _reuse = reuse or scope is not None
+            cell_ = tfg.create_cells(reuse=_reuse, input_size=opt['emb:dim'], **cell_opt)
+            zero_states = cell_.zero_state(batch_size, tf.float32)
+            init_gauss = []
+            initial_state = []
+            with tf.variable_scope('variational'):
+                for i, zero_state in enumerate(zero_states):
+                    mu, logvar = tfg.tensor2gaussian(zero_state, 128, name=f'gauss_{i}')
+                    init_gauss.append((mu, logvar))
+                    z = tfg.sample_normal(mu, logvar)
+                    initial_state.append(z)
+            initial_state = tuple(initial_state)
+            cell_output_, initial_state_, final_state_ = tfg.create_rnn(
+                cell_, lookup, seq_len, initial_state, rnn_fn=opt['rnn:fn'],
+                batch_size=batch_size)
+        initial_state_ = zero_states
+        # cell_output_ = tf.Print(cell_output_, [tf.reduce_sum(initial_state_)])
+        self.regularizer = 0.0
+        # initial_state_ = cell_.zero_state(batch_size, tf.float32)
+
+        # for fw_state, bw_state in zip(initial_state_, final_state):
+        #     self.regularizer += tf.nn.l2_loss(fw_state - bw_state)
+        # self.regularizer = tf.Print(self.regularizer, [self.regularizer])
+        return cell_, cell_output_, initial_state_, final_state_
+
+    def _build_loss(
+            self, opt, logit, label, weight, seq_weight, nodes, collect_key,
+            add_to_collection, inputs=None, cell_output=None, initial_state=None):
+        with tfg.tfph_collection(collect_key, add_to_collection) as get:
+            name = 'train_loss_denom'
+            train_loss_denom_ = get(name, tf.float32, shape=[])
+        mean_loss_, train_loss_, batch_loss_, nll_ = tfg.create_xent_loss(
+            logit, label, weight, seq_weight, train_loss_denom_)
+        train_loss_ += self.regularizer / train_loss_denom_
+        # train_loss_ = tf.Print(train_loss_, [train_loss_])
+        # mean_loss_ += self.regularizer / tf.reduce_sum(weight)
         train_fetch = {'train_loss': train_loss_, 'eval_loss': mean_loss_}
         eval_fetch = {'eval_loss': mean_loss_}
         nodes = util.dict_with_key_endswith(locals(), '_')

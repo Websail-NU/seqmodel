@@ -139,6 +139,7 @@ def shift(tensor, k, axis=0, fill=0):
         slice_begin_offset[axis] = -k
         slice_begin = slice_begin + slice_begin_offset
     sliced = tf.strided_slice(padded, slice_begin, slice_end, None)
+    sliced.set_shape(tensor.shape)
     return sliced
 
 
@@ -237,7 +238,6 @@ def scan_rnn(
         return output, state
 
     with tf.variable_scope(scope):
-
         batch_size = _tf_shape_of_tensor_or_tuple(inputs)
         if isinstance(cell.output_size, tuple):
             # XXX: does not support nested structure
@@ -683,7 +683,7 @@ def sampling_decode_select(_t, logit):
     return idx, score
 
 
-def attn_dot(q, k, v, time_major=True):
+def attn_dot(q, k, v, q_len=None, v_len=None, time_major=True):
     q_is_2d = len(q.get_shape()) == 2
     with tf.variable_scope('dot_product_attn'):
         if time_major:
@@ -694,6 +694,7 @@ def attn_dot(q, k, v, time_major=True):
         if q_is_2d:
             q = tf.expand_dims(q, axis=1)
         logits = tf.matmul(q, k, transpose_b=True)
+        # TODO: mask logits on the padding (for both q and k)
         scores = tf.nn.softmax(logits)
         attn_context = tf.matmul(scores, v)
         if time_major and q_is_2d:
@@ -802,7 +803,7 @@ def get_logit_layer(
     if use_bias:
         if logit_b is None:
             logit_b = tf.get_variable(
-                f'logit_b', [output_size], dtype=tf.float32)
+                f'logit_b', [output_size], dtype=tf.float32, trainable=trainable)
         logit = logit + logit_b
     if temperature is None:
         with tfph_collection(collect_key, add_to_collection) as get:
@@ -854,12 +855,6 @@ def create_xent_loss(logit, label, weight, seq_weight=None, loss_denom=None):
         logits=logit, labels=label)
     if seq_weight is not None:
         weight = tf.multiply(weight, seq_weight)
-
-    # XXX: standardization
-    # mean = tf.reduce_mean(weight)
-    # variance = tf.reduce_mean(tf.square(weight - mean))
-    # std_dev = tf.sqrt(variance)
-    # weight = (weight - mean) / std_dev
     nll = tf.multiply(loss, weight)
     sum_loss = tf.reduce_sum(nll)
     mean_loss = _safe_div(sum_loss, tf.reduce_sum(weight))
@@ -869,9 +864,7 @@ def create_xent_loss(logit, label, weight, seq_weight=None, loss_denom=None):
         training_loss = sum_loss
     batch_loss = tf.reduce_sum(tf.multiply(loss, weight), axis=0)
     batch_loss = batch_loss / tf.reduce_sum(weight, axis=0)
-
-    # return mean_loss, training_loss, batch_loss, nll
-    return mean_loss, mean_loss, batch_loss, nll
+    return mean_loss, training_loss, batch_loss, nll
 
 
 def create_ent_loss(distribution, weight, seq_weight=None):
@@ -1040,7 +1033,12 @@ def create_train_op(
     if isinstance(optim_class, six.string_types):
         optim_class = locate(optim_class)
     optim = optim_class(learning_rate=learning_rate, **optim_kwarg)
-    g_v_pairs = optim.compute_gradients(loss)
+    var_list = tf.trainable_variables()
+    # var_list = []
+    # for v in tf.trainable_variables():
+    #     if 'bw' in v.name:
+    #         var_list.append(v)
+    g_v_pairs = optim.compute_gradients(loss, var_list=var_list)
     grads, tvars = [], []
     for g, v in g_v_pairs:
         if g is None:
@@ -1084,11 +1082,13 @@ def tensor2gaussian(
         tensor, out_dim, residual_mu=None, residual_logvar=None,
         activation=None, name='gaussian'):
     if activation is None:
-        activation = clipped_lrelu
-    g_hidden = tf.layers.dense(
-        tensor, out_dim*2, activation=activation, name=f'{name}_hidden')
+        activation = tf.nn.tanh
+    # g_hidden = tf.layers.dense(
+    #     tensor, out_dim*2, activation=None, name=f'{name}_hidden')
+    # g_params = tf.layers.dense(
+    #     g_hidden, out_dim*2, activation=None, name=f'{name}_output')
     g_params = tf.layers.dense(
-        g_hidden, out_dim*2, activation=None, name=f'{name}_output')
+        tensor, out_dim*2, activation=None, name=f'{name}_output')
 
     mu = tf.slice(g_params, [0, 0], [-1, out_dim])
     if residual_mu is not None:

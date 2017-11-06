@@ -26,8 +26,9 @@ def write_vocab(path, vocab, opt):
             ofp.write('{}\t{}\n'.format(word, count))
 
 
-def collect_vocab_from_file(vocabs, filepath, is_parallel=False,
-                            part_indices=(0, -1), char_level=False):
+def collect_vocab_from_file(
+        vocabs, filepath, is_parallel=False, part_indices=(0, -1), char_level=False,
+        convert_word_to_chars=False):
     with codecs.open(filepath, 'r', 'utf-8') as ifp:
         for line in ifp:
             if is_parallel:
@@ -39,6 +40,8 @@ def collect_vocab_from_file(vocabs, filepath, is_parallel=False,
                 tokens = part.strip().split()
                 if char_level:
                     tokens = '<' + '_'.join(tokens) + '>'
+                elif convert_word_to_chars:
+                    tokens = '_'.join(tokens)
                 for token in tokens:
                     vocabs[i][token] = vocabs[i].get(token, 0) + 1
 
@@ -55,6 +58,7 @@ parser.add_argument('--unknown', action='store_true')
 parser.add_argument('--start_seq', action='store_true')
 parser.add_argument('--end_seq', action='store_true')
 parser.add_argument('--end_encode', action='store_true')
+parser.add_argument('--convert_word_to_chars', action='store_true')
 
 args = parser.parse_args()
 vocabs = [{}]
@@ -64,8 +68,9 @@ if args.parallel_text:
         vocabs.append({})
 for filename in args.text_filenames.split(','):
     filepath = os.path.join(args.text_dir, filename)
-    collect_vocab_from_file(vocabs, filepath, args.parallel_text,
-                            args.part_indices.split(','), args.char_level)
+    collect_vocab_from_file(
+        vocabs, filepath, args.parallel_text, args.part_indices.split(','),
+        args.char_level, args.convert_word_to_chars)
 if len(vocabs) == 1:
     write_vocab(os.path.join(args.text_dir, args.vocab_filename),
                 vocabs[0], args)
