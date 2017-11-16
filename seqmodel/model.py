@@ -227,7 +227,7 @@ class SeqModel(Model):
     def default_opt(cls):
         opt = {'emb:vocab_size': 15, 'emb:dim': 32, 'emb:trainable': True,
                'emb:init': None, 'emb:add_project': False, 'emb:project_size': -1,
-               'emb:project_act': 'tensorflow.tanh',
+               'emb:project_act': 'tensorflow.tanh', 'emb:onehot': False,
                'cell:num_units': 32, 'cell:num_layers': 1,
                'cell:cell_class': 'tensorflow.nn.rnn_cell.BasicLSTMCell',
                'cell:in_keep_prob': 1.0, 'cell:out_keep_prob': 1.0,
@@ -237,9 +237,10 @@ class SeqModel(Model):
                'logit:output_size': 15, 'logit:use_bias': True, 'logit:trainable': True,
                'logit:init': None, 'logit:add_project': False, 'logit:project_size': -1,
                'logit:project_act': 'tensorflow.tanh', 'loss:type': 'xent',
-               'loss:add_entropy': False, 'loss:add_gns': False,
+               'loss:add_entropy': False, 'loss:add_gns': False, 'loss:eval_nll': False,
                'decode:add_greedy': True, 'decode:add_sampling': True,
-               'share:input_emb_logit': False}
+               'share:input_emb_logit': False,
+               'xxx:add_first_token': False}
         return opt
 
     @classmethod
@@ -352,6 +353,9 @@ class SeqModel(Model):
             cell_output_, initial_state_, final_state_ = tfg.create_rnn(
                 cell_, lookup, seq_len, initial_state, rnn_fn=opt['rnn:fn'],
                 batch_size=batch_size)
+        if opt['xxx:add_first_token']:
+            cell_output_ = tf.concat(
+                [tf.expand_dims(initial_state_[-1], 1), cell_output_], 0)
         return cell_, cell_output_, initial_state_, final_state_
 
     def _build_logit(
@@ -383,6 +387,10 @@ class SeqModel(Model):
             self, opt, logit, label, weight, seq_weight, nodes, collect_key,
             add_to_collection, inputs=None, cell_output=None, initial_state=None):
         # label = tf.squeeze(label)
+        if opt['xxx:add_first_token']:
+            label = tf.concat([tf.expand_dims(inputs[0], 1), label], 0)
+            weight = tf.concat(
+                [tf.ones((1, self._get_batch_size(weight)), dtype=tf.float32), weight], 0)
         if opt['loss:type'] == 'xent':
             with tfg.tfph_collection(collect_key, add_to_collection) as get:
                 name = 'train_loss_denom'
@@ -402,6 +410,8 @@ class SeqModel(Model):
                 train_loss_ += gns_loss_
             train_fetch = {'train_loss': train_loss_, 'eval_loss': mean_loss_}
             eval_fetch = {'eval_loss': mean_loss_}
+            if opt['loss:eval_nll']:
+                eval_fetch['nll'] = nll_
         else:
             raise ValueError(f'{opt["loss:type"]} is not supported, use (xent or mse)')
         nodes = util.dict_with_key_endswith(locals(), '_')

@@ -15,9 +15,6 @@ sys.path.insert(0, '../')
 import seqmodel as sq  # noqa
 from seqmodel import ngram_stats as ns  # noqa
 
-sq.SeqModel.BUILD_GLOBAL_STAT = True
-sq.SeqModel.GLOBAL_STAT_W = 1.0
-
 
 def _main(opt, model_opt, logger, train_opt, gns_opt, pool, model_class,
           load_data_fn, decode_fn, load_data_only_fn, _prefix):
@@ -85,10 +82,7 @@ def _main(opt, model_opt, logger, train_opt, gns_opt, pool, model_class,
                         (f'(P) @ep{epoch:02d}.{step:04d} decoded {num_new_tokens} '
                          f'tokens and compute new stat in {tot_time:.1f}s'))
                 s_time = time.time()
-
                 C, p_u, p0_u, p_ur, p0_ur = gns.update_C(cur_p_stat, step)
-                # print(p_u)
-                # print(p0_u)
                 start, end = gns.update_C_batches(C, epoch, step)
                 if start == -1 and end == -1:
                     return
@@ -138,9 +132,10 @@ def _main(opt, model_opt, logger, train_opt, gns_opt, pool, model_class,
 
 def main(main_filename, model_class, load_data_fn, decode_fn, load_data_only_fn):
     start_time = time.time()
-    group_default = {'model': model_class.default_opt(),
-                     'train': sq.default_training_opt(),
-                     'gns': ns.GNS.default_gns_exp_opt()}
+    group_default = {
+        'model': model_class.default_opt(),
+        'train': sq.default_training_opt(),
+        'gns': ns.GNS.default_gns_exp_opt()}
     parser = sq.get_common_argparser(main_filename)
     parser.add_argument('--seq_len', type=int, default=20, help=' ')
     sq.add_arg_group_defaults(parser, group_default)

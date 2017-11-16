@@ -12,11 +12,12 @@ from _decode import decode_lm
 
 if __name__ == '__main__':
     start_time = time.time()
-    group_default = {'model': sq.SeqModel.default_opt(),
-                     'train': sq.default_training_opt(),
-                     'decode': sq.default_decoding_opt()}
+    group_default = {
+        'model': sq.SeqModel.default_opt(),
+        'train': sq.default_training_opt(),
+        'decode': sq.default_decoding_opt()}
     parser = sq.get_common_argparser('main_lm.py')
-    parser.add_argument('--char_data', action=store_true, help=' ')
+    parser.add_argument('--char_data', action='store_true', help=' ')
     parser.add_argument('--seq_len', type=int, default=20, help=' ')
     parser.add_argument('--sentence_level', action='store_true', help=' ')
     sq.add_arg_group_defaults(parser, group_default)
@@ -33,7 +34,6 @@ if __name__ == '__main__':
         sep = '' if opt['char_data'] else ' '
         data = [data_fn(sq.read_lines(dpath(f), token_split=sep))
                 for f in (opt['train_file'], opt['valid_file'], opt['eval_file'])]
-
         batch_iter = partial(sq.seq_batch_iter, batch_size=opt['batch_size'],
                              shuffle=opt['sentence_level'],
                              keep_sentence=opt['sentence_level'])
@@ -65,7 +65,6 @@ if __name__ == '__main__':
                     else:
                         ofps[i].write(f'{word} ')
                     n_tokens += 1
-                # if n_tokens >= (887521 + 42068):
                 if n_tokens >= max_tokens:
                     break
         with open(opath, mode='w') as ofp:
@@ -76,16 +75,8 @@ if __name__ == '__main__':
                         ofp.write('\n')
         for fpath in tmp_paths:
             os.remove(fpath)
-        # with open(decode_opt['decode:outpath'], 'w') as ofp:
-        #     def decode_batch(batch, samples, vocabs):
-        #         for b_samples in samples:
-        #             b_seq_len = sq.find_first_min_zero(b_samples)
-        #             for dec, dec_len in zip(b_samples.T, b_seq_len):
-        #                 dec_text = ' '.join(vocabs[1].i2w(dec[:dec_len]))
-        #                 ofp.write(f'{dec_text}\n')
-        #     decode(opt, model_opt, decode_opt, decode_batch, logger,
-        #            data_fn, sq.SeqModel)
     else:
+        eval_run_fn = None
         # vocab = sq.Vocabulary.from_vocab_file(os.path.join(
         #   opt['data_dir'], 'vocab.txt'))
         # with open('tmp.txt', mode='w') as ofp:
@@ -99,5 +90,22 @@ if __name__ == '__main__':
         #                           collect_fn=collect_fn)
         #     mle(opt, model_opt, train_opt, logger, data_fn, sq.SeqModel,
         #         eval_run_fn=eval_run_fn)
-        mle(opt, model_opt, train_opt, logger, data_fn, sq.SeqModel)
+
+        # states = []
+
+        # def collect_fn(batch, collect):
+        #     state = collect[0]
+        #     state = np.concatenate(state, -1)
+        #     state = np.reshape(state, (-1, state.shape[-1]))
+        #     states.append(state)
+
+        # eval_run_fn = partial(
+        #     sq.run_collecting_epoch,
+        #     collect_keys=['final_state'], collect_fn=collect_fn)
+
+        mle(opt, model_opt, train_opt, logger, data_fn, sq.SeqModel,
+            eval_run_fn=eval_run_fn)
+
+        if eval_run_fn is not None:
+            np.save('states', np.concatenate(states, 0))
     logger.info(f'Total time: {sq.time_span_str(time.time() - start_time)}')

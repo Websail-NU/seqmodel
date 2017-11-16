@@ -77,7 +77,7 @@ def is_done_training_early(train_state, imp_wait=2, min_lr=1e-04):
 
 def run_epoch(
         sess, model, batch_iter, train_op=None, train_state=None, begin_step_fn=None,
-        end_step_fn=None, _extra_data=None, _reset_op=None):
+        end_step_fn=None):
     info = ds.RunningInfo()
     if train_op:
         run_fn = partial(model.train, sess, train_op=train_op)
@@ -87,10 +87,8 @@ def run_epoch(
     for batch in batch_iter():
         if begin_step_fn is not None:
             begin_step_fn(step_info=info, train_state=train_state)
-        if _extra_data is not None:
-            batch = _extra_data.pop(0)
-        result, __ = run_fn(batch.features, batch.labels, state=state,
-                            fetch_state=batch.keep_state)
+        result, __ = run_fn(
+            batch.features, batch.labels, state=state, fetch_state=batch.keep_state)
         if batch.keep_state:
             result, state = result  # ds.OutputStateTuple
         else:
@@ -99,8 +97,6 @@ def run_epoch(
             end_step_fn(step_info=info, train_state=train_state)
         info.update_step(result, batch.num_tokens)
     info.end()
-    if _reset_op is not None:
-        sess.run(_reset_op)
     return info
 
 
