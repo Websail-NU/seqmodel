@@ -9,3 +9,6 @@ __pycache__
 *.sublime-project
 *.sublime-workspace
 .DS_Store
+*.code-workspace
+*.ini
+.vscode

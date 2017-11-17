@@ -4,7 +4,8 @@ A code base for creating and running sequence models of language. Including
 language modeling, definition modeling, and common encoder-decoder stuffs.
 **Required python 3.6**.
 
-## Requirements:
+## Requirements
+
 - python 3.6
 - tensorflow 1.2
 - numpy 1.13
@@ -12,6 +13,7 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - six 1.10
 
 ## Overview
+
 - dstruct.py: basic data structures and tuples
 - generator.py: functions data reader and batch generator
 - graph.py: functions to create various types of graphs
@@ -20,12 +22,14 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - util.py: utility functions (dictionary, array, logging, and cmd arguments)
 
 ## Under development
+
 - ngram_stat.py and ngram_stats.py: various functions for computing global statatistics
 - contrib.py: a collection of codes that are likely to move or change
 
 ## TODO
 
 ### Model
+
 - [x] Fix scan_rnn to support tuple input and output
 - [x] Implement dot attention
 - [ ] Use LSTMBlockFusedCell
@@ -35,20 +39,25 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - [ ] Value Network and A2C
 
 ### Run
+
 - [ ] TD(lambda)
 - [ ] Bootstrap last state if not terminal
 
 ### Generator
+
 - [ ] Option to randomly select sequences of the same encode input
 
 ### Scripts
+
 - [ ] Option to select reward function from CLI
 - [ ] Fix a bug where `--\_\_:` options are not saved!
 
 ### TensorFlow
+
 - [ ] Take advantage of tf.Session.make_callable (need benchmark)
 
 ### Bucket list
+
 - [ ] Compile my own TensorFlow
 - [ ] Use tf.summary for tensorboard.
 - [ ] It would be nice if we do not need to fecth state and feed it back in when
