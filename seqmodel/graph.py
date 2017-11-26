@@ -85,16 +85,8 @@ def _safe_div(numerator, denominator, name='safe_div'):
                     tf.div(numerator, denominator),
                     name=name)
 
-###############################################################
-#    ##     ##    ###    ######## ########  #### ##     ##    #
-#    ###   ###   ## ##      ##    ##     ##  ##   ##   ##     #
-#    #### ####  ##   ##     ##    ##     ##  ##    ## ##      #
-#    ## ### ## ##     ##    ##    ########   ##     ###       #
-#    ##     ## #########    ##    ##   ##    ##    ## ##      #
-#    ##     ## ##     ##    ##    ##    ##   ##   ##   ##     #
-#    ##     ## ##     ##    ##    ##     ## #### ##     ##    #
-###############################################################
 
+# Matrix
 
 def create_2d_tensor(dim1, dim2, trainable=True, init=None, name='tensor'):
     if init is None:
@@ -178,17 +170,8 @@ def matmul(mat, mat2d, transpose_b=False):
     return tf.reshape(outputs, output_shape)
 
 
-#####################################
-#     ######  ########  #######     #
-#    ##    ## ##       ##     ##    #
-#    ##       ##       ##     ##    #
-#     ######  ######   ##     ##    #
-#          ## ##       ##  ## ##    #
-#    ##    ## ##       ##    ##     #
-#     ######  ########  ##### ##    #
-#####################################
+# Sequence
 # Most of below functions assume time major input and output, unless specified
-
 
 def _tf_shape_of_tensor_or_tuple(inputs, dim=1):
     if isinstance(inputs, tuple):
@@ -531,16 +514,7 @@ def create_acache2logit(
         return ac_output, tf.log(scores) + my_max, is_hit
 
 
-###################################################################
-#    ##     ## ########  ########     ###    ######## ########    #
-#    ##     ## ##     ## ##     ##   ## ##      ##    ##          #
-#    ##     ## ##     ## ##     ##  ##   ##     ##    ##          #
-#    ##     ## ########  ##     ## ##     ##    ##    ######      #
-#    ##     ## ##        ##     ## #########    ##    ##          #
-#    ##     ## ##        ##     ## ##     ##    ##    ##          #
-#     #######  ##        ########  ##     ##    ##    ########    #
-###################################################################
-
+# Update
 
 def create_gated_layer(
         carried, extra, carried_keep_prob=1.0, extra_keep_prob=1.0, fine_grain=False):
@@ -601,16 +575,7 @@ def create_gru_layer(carried, extra, carried_keep_prob=1.0, extra_keep_prob=1.0)
     return tf.multiply(h - carried, z) + carried, zr
 
 
-##################################################################
-#    ########  ########  ######   #######  ########  ########    #
-#    ##     ## ##       ##    ## ##     ## ##     ## ##          #
-#    ##     ## ##       ##       ##     ## ##     ## ##          #
-#    ##     ## ######   ##       ##     ## ##     ## ######      #
-#    ##     ## ##       ##       ##     ## ##     ## ##          #
-#    ##     ## ##       ##    ## ##     ## ##     ## ##          #
-#    ########  ########  ######   #######  ########  ########    #
-##################################################################
-
+# Decode
 
 def create_decode(
         emb_var, cell, logit_w, initial_state, initial_inputs, initial_finish,
@@ -706,15 +671,7 @@ def attn_dot(q, k, v, q_len=None, v_len=None, time_major=True):
         return attn_context, scores
 
 
-#######################################
-#    ####          ##     #######     #
-#     ##          ##     ##     ##    #
-#     ##         ##      ##     ##    #
-#     ##        ##       ##     ##    #
-#     ##       ##        ##     ##    #
-#     ##      ##         ##     ##    #
-#    ####    ##           #######     #
-#######################################
+# I/O
 # get_X() have side-effect on tensorflow collection
 # if add_to_collection is True (default), the functions will add placeholders to
 # global collection
@@ -836,16 +793,8 @@ def select_from_logit(logit, distribution=None):
     sample_tuple = dstruct.IndexScoreTuple(sample_idx, sample_prob)
     return distribution, max_tuple, sample_tuple
 
-##############################################
-#    ##        #######   ######   ######     #
-#    ##       ##     ## ##    ## ##    ##    #
-#    ##       ##     ## ##       ##          #
-#    ##       ##     ##  ######   ######     #
-#    ##       ##     ##       ##       ##    #
-#    ##       ##     ## ##    ## ##    ##    #
-#    ########  #######   ######   ######     #
-##############################################
 
+# Loss
 
 def create_xent_loss(logit, label, weight, seq_weight=None, loss_denom=None):
     """return negative log likelihood (cross-entropy loss).
@@ -1063,16 +1012,8 @@ def create_pg_train_op(
     train_op = optim.apply_gradients(zip(clipped_grads, variables))
     return train_op
 
-########################################################
-#    ########     ###    ##    ## ########  ######     #
-#    ##     ##   ## ##    ##  ##  ##       ##    ##    #
-#    ##     ##  ##   ##    ####   ##       ##          #
-#    ########  ##     ##    ##    ######    ######     #
-#    ##     ## #########    ##    ##             ##    #
-#    ##     ## ##     ##    ##    ##       ##    ##    #
-#    ########  ##     ##    ##    ########  ######     #
-########################################################
 
+# Bayes
 
 def clipped_lrelu(x, alpha=1/3):
     return tf.clip_by_value(tf.maximum(x, alpha * x), -3, 3)
@@ -1111,3 +1052,11 @@ def kl_normal_normal(mu1, logvar1, mu2, logvar2):
     kld = 0.5 * logvar2 - 0.5 * logvar1
     kld += (tf.exp(logvar1) + (mu1 - mu2) ** 2) / (2 * tf.exp(logvar2)) - 0.5
     return kld
+
+
+def log_normal(x, mu, logvar):
+    d = float(x.shape[-1])
+    log_pi = d * math.log(2 * math.pi)
+    log_det = tf.reduce_sum(logvar, axis=-1)
+    distance = tf.reduce_sum(((x - mu)**2) / tf.exp(logvar), axis=-1)
+    return -0.5 * (log_det + log_pi + distance)

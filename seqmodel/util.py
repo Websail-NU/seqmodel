@@ -5,9 +5,11 @@ import json
 from collections import ChainMap
 from functools import partial
 import logging as py_logging
-from nltk.translate import bleu_score
+
 
 import numpy as np
+from tensorflow.python.pywrap_tensorflow import NewCheckpointReader as TFCheckpointReader
+from nltk.translate import bleu_score
 
 from seqmodel import dstruct as ds
 
@@ -17,7 +19,7 @@ __all__ = ['dict_with_key_startswith', 'dict_with_key_endswith', 'get_with_dot_k
            'parse_set_args', 'add_arg_group_defaults', 'ensure_dir', 'time_span_str',
            'init_exp_opts', 'save_exp', 'load_exp', 'hstack_with_padding', 'chunks',
            'vstack_with_padding', 'group_data', 'find_first_min_zero',
-           'get_recursive_dict']
+           'get_recursive_dict', 'filter_tfvars_in_checkpoint']
 
 
 def chunks(alist, num_chunks):
@@ -311,6 +313,9 @@ def get_common_argparser(prog, usage=None, description=None):
         '--load_checkpoint', type=str,
         help=('Directory of TF checkpoint files to load from. This is separate from '
               'checkpoint directory under experiment_dir.'))
+    parser.add_argument(
+        '--relax_ckp_restore', action='store_true',
+        help='[USE WITH CAUTION] Only restore variables existed in the checkpoint.')
     parser.add_argument('--load_model_opt', type=str,
                         help='A json file specifying model options.')
     parser.add_argument('--load_train_opt', type=str,
@@ -438,3 +443,9 @@ def load_exp(sess, saver, exp_dir, latest=False, checkpoint=None, logger=None):
         else:
             logger.info('Resume experiment.')
     return restore_success, train_state
+
+
+def filter_tfvars_in_checkpoint(tfvars, checkpoint):
+    reader = TFCheckpointReader(checkpoint)
+    var2shape_map = reader.get_variable_to_shape_map()
+    return tuple(v for v in tfvars if v.name[:-2] in var2shape_map)

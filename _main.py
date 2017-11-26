@@ -59,11 +59,15 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
     with tf.Session(config=sq.get_tfsession_config(opt['gpu'])) as sess:
         sess.run(tf.global_variables_initializer())
         saver = tf.train.Saver(tf.trainable_variables())
-        # saver = tf.train.Saver()
+        res_saver = saver
+        if opt['relax_ckp_restore']:
+            logger.warn('--relax_ckp_restore is not safe. Please use with caution.')
+            res_saver = tf.train.Saver(sq.filter_tfvars_in_checkpoint(
+                tf.global_variables(), opt['load_checkpoint']))
         if is_training:
             logger.info('Training...')
             success, train_state = sq.load_exp(
-                sess, saver, opt['exp_dir'], latest=True,
+                sess, res_saver, opt['exp_dir'], latest=True,
                 checkpoint=opt['load_checkpoint'], logger=logger)
             if pg:
                 return_feed_fn = partial(train_model.set_default_feed, return_ph)
@@ -92,14 +96,17 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
                 valid_run_epoch_fn=valid_fn, begin_epoch_fn=begin_epoch_fn,
                 end_epoch_fn=end_epoch_fn)
 
-        checkpoint = None if is_training else opt['load_checkpoint']
-        if checkpoint is not None:
-            logger.info(f'Loading parameters from `{checkpoint}` ...')
-        else:
+        if is_training:
             _m = 'latest' if opt['eval_latest'] else 'best'
             logger.info(f'Loading parameters from {_m} checkpoint...')
+            eval_saver = saver
+        else:
+            checkpoint = opt['load_checkpoint']
+            logger.info(f'Loading parameters from `{checkpoint}` ...')
+            eval_saver = res_saver or saver
         success, __ = sq.load_exp(
-            sess, saver, opt['exp_dir'], latest=opt['eval_latest'], checkpoint=checkpoint)
+            sess, eval_saver, opt['exp_dir'], latest=opt['eval_latest'],
+            checkpoint=checkpoint)
         if not success:
             logger.warn('Loading model from checkpoint failed.')
 
