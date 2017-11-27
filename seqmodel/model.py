@@ -12,18 +12,7 @@ from seqmodel import dstruct
 from seqmodel import graph as tfg
 
 
-__all__ = ['Model', 'SeqModel', 'Seq2SeqModel', 'Word2DefModel']
-
-
-#########################################################
-#    ##     ##  #######  ########  ######## ##          #
-#    ###   ### ##     ## ##     ## ##       ##          #
-#    #### #### ##     ## ##     ## ##       ##          #
-#    ## ### ## ##     ## ##     ## ######   ##          #
-#    ##     ## ##     ## ##     ## ##       ##          #
-#    ##     ## ##     ## ##     ## ##       ##          #
-#    ##     ##  #######  ########  ######## ########    #
-#########################################################
+__all__ = ['Model', 'SeqModel', 'Seq2SeqModel', 'Word2DefModel', 'AESeqModel']
 
 
 class Model(object):
@@ -202,17 +191,7 @@ class Model(object):
         return {k: 1.0 for k, _v in opt.items() if 'keep_prob' in k}
 
 
-#####################################
-#     ######  ########  #######     #
-#    ##    ## ##       ##     ##    #
-#    ##       ##       ##     ##    #
-#     ######  ######   ##     ##    #
-#          ## ##       ##  ## ##    #
-#    ##    ## ##       ##    ##     #
-#     ######  ########  ##### ##    #
-#####################################
 # VARIABLES END WITH '_' IN _BUILD_XX() WILL BE ADDED TO NODE DICTIONARY
-
 
 class SeqModel(Model):
 
@@ -259,7 +238,7 @@ class SeqModel(Model):
         reuse_scope = {} if reuse_scope is None else reuse_scope
         reuse_scope = defaultdict(lambda: None, **reuse_scope)
         self._name = name
-        initializer = tf.random_uniform_initializer(minval=-0.05, maxval=0.05)
+        # initializer = tf.random_uniform_initializer(minval=-0.05, maxval=0.05)
         # with tf.variable_scope(name, reuse=reuse, initializer=initializer):
         with tf.variable_scope(name, reuse=reuse) as scope:
             nodes, graph_args = self._build(
@@ -361,7 +340,6 @@ class SeqModel(Model):
     def _build_logit(
             self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output,
             initial_state=None):
-        # cell_output = tfg.select_rnn(cell_output, self._seq_len - 1)
         # logit
         logit_w_ = emb_vars if opt['share:input_emb_logit'] else None
         logit_opt = util.dict_with_key_startswith(opt, 'logit:')
@@ -386,7 +364,6 @@ class SeqModel(Model):
     def _build_loss(
             self, opt, logit, label, weight, seq_weight, nodes, collect_key,
             add_to_collection, inputs=None, cell_output=None, initial_state=None):
-        # label = tf.squeeze(label)
         if opt['xxx:add_first_token']:
             label = tf.concat([tf.expand_dims(inputs[0], 1), label], 0)
             weight = tf.concat(
@@ -401,6 +378,8 @@ class SeqModel(Model):
                 _sum_minus_ent, minus_avg_ent_ = tfg.create_ent_loss(
                     tf.nn.softmax(logit), tf.abs(weight), tf.abs(seq_weight))
                 train_loss_ = train_loss_ + minus_avg_ent_
+            if hasattr(self, '_regularizer'):
+                train_loss_ += self._regularizer / train_loss_denom_
             # train_loss_ = tf.Print(train_loss_, [train_loss_])
             gns_nodes = {}
             if opt['loss:add_gns']:
@@ -436,10 +415,6 @@ class SeqModel(Model):
             logit_b=nodes['logit_b'], logit_temperature=nodes['temperature'],
             max_len=decode_max_len_, cell_scope=cell_scope, late_attn_fn=late_attn_fn)
         if opt['decode:add_greedy']:
-            # select_fn = tfg.seeded_decode_select_fn(
-            #     nodes['input'], 3, tfg.greedy_decode_select, seed_offset=1)
-            # decode_greedy_, decode_greedy_score_, decode_greedy_len_ = decode_fn(
-            #     select_fn=select_fn)
             decode_greedy_, decode_greedy_score_, decode_greedy_len_ = decode_fn(
                 select_fn=tfg.greedy_decode_select)
             output['decode_greedy'] = decode_greedy_
@@ -509,16 +484,6 @@ class SeqModel(Model):
         return self.predict(
             sess, features[0: self._ENC_FEA_LEN_], predict_key='decode_sampling_score',
             extra_fetch=extra_fetch, **kwargs)
-
-###########################################################################
-#     ######  ########  #######   #######   ######  ########  #######     #
-#    ##    ## ##       ##     ## ##     ## ##    ## ##       ##     ##    #
-#    ##       ##       ##     ##        ## ##       ##       ##     ##    #
-#     ######  ######   ##     ##  #######   ######  ######   ##     ##    #
-#          ## ##       ##  ## ## ##              ## ##       ##  ## ##    #
-#    ##    ## ##       ##    ##  ##        ##    ## ##       ##    ##     #
-#     ######  ########  ##### ## #########  ######  ########  ##### ##    #
-###########################################################################
 
 
 class Seq2SeqModel(SeqModel):
@@ -651,17 +616,6 @@ class Seq2SeqModel(SeqModel):
         return None, {}
 
 
-#############################
-#    ########  ##     ##    #
-#    ##     ## ###   ###    #
-#    ##     ## #### ####    #
-#    ##     ## ## ### ##    #
-#    ##     ## ##     ##    #
-#    ##     ## ##     ##    #
-#    ########  ##     ##    #
-#############################
-
-
 class Word2DefModel(Seq2SeqModel):
 
     _ENC_FEA_LEN_ = 6
@@ -780,3 +734,41 @@ class Word2DefModel(Seq2SeqModel):
 
     def _build_dec_attn_logit(self, *args, **kwargs):
         raise ValueError('`dec:attn_enc_output` is not supported in DM.')
+
+
+class AESeqModel(SeqModel):
+
+    @classmethod
+    def default_opt(cls):
+        opt = super().default_opt()
+        opt['rnn:use_bw_state'] = False
+        return opt
+
+    def _build_rnn(
+            self, opt, lookup, seq_len, initial_state, batch_size, reuse_scope, reuse):
+        cell_opt = util.dict_with_key_startswith(opt, 'cell:')
+        with tf.variable_scope('bw'):
+            bw_lookup = tf.reverse_sequence(
+                lookup, seq_len, seq_axis=0, batch_axis=1)
+            bw_cell = tfg.create_cells(input_size=opt['emb:dim'], **cell_opt)
+            _co, _is, final_state = tfg.create_rnn(
+                bw_cell, bw_lookup, seq_len, None, rnn_fn=opt['rnn:fn'],
+                batch_size=batch_size)
+            if opt['rnn:use_bw_state']:
+                initial_state = final_state
+        with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
+            _reuse = reuse or scope is not None
+            cell_ = tfg.create_cells(reuse=_reuse, input_size=opt['emb:dim'], **cell_opt)
+            cell_output_, initial_state_, final_state_ = tfg.create_rnn(
+                cell_, lookup, seq_len, initial_state, rnn_fn=opt['rnn:fn'],
+                batch_size=batch_size)
+        self._regularizer = 0.0
+        first_state = initial_state_
+        if opt['rnn:use_bw_state']:
+            initial_state_ = cell_.zero_state(batch_size, tf.float32)
+            for fw_state, bw_state in zip(initial_state_, final_state):
+                self._regularizer += tf.nn.l2_loss(fw_state - bw_state)
+        if opt['xxx:add_first_token']:
+            cell_output_ = tf.concat(
+                [tf.expand_dims(first_state[-1], 1), cell_output_], 0)
+        return cell_, cell_output_, initial_state_, final_state_

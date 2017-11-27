@@ -102,6 +102,7 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
             _m = 'latest' if opt['eval_latest'] else 'best'
             logger.info(f'Loading parameters from {_m} checkpoint...')
             eval_saver = saver
+            checkpoint = None
         else:
             checkpoint = opt['load_checkpoint']
             logger.info(f'Loading parameters from `{checkpoint}` ...')

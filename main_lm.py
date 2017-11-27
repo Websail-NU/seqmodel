@@ -10,10 +10,14 @@ from _main import mle
 from _main import decode
 from _decode import decode_lm
 
+
+MODEL_CLASS = sq.AESeqModel
+
+
 if __name__ == '__main__':
     start_time = time.time()
     group_default = {
-        'model': sq.SeqModel.default_opt(),
+        'model': MODEL_CLASS.default_opt(),
         'train': sq.default_training_opt(),
         'decode': sq.default_decoding_opt()}
     parser = sq.get_common_argparser('main_lm.py')
@@ -56,7 +60,7 @@ if __name__ == '__main__':
             features = sq.SeqFeatureTuple(seed_in, seed_len)
             n_tokens = 0
             for b_sample, vocabs in decode_lm(
-                    opt, sq.SeqModel, model_opt, data_fn,
+                    opt, MODEL_CLASS, model_opt, data_fn,
                     logger, decode_opt, features):
                 for i in range(_b):
                     word = vocabs[-1].i2w(b_sample[0, i])
@@ -88,7 +92,7 @@ if __name__ == '__main__':
 
         #     eval_run_fn = partial(sq.run_collecting_epoch, collect_keys=['nll'],
         #                           collect_fn=collect_fn)
-        #     mle(opt, model_opt, train_opt, logger, data_fn, sq.SeqModel,
+        #     mle(opt, model_opt, train_opt, logger, data_fn, MODEL_CLASS,
         #         eval_run_fn=eval_run_fn)
 
         # states = []
@@ -103,9 +107,9 @@ if __name__ == '__main__':
         #     sq.run_collecting_epoch,
         #     collect_keys=['final_state'], collect_fn=collect_fn)
 
-        mle(opt, model_opt, train_opt, logger, data_fn, sq.SeqModel,
+        mle(opt, model_opt, train_opt, logger, data_fn, MODEL_CLASS,
             eval_run_fn=eval_run_fn)
 
-        if eval_run_fn is not None:
-            np.save('states', np.concatenate(states, 0))
+        # if eval_run_fn is not None:
+        #     np.save('states', np.concatenate(states, 0))
     logger.info(f'Total time: {sq.time_span_str(time.time() - start_time)}')

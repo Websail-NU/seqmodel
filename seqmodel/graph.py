@@ -983,10 +983,10 @@ def create_train_op(
         optim_class = locate(optim_class)
     optim = optim_class(learning_rate=learning_rate, **optim_kwarg)
     var_list = tf.trainable_variables()
-    # var_list = []
-    # for v in tf.trainable_variables():
-    #     if 'bw' in v.name:
-    #         var_list.append(v)
+    var_list = []
+    for v in tf.trainable_variables():
+        if 'bw' in v.name:
+            var_list.append(v)
     g_v_pairs = optim.compute_gradients(loss, var_list=var_list)
     grads, tvars = [], []
     for g, v in g_v_pairs:
