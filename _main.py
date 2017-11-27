@@ -64,6 +64,7 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
             logger.warn('--relax_ckp_restore is not safe. Please use with caution.')
             res_saver = tf.train.Saver(sq.filter_tfvars_in_checkpoint(
                 tf.global_variables(), opt['load_checkpoint']))
+        # Training
         if is_training:
             logger.info('Training...')
             success, train_state = sq.load_exp(
@@ -96,6 +97,7 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
                 valid_run_epoch_fn=valid_fn, begin_epoch_fn=begin_epoch_fn,
                 end_epoch_fn=end_epoch_fn)
 
+        # Testing
         if is_training:
             _m = 'latest' if opt['eval_latest'] else 'best'
             logger.info(f'Loading parameters from {_m} checkpoint...')
@@ -109,12 +111,6 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
             checkpoint=checkpoint)
         if not success:
             logger.warn('Loading model from checkpoint failed.')
-
-        # import numpy as np
-        # for v in tf.trainable_variables():
-        #     if 'acache2logit' in v.name:
-        #         np.save('weight3.npy', sess.run(v))
-        # return
 
         if is_decoding:
             logger.info('Decoding...')
