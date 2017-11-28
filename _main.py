@@ -60,7 +60,7 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
         sess.run(tf.global_variables_initializer())
         saver = tf.train.Saver(tf.trainable_variables())
         res_saver = saver
-        if opt['relax_ckp_restore']:
+        if opt['relax_ckp_restore'] and opt['load_checkpoint'] is not None:
             logger.warn('--relax_ckp_restore is not safe. Please use with caution.')
             res_saver = tf.train.Saver(sq.filter_tfvars_in_checkpoint(
                 tf.global_variables(), opt['load_checkpoint']))
