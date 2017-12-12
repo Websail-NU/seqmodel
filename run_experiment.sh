@@ -3,7 +3,7 @@
 DATA_DIR="data/tinyshakespeare"
 MAIN_DIR="curexp"
 PREFIX="ts"
-EXP_DIR="bw"
+EXP_DIR="bw-m2"
 CONFIG_DIR="config"
 BACKUP_DIR="backup"
 # -------------------------------------------------------
@@ -14,7 +14,7 @@ COMMAND="train"
 EXP_DIR="$PREFIX-$EXP_DIR"
 CONFIG_DIR="$PREFIX-$CONFIG_DIR"
 BACKUP_DIR="$PREFIX-$BACKUP_DIR"
-while getopts ":d:e" opt; do
+while getopts "de" opt; do
     case "$opt" in
         d)
             NO_BACKUP=" "true
@@ -40,6 +40,7 @@ fi
 # </NO_EDIT>
 # -------------------------------------------------------
 python main_lm.py "$COMMAND" "$DATA_DIR" "$MAIN_DIR/$EXP_DIR" \
+--gpu \
 --log_level debug \
 --load_model_opt "$MAIN_DIR/$CONFIG_DIR/model_opt_gru.json" \
 --load_train_opt "$MAIN_DIR/$CONFIG_DIR/train_opt_adam.json" \
@@ -47,6 +48,10 @@ python main_lm.py "$COMMAND" "$DATA_DIR" "$MAIN_DIR/$EXP_DIR" \
 --seq_len 35 \
 --char_data \
 --relax_ckp_restore \
---train:max_epoch 10
-# --load_checkpoint "$MAIN_DIR/ts-v/checkpoint/best" \
-# --rnn:use_bw_state \
+--train:max_epoch 10 \
+--load_checkpoint "$MAIN_DIR/ts-v/checkpoint/best" \
+--xxx:full_seq_lookup \
+--xxx:add_first_token \
+--rnn:use_bw_state \
+--rnn:bw_is_stochastic \
+--rnn:gmm_path "curexp/ts-v/gmm64valid_model.pkl"

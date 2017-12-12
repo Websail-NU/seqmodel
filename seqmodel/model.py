@@ -1,16 +1,20 @@
 import six
 import math
+import pickle
 import warnings
+from functools import partial
 from collections import ChainMap
 from collections import defaultdict
-from functools import partial
 
+import numpy as np
 import tensorflow as tf
 
 from seqmodel import util
 from seqmodel import dstruct
 from seqmodel import graph as tfg
 
+tfdense = tf.layers.dense
+tfds = tf.contrib.distributions
 
 __all__ = ['Model', 'SeqModel', 'Seq2SeqModel', 'Word2DefModel', 'AESeqModel']
 
@@ -219,7 +223,7 @@ class SeqModel(Model):
                'loss:add_entropy': False, 'loss:add_gns': False, 'loss:eval_nll': False,
                'decode:add_greedy': True, 'decode:add_sampling': True,
                'share:input_emb_logit': False,
-               'xxx:add_first_token': False}
+               'xxx:add_first_token': False, 'xxx:full_seq_lookup': False}
         return opt
 
     @classmethod
@@ -269,39 +273,45 @@ class SeqModel(Model):
             collect_key='seq_model', prefix='lm', **kwargs):
         collect_kwargs = {
             'add_to_collection': True, 'collect_key': collect_key, 'prefix': prefix}
-        # input and embedding
+        # input, embedding, and label
         input_, seq_len_ = tfg.get_seq_input_placeholders(**collect_kwargs)
-        self._input = input_
-        self._seq_len = seq_len_
+        label_, token_weight_, seq_weight_ = tfg.get_seq_label_placeholders(
+            label_dtype=tf.int32, **collect_kwargs)
         emb_opt = util.dict_with_key_startswith(opt, 'emb:')
         _emb_scope = reuse_scope[self._RSK_EMB_]
         if 'global_emb_scope' in kwargs:
             _emb_scope = kwargs['global_emb_scope']
         with tfg.maybe_scope(_emb_scope, reuse=True) as scope:
             lookup_, emb_vars_ = tfg.create_lookup(input_, **emb_opt)
-        # cell rnn
+            if opt['xxx:full_seq_lookup']:
+                full_seq_ = tf.concat([tf.expand_dims(input_[0], 0), label_], 0)
+                full_lookup_, emb_vars_ = tfg.create_lookup(
+                    full_seq_, emb_vars_, prefix='full', **emb_opt)
+        nodes = util.dict_with_key_endswith(locals(), '_')
+        # cell and rnn
         batch_size = self._get_batch_size(input_)
-        cell_, cell_output_, initial_state_, final_state_ = self._build_rnn(
-            opt, lookup_, seq_len_, initial_state, batch_size, reuse_scope, reuse)
+        cell_, cell_output_, initial_state_, final_state_, ex_nodes = self._build_rnn(
+            opt, lookup_, seq_len_, initial_state, batch_size, reuse_scope, reuse, nodes)
         # collect nodes
         nodes = util.dict_with_key_endswith(locals(), '_')
+        nodes.update(ex_nodes)
         predict_fetch = {'cell_output': cell_output_}
-        graph_args = {'feature_feed': dstruct.SeqFeatureTuple(input_, seq_len_),
-                      'predict_fetch': predict_fetch, 'node_dict': nodes,
-                      'state_feed': initial_state_, 'state_fetch': final_state_}
-        # optional nodes
+        graph_args = {
+            'feature_feed': dstruct.SeqFeatureTuple(input_, seq_len_),
+            'label_feed': dstruct.SeqLabelTuple(label_, token_weight_, seq_weight_),
+            'node_dict': nodes, 'predict_fetch': predict_fetch,
+            'state_feed': initial_state_, 'state_fetch': final_state_}
         # output
         if opt['out:logit']:
-            logit, label_feed, output_fectch, output_nodes = self._build_logit(
+            logit, output_fectch, output_nodes = self._build_logit(
                 opt, reuse_scope, collect_kwargs, emb_vars_, cell_output_,
                 initial_state=initial_state_)
             predict_fetch.update(output_fectch)
             nodes.update(output_nodes)
-            graph_args.update(label_feed=label_feed)
         # loss
         if opt['out:loss'] and opt['out:logit']:
             train_fetch, eval_fetch, loss_nodes = self._build_loss(
-                opt, logit, *label_feed, nodes, collect_key,
+                opt, logit, label_, token_weight_, seq_weight_, nodes, collect_key,
                 collect_kwargs['add_to_collection'],
                 inputs=input_, cell_output=cell_output_, initial_state=initial_state_)
             nodes.update(loss_nodes)
@@ -320,11 +330,11 @@ class SeqModel(Model):
             nodes.update(decode_nodes)
         elif not opt['out:logit'] and opt['out:decode']:
             raise ValueError('out:logit is False, cannot build decode graph')
-
         return nodes, graph_args
 
     def _build_rnn(
-            self, opt, lookup, seq_len, initial_state, batch_size, reuse_scope, reuse):
+            self, opt, lookup, seq_len, initial_state, batch_size, reuse_scope, reuse,
+            nodes):
         cell_opt = util.dict_with_key_startswith(opt, 'cell:')
         with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
             _reuse = reuse or scope is not None
@@ -334,8 +344,8 @@ class SeqModel(Model):
                 batch_size=batch_size)
         if opt['xxx:add_first_token']:
             cell_output_ = tf.concat(
-                [tf.expand_dims(initial_state_[-1], 1), cell_output_], 0)
-        return cell_, cell_output_, initial_state_, final_state_
+                [tf.expand_dims(initial_state_[-1], 0), cell_output_], 0)
+        return cell_, cell_output_, initial_state_, final_state_, {}
 
     def _build_logit(
             self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output,
@@ -349,23 +359,20 @@ class SeqModel(Model):
             # if hasattr(self, '_logit_mask'):
             #     logit_ = logit_ + self._logit_mask
         dist_, dec_max_, dec_sample_ = tfg.select_from_logit(logit_)
-        # label
-        label_, token_weight_, seq_weight_ = tfg.get_seq_label_placeholders(
-            label_dtype=tf.int32, **collect_kwargs)
         # format
         predict_fetch = {
             'logit': logit_, 'dist': dist_, 'dec_max': dec_max_,
             'dec_max_id': dec_max_.index, 'dec_sample': dec_sample_,
             'dec_sample_id': dec_sample_.index}
-        label_feed = dstruct.SeqLabelTuple(label_, token_weight_, seq_weight_)
+
         nodes = util.dict_with_key_endswith(locals(), '_')
-        return logit_, label_feed, predict_fetch, nodes
+        return logit_, predict_fetch, nodes
 
     def _build_loss(
             self, opt, logit, label, weight, seq_weight, nodes, collect_key,
             add_to_collection, inputs=None, cell_output=None, initial_state=None):
         if opt['xxx:add_first_token']:
-            label = tf.concat([tf.expand_dims(inputs[0], 1), label], 0)
+            label = nodes['full_seq']
             weight = tf.concat(
                 [tf.ones((1, self._get_batch_size(weight)), dtype=tf.float32), weight], 0)
         if opt['loss:type'] == 'xent':
@@ -599,9 +606,9 @@ class Seq2SeqModel(SeqModel):
                 attn_dec_output_, cell_output.get_shape()[-1],
                 use_bias=True, reuse=reuse)
             self._attn_scope = attn_scope
-        logit_, label_feed, predict_fetch, nodes = super()._build_logit(
+        logit_, predict_fetch, nodes = super()._build_logit(
             opt, reuse_scope, collect_kwargs, emb_vars, attn_dec_output_)
-        return logit_, label_feed, predict_fetch, nodes
+        return logit_, predict_fetch, nodes
 
     def _build_dec_attn_logit(self, cell_output, enc_output, full_opt):
         with tfg.maybe_scope(self._attn_scope):
@@ -719,9 +726,9 @@ class Word2DefModel(Seq2SeqModel):
                     updated_output_, full_opt['dec:cell:out_keep_prob'])
         wbdef_nodes.update(util.dict_with_key_endswith(locals(), '_'))
         wbdef_nodes.pop('__class_', None)
-        logit_, label_feed, predict_fetch, nodes = super()._build_logit(
+        logit_, predict_fetch, nodes = super()._build_logit(
             opt, reuse_scope, collect_kwargs, emb_vars, updated_output_)
-        return logit_, label_feed, predict_fetch, nodes
+        return logit_, predict_fetch, nodes
 
     def _build_dec_gated_logit(self, cell_output, wbdef, wbdef_scope):
         # cell_output = tf.slice(cell_output, [0, 100], [-1, -1])
@@ -742,33 +749,89 @@ class AESeqModel(SeqModel):
     def default_opt(cls):
         opt = super().default_opt()
         opt['rnn:use_bw_state'] = False
+        opt['rnn:bw_is_stochastic'] = False
+        opt['rnn:gmm_path'] = None
         return opt
 
+    def _qy_graph(self, opt, n_components, inputs):
+        input_dim = inputs.shape[-1]
+        with tf.variable_scope('qy'):
+            h1 = tfdense(inputs, input_dim, activation=tf.nn.relu, name='l1')
+            h2 = tfdense(h1, input_dim, activation=tf.nn.relu, name='l2')
+            qy_logits = tfdense(h2, n_components, name='logits')
+            qy_cat = tfds.RelaxedOneHotCategorical(0.2, logits=qy_logits)
+        return qy_logits, qy_cat.sample()
+
+    def _qz_graph(self, opt, n_components, inputs, y, means=None, scales=None):
+        input_dim = inputs.shape[-1]
+        with tf.variable_scope('qz'):
+            xy = tf.concat((inputs, y), -1)
+            h1 = tfdense(xy, input_dim, activation=tf.nn.relu, name='l1')
+            h2 = tfdense(h1, input_dim, activation=tf.nn.relu, name='l2')
+            qz_mean = tfdense(h2, input_dim, name='mean')
+            qz_scale = tfdense(h2, input_dim, activation=tf.nn.softplus, name='scale')
+            qz = tf.distributions.Normal(qz_mean, qz_scale)
+            # z_mvn = tfds.MultivariateNormalDiag(loc=means, scale_diag=scales)
+            # z_samples = z_mvn.sample(tf.shape(y)[0])
+            # qz_samples = tf.reduce_sum(z_samples * y[:, :, tf.newaxis], axis=-2)
+            # mask = tf.one_hot(indices=y, depth=n_components, dtype=tf.float32)
+            # qz_samples = tf.reduce_sum(
+            #     z_samples * mask[:, :, tf.newaxis], axis=-2)
+        return qz.sample()
+
+    def _qyz_graph(self, opt, bw_final_state):
+        q_inputs = tf.concat(bw_final_state, -1)
+        n_components = 64
+        # with open(opt['rnn:gmm_path'], mode='rb') as f:
+        #     sklearn_gmm = pickle.load(f)
+        # n_components = sklearn_gmm.n_components
+        # dimensions = sklearn_gmm.means_.shape[-1]
+        # weights, means, scales = tfg.create_gaussian_mixture(
+        #     n_components, dimensions, trainable=False,
+        #     init_weights=sklearn_gmm.weights_, init_means=sklearn_gmm.means_,
+        #     init_scales=np.sqrt(sklearn_gmm.covariances_))
+        qy_logits, qy_samples = self._qy_graph(opt, n_components, q_inputs)
+        qz_samples = self._qz_graph(
+            opt, n_components, q_inputs, qy_samples)
+        qz = tuple(tf.split(qz_samples, 2, axis=-1))
+        return qz, 0
+
     def _build_rnn(
-            self, opt, lookup, seq_len, initial_state, batch_size, reuse_scope, reuse):
+            self, opt, lookup, seq_len, initial_state, batch_size, reuse_scope, reuse,
+            nodes):
         cell_opt = util.dict_with_key_startswith(opt, 'cell:')
+        unroll_rnn = partial(tfg.create_rnn, rnn_fn=opt['rnn:fn'], batch_size=batch_size)
+        # Posterior Backward
         with tf.variable_scope('bw'):
+            seq_lookup = nodes.get('full_lookup', lookup)
             bw_lookup = tf.reverse_sequence(
-                lookup, seq_len, seq_axis=0, batch_axis=1)
+                seq_lookup, seq_len+1, seq_axis=0, batch_axis=1)
             bw_cell = tfg.create_cells(input_size=opt['emb:dim'], **cell_opt)
-            _co, _is, final_state = tfg.create_rnn(
-                bw_cell, bw_lookup, seq_len, None, rnn_fn=opt['rnn:fn'],
-                batch_size=batch_size)
-            if opt['rnn:use_bw_state']:
-                initial_state = final_state
+            bw_co, _is, bw_final_state = unroll_rnn(bw_cell, bw_lookup, seq_len, None)
+            if opt['rnn:bw_is_stochastic']:
+                bw_final_state, self._regularizer = self._qyz_graph(opt, bw_final_state)
         with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
             _reuse = reuse or scope is not None
             cell_ = tfg.create_cells(reuse=_reuse, input_size=opt['emb:dim'], **cell_opt)
-            cell_output_, initial_state_, final_state_ = tfg.create_rnn(
-                cell_, lookup, seq_len, initial_state, rnn_fn=opt['rnn:fn'],
-                batch_size=batch_size)
-        self._regularizer = 0.0
-        first_state = initial_state_
+            # Prior Forward
+            p_cell_output_, p_initial_state_, p_final_state_ = unroll_rnn(
+                cell_, lookup, seq_len, initial_state)
+            # Posterior Forward
+            q_cell_output_, q_initial_state_, q_final_state_ = unroll_rnn(
+                cell_, lookup, seq_len, bw_final_state)
         if opt['rnn:use_bw_state']:
-            initial_state_ = cell_.zero_state(batch_size, tf.float32)
-            for fw_state, bw_state in zip(initial_state_, final_state):
-                self._regularizer += tf.nn.l2_loss(fw_state - bw_state)
+            if not hasattr(self, '_regularizer'):
+                self._regularizer = 0
+            first_token_cell_output = q_initial_state_[-1]
+            cell_output_ = q_cell_output_
+            if not opt['rnn:bw_is_stochastic']:
+                for fw_state, bw_state in zip(p_initial_state_, bw_final_state):
+                    self._regularizer = tf.nn.l2_loss(fw_state - bw_state)
+        else:
+            cell_output_ = p_cell_output_
+            first_token_cell_output = p_initial_state_[-1]
         if opt['xxx:add_first_token']:
             cell_output_ = tf.concat(
-                [tf.expand_dims(first_state[-1], 1), cell_output_], 0)
-        return cell_, cell_output_, initial_state_, final_state_
+                [tf.expand_dims(first_token_cell_output, 0), cell_output_], 0)
+        extra_nodes = {'bw_final_state': bw_final_state}
+        return cell_, cell_output_, p_initial_state_, p_final_state_, extra_nodes

@@ -23,7 +23,8 @@ __all__ = ['_safe_div', 'tfph_collection', 'create_2d_tensor', 'matmul', 'create
            'sampling_decode_select', 'create_gated_layer', 'gather_2d', 'shift',
            'create_global_stat_loss', 'meshgrid3d', 'mat3indices', 'create_neural_cache',
            'create_cache2logit', 'create_acache2logit', 'create_bidi_rnn',
-           'clipped_lrelu', 'kl_normal_normal', 'sample_normal', 'tensor2gaussian']
+           'clipped_lrelu', 'kl_normal_normal', 'sample_normal', 'tensor2gaussian',
+           'create_gaussian_mixture']
 
 
 _global_collections = {}
@@ -86,15 +87,19 @@ def _safe_div(numerator, denominator, name='safe_div'):
                     name=name)
 
 
-# Matrix
-
-def create_2d_tensor(dim1, dim2, trainable=True, init=None, name='tensor'):
+def create_tensor(dims, trainable=True, init=None, name='tensor'):
     if init is None:
-        return tf.get_variable(name, [dim1, dim2], trainable=trainable)
+        return tf.get_variable(name, dims, trainable=trainable)
     else:
         init = np.load(init) if isinstance(init, six.string_types) else init
         return tf.get_variable(
             name, trainable=trainable, initializer=tf.constant(init, dtype=tf.float32))
+
+
+# Matrix
+
+def create_2d_tensor(dim1, dim2, trainable=True, init=None, name='tensor'):
+    return create_tensor((dim1, dim2), trainable=trainable, init=init, name=name)
 
 
 def gather_2d(tensor3d, idx2d, reshape_back=True):
@@ -1054,9 +1059,23 @@ def kl_normal_normal(mu1, logvar1, mu2, logvar2):
     return kld
 
 
-def log_normal(x, mu, logvar):
-    d = float(x.shape[-1])
+def multi_normal_logpdf(x, mu, log_diag_covar):
+    d = int(x.shape[-1])
     log_pi = d * math.log(2 * math.pi)
-    log_det = tf.reduce_sum(logvar, axis=-1)
-    distance = tf.reduce_sum(((x - mu)**2) / tf.exp(logvar), axis=-1)
+    log_det = tf.reduce_sum(log_diag_covar, axis=-1)
+    distance = tf.reduce_sum(((x - mu)**2) / tf.exp(log_diag_covar), axis=-1)
     return -0.5 * (log_det + log_pi + distance)
+
+
+def create_gaussian_mixture(
+        num_components, dimensions, trainable=True,
+        init_weights=None, init_means=None, init_scales=None,
+        scope=None):
+    shape = (num_components, dimensions)
+    with tf.variable_scope(scope or 'gm') as scope:
+        weights = create_tensor(
+            (num_components, ), trainable=trainable, init=init_weights, name='weights')
+        means = create_tensor(shape, trainable=trainable, init=init_means, name='means')
+        scales = create_tensor(
+            shape, trainable=trainable, init=init_scales, name='scales')
+    return weights, means, scales
