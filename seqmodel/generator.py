@@ -21,7 +21,7 @@ __all__ = ['open_files', 'read_lines', 'read_seq_data', 'read_seq2seq_data',
            'word2def_batch_iter', 'reward_ngram_lm', 'concat_word2def_batch',
            'make_ngrams', 'reward_constant', 'reward_progressive_match_label',
            'reward_bleu', 'lseq2seq_batch_iter', 'read_lseq2seq_data',
-           'concat_seq_batch', 'read_ngram_data', 'ngram_batch_iter']
+           'concat_seq_batch']
 
 
 @contextmanager
@@ -63,7 +63,11 @@ def batch_iter(batch_size, shuffle, data, *more_data, pad=[[]]):
     """iterate over data using equally distant pointers. Left overs are always at the
     last sequences of the last batch.
     """
-    all_data = [data] + list(more_data)
+    if callable(data):
+        all_data = data()
+        data = all_data[0]
+    else:
+        all_data = [data] + list(more_data)
     pos = list(range(len(data)))
     num_batch = len(data) // batch_size
     left_over = len(data) % batch_size
@@ -122,7 +126,10 @@ def get_batch_data(
     return batch
 
 
-def read_seq_data(tokenized_lines, in_vocab, out_vocab, keep_sentence=True, seq_len=20):
+def read_seq_data(
+        tokenized_lines, in_vocab, out_vocab, keep_sentence=True, seq_len=20,
+        random_seq_len=False, min_random_seq_len=3, max_random_seq_len=20,
+        data_include_eos=False, add_sos=True):
     """read data in format of [[['tk1_seq1', 'tk2_seq1']], [['tk1_seq2', 'tk2_seq2']]].
     Add start sequence and end sequence symbol.
     If keep_sentence is False, chunk sequence in length of seq_len (except last one)"""
@@ -131,14 +138,19 @@ def read_seq_data(tokenized_lines, in_vocab, out_vocab, keep_sentence=True, seq_
     eos_sym = ds.Vocabulary.special_symbols['end_seq']
     in_data, out_data = [], []
     for line in tokenized_lines:
-        if len(line[0][0]) == 0:  # empty line
-            line = [eos_sym]
+        if data_include_eos:
+            if len(line[0][0]) == 0:
+                continue
+            else:
+                line = line[0]
         else:
-            line = line[0] + [eos_sym]  # assume many parts, but only take first
+            if len(line[0][0]) == 0:  # empty line
+                line = [eos_sym]
+            else:
+                line = line[0] + [eos_sym]  # assume many parts, but only take first
         if keep_sentence:
-            line.insert(0, sos_sym)
-            # if len(line) < 5:
-            #     line = line + [eos_sym]
+            if add_sos:
+                line.insert(0, sos_sym)
             in_data.append(in_vocab.w2i(line[:-1]))
             out_data.append(out_vocab.w2i(line[1:]))
         else:
@@ -148,9 +160,14 @@ def read_seq_data(tokenized_lines, in_vocab, out_vocab, keep_sentence=True, seq_
         in_data.insert(0, in_vocab.w2i(sos_sym))
         in_data = in_data[:-1]
         chunk_in_data, chunk_out_data = [], []
-        for i in range(0, len(in_data), seq_len):
+        i = 0
+        while i < len(in_data):
+            if random_seq_len:
+                seq_len = np.random.randint(
+                    low=min_random_seq_len, high=max_random_seq_len+1)
             chunk_in_data.append(in_data[i: i + seq_len])
             chunk_out_data.append(out_data[i: i + seq_len])
+            i += seq_len
         in_data, out_data = chunk_in_data, chunk_out_data
     return in_data, out_data
 
@@ -337,80 +354,6 @@ def concat_word2def_batch(batch1, batch2):
     seq_weight = np.concatenate((_l1.seq_weight, _l2.seq_weight))
     l = ds.SeqLabelTuple(label, label_weight, seq_weight)
     return ds.BatchTuple(f, l, _n1 + _n2, False)
-
-
-def read_ngram_data(
-        tokenized_lines, in_vocab, out_vocab, normalized=True,
-        min_order=-1, max_order=-1):
-    if max_order == -1:
-        max_order = float('inf')
-    in_data, out_data, seq_weight_data = [], [], []
-    for line in tokenized_lines:
-        num_tokens = len(line[0][0])
-        if num_tokens == 0 or num_tokens < min_order or num_tokens > max_order:
-            continue
-        else:
-            tokens = ['<begin>'] + line[0]
-        in_data.append(in_vocab.w2i(tokens[:-1]))
-        out_data.append([out_vocab.w2i(tokens[-1])])
-        seq_weight_data.append(float(line[-1][0]))
-    if normalized:
-        seq_weight_data = np.array(seq_weight_data)
-        seq_weight_data = seq_weight_data / np.sum(seq_weight_data)
-    return in_data, out_data, seq_weight_data
-
-
-def ngram_batch_iter(
-        in_data, out_data, seq_weight_data, batch_size=1, shuffle=True):
-    for x, y, w in batch_iter(
-            batch_size, shuffle, in_data, out_data, seq_weight_data, pad=[[], [], 0.0]):
-        x_arr, x_len = util.hstack_list(x)
-        y_arr, y_len = util.hstack_list(y)
-        seq_weight = np.array(w, dtype=np.float32)
-        token_weight, num_tokens = util.masked_last_like(
-            y_arr, 1, num_non_padding=y_len)
-        features = ds.SeqFeatureTuple(x_arr, x_len)
-        labels = ds.SeqLabelTuple(y_arr, token_weight, seq_weight)
-        yield ds.BatchTuple(features, labels, num_tokens, False)
-
-
-# def read_ngram_data(
-#         tokenized_lines, in_vocab, out_vocab, normalized=True,
-#         min_order=-1, max_order=-1):
-#     sod_sym_id = out_vocab['<begin>']
-#     if max_order == -1:
-#         max_order = float('inf')
-#     in_data, out_data, seq_weight_data = [], [], []
-#     for line in tokenized_lines:
-#         num_tokens = len(line[0][0])
-#         if num_tokens == 0 or num_tokens < min_order or num_tokens > max_order:
-#             continue
-#         else:
-#             tokens = line[0]
-#         in_data.append(in_vocab.w2i(tokens[:-1]))
-#         out_data.append([sod_sym_id, out_vocab.w2i(tokens[-1])])
-#         seq_weight_data.append(float(line[-1][0]))
-#     if normalized:
-#         seq_weight_data = np.array(seq_weight_data)
-#         seq_weight_data = seq_weight_data / np.sum(seq_weight_data)
-#     return in_data, out_data, seq_weight_data
-
-
-# def ngram_batch_iter(
-#         in_data, out_data, seq_weight_data, batch_size=1, shuffle=True):
-#     for x, y, w in batch_iter(
-#             batch_size, shuffle, in_data, out_data, seq_weight_data, pad=[[], [], 0.0]):
-#         enc, enc_len = util.hstack_list(x)
-#         dec, dec_len = util.hstack_list(y)
-#         in_dec = dec[:-1, :]
-#         out_dec = dec[1:, :]
-#         seq_weight = np.array(w, dtype=np.float32)
-#         dec_len[:] = (seq_weight != 0.0).astype(np.int32)
-#         token_weight, num_tokens = util.masked_full_like(
-#             out_dec, 1, num_non_padding=dec_len)
-#         features = ds.Seq2SeqFeatureTuple(enc, enc_len, in_dec, dec_len)
-#         labels = ds.SeqLabelTuple(out_dec, token_weight, seq_weight)
-#         yield ds.BatchTuple(features, labels, num_tokens, False)
 
 
 def reward_constant(sample, batch, constant=-0.1, sample_score=None):

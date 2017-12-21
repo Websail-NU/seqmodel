@@ -5,5 +5,6 @@ from seqmodel.graph import *
 from seqmodel.model import *
 from seqmodel.run import *
 from seqmodel.contrib import *
+from seqmodel.marginal import *
 from seqmodel import ngram_stat
 from seqmodel import ngram_stats

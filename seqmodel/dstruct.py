@@ -12,16 +12,6 @@ __all__ = ['BatchTuple', 'SeqFeatureTuple', 'SeqLabelTuple', 'Seq2SeqFeatureTupl
            'RunningInfo', 'RunSamplingInfo', 'Word2DefFeatureTuple',
            'LSeq2SeqFeatureTuple']
 
-########################################################
-#    ######## ##     ## ########  ##       ########    #
-#       ##    ##     ## ##     ## ##       ##          #
-#       ##    ##     ## ##     ## ##       ##          #
-#       ##    ##     ## ########  ##       ######      #
-#       ##    ##     ## ##        ##       ##          #
-#       ##    ##     ## ##        ##       ##          #
-#       ##     #######  ##        ######## ########    #
-########################################################
-
 
 BatchTuple = collections.namedtuple(
     'BatchTuple', ('features', 'labels', 'num_tokens', 'keep_state'))
@@ -45,16 +35,6 @@ Word2DefFeatureTuple = collections.namedtuple(
 OutputStateTuple = collections.namedtuple('OutputStateTuple', ('output', 'state'))
 
 IndexScoreTuple = collections.namedtuple('IndexScoreTuple', ('index', 'score'))
-
-##########################################################
-#    ##     ##  #######   ######     ###    ########     #
-#    ##     ## ##     ## ##    ##   ## ##   ##     ##    #
-#    ##     ## ##     ## ##        ##   ##  ##     ##    #
-#    ##     ## ##     ## ##       ##     ## ########     #
-#     ##   ##  ##     ## ##       ######### ##     ##    #
-#      ## ##   ##     ## ##    ## ##     ## ##     ##    #
-#       ###     #######   ######  ##     ## ########     #
-##########################################################
 
 
 class Vocabulary(object):
@@ -153,17 +133,6 @@ class Vocabulary(object):
         return mask
 
 
-##########################################################################
-#    ########  ##     ## ##    ##    #### ##    ## ########  #######     #
-#    ##     ## ##     ## ###   ##     ##  ###   ## ##       ##     ##    #
-#    ##     ## ##     ## ####  ##     ##  ####  ## ##       ##     ##    #
-#    ########  ##     ## ## ## ##     ##  ## ## ## ######   ##     ##    #
-#    ##   ##   ##     ## ##  ####     ##  ##  #### ##       ##     ##    #
-#    ##    ##  ##     ## ##   ###     ##  ##   ### ##       ##     ##    #
-#    ##     ##  #######  ##    ##    #### ##    ## ##        #######     #
-##########################################################################
-
-
 class TrainingState(object):
     def __init__(
             self, learning_rate=1e-4, cur_epoch=0, cur_eval=float('inf'),
@@ -210,6 +179,14 @@ class RunningInfo(object):
         return self._eval_loss / self._num_tokens
 
     @property
+    def exp_eval_loss_str(self):
+        if self.eval_loss < 15:
+            exp_loss = math.exp(self.eval_loss)
+            return f'{exp_loss:.5f}'
+        else:
+            return '>3.0e+6'
+
+    @property
     def train_loss(self):
         return self._train_loss / self._step
 
@@ -244,14 +221,13 @@ class RunningInfo(object):
         self._end_time = time.time()
 
     def summary(self, mode='train'):
-        exp_loss = math.exp(self.eval_loss)
         if mode == 'train':
-            return (f'(T) eval_loss: {self.eval_loss:.5f} ({exp_loss:.5f}), '
+            return (f'(T) eval_loss: {self.eval_loss:.5f} ({self.exp_eval_loss_str}), '
                     f'tr_loss: {self.train_loss:.5f}, '
                     f'wps: {self.wps:.1f}, {self._step} steps in '
                     f'{self.elapse_time:.2f}s')
         else:
-            return (f'(E) eval_loss: {self.eval_loss:.5f} ({exp_loss:.5f}), '
+            return (f'(E) eval_loss: {self.eval_loss:.5f} ({self.exp_eval_loss_str}), '
                     f'wps: {self.wps:.1f}, {self._step} steps in '
                     f'{self.elapse_time:.2f}s')
 
@@ -266,7 +242,6 @@ class RunSamplingInfo(RunningInfo):
         return -1 * self._eval_loss / self._step
 
     def summary(self, mode='train'):
-        exp_loss = math.exp(self.eval_loss)
         if mode == 'train':
             return (f'(T) avg_reward: {-1 * self.eval_loss:.5f}, '
                     f'tr_loss: {self.train_loss:.5f}, '

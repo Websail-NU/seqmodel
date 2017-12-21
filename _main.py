@@ -35,22 +35,23 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
         lr = tf.placeholder(tf.float32, shape=[], name='learning_rate')
         __nodes = train_model.build_graph(model_opt)
         train_model.set_default_feed('train_loss_denom', opt['batch_size'], set_all=True)
+        _train_kwargs = {
+            'learning_rate': lr,
+            'optim_class': train_opt['train:optim_class'],
+            'grad_vars_contain': train_opt['train:grad_vars_contain'],
+            'clip_gradients': train_opt['train:clip_gradients']}
         if pg:
             return_ph = tf.placeholder(tf.float32, shape=(None, None), name='return')
-            train_op = sq.create_pg_train_op(
-                train_model.nll, return_ph,
-                optim_class=train_opt['train:optim_class'],
-                learning_rate=lr, clip_gradients=train_opt['train:clip_gradients'])
+            train_op = sq.create_pg_train_op(train_model.nll, return_ph, **_train_kwargs)
         else:
-            train_op = sq.create_train_op(
-                train_model.training_loss, optim_class=train_opt['train:optim_class'],
-                learning_rate=lr, clip_gradients=train_opt['train:clip_gradients'])
+            train_op = sq.create_train_op(train_model.training_loss, **_train_kwargs)
 
     eval_batch_iter = partial(batch_iter, *data[-1])
     eval_model = model_class()
     nodes = eval_model.build_graph(model_opt, reuse=is_training, no_dropout=True)
 
-    tvar_desc = sq.describe_variables(tf.trainable_variables())
+    tvar_desc = sq.describe_variables(
+        tf.trainable_variables(), train_opt['train:grad_vars_contain'])
     logger.debug(f'Trainable Variables:\n{tvar_desc}')
 
     if is_init_only:
@@ -82,9 +83,11 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
                 train_fn = partial(
                     run_fn, sess, train_model, train_batch_iter, train_op)
                 valid_fn = partial(run_fn, sess, eval_model, valid_batch_iter)
-            begin_epoch_fn = partial(
-                sq.update_learning_rate, partial(train_model.set_default_feed, lr),
-                **sq.dict_with_key_startswith(train_opt, 'lr:'))
+
+            def begin_epoch_fn(train_state):
+                sq.update_learning_rate(
+                    partial(train_model.set_default_feed, lr), train_state,
+                    **sq.dict_with_key_startswith(train_opt, 'lr:'))
 
             def end_epoch_fn(train_state):
                 sq.save_exp(sess, saver, opt['exp_dir'], train_state)

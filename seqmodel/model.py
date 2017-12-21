@@ -5,6 +5,7 @@ import warnings
 from functools import partial
 from collections import ChainMap
 from collections import defaultdict
+from collections import namedtuple
 
 import numpy as np
 import tensorflow as tf
@@ -14,9 +15,8 @@ from seqmodel import dstruct
 from seqmodel import graph as tfg
 
 tfdense = tf.layers.dense
-tfds = tf.contrib.distributions
 
-__all__ = ['Model', 'SeqModel', 'Seq2SeqModel', 'Word2DefModel', 'AESeqModel']
+__all__ = ['Model', 'SeqModel', 'Seq2SeqModel', 'Word2DefModel']
 
 
 class Model(object):
@@ -304,32 +304,27 @@ class SeqModel(Model):
         # output
         if opt['out:logit']:
             logit, output_fectch, output_nodes = self._build_logit(
-                opt, reuse_scope, collect_kwargs, emb_vars_, cell_output_,
-                initial_state=initial_state_)
+                opt, reuse_scope, collect_kwargs, emb_vars_, cell_output_, nodes=nodes)
             predict_fetch.update(output_fectch)
             nodes.update(output_nodes)
-        # loss
-        if opt['out:loss'] and opt['out:logit']:
-            train_fetch, eval_fetch, loss_nodes = self._build_loss(
-                opt, logit, label_, token_weight_, seq_weight_, nodes, collect_key,
-                collect_kwargs['add_to_collection'],
-                inputs=input_, cell_output=cell_output_, initial_state=initial_state_)
-            nodes.update(loss_nodes)
-            graph_args.update(train_fetch=train_fetch, eval_fetch=eval_fetch)
-        elif not opt['out:logit'] and opt['out:loss']:
-            raise ValueError('out:logit is False, cannot build loss graph')
         # decode
-        if opt['out:decode'] and opt['out:logit']:
-            if not (opt['decode:add_greedy'] or opt['decode:add_sampling']):
-                assert ValueError(('Both decode:add_greedy and decode:add_sampling are '
-                                   ' False. out:decode should not be True.'))
+        if opt['out:decode']:
+            assert opt['out:logit'], 'out:logit is False, cannot build decode graph'
+            assert (opt['decode:add_greedy'] or opt['decode:add_sampling']), \
+                'Need either decode:add_greedy and decode:add_sampling for out:decode.'
             decode_result, decode_nodes = self._build_decoder(
                 opt, nodes, reuse_scope[self._RSK_RNN_], collect_key,
                 collect_kwargs['add_to_collection'])
             predict_fetch.update(decode_result)
             nodes.update(decode_nodes)
-        elif not opt['out:logit'] and opt['out:decode']:
-            raise ValueError('out:logit is False, cannot build decode graph')
+        # loss
+        if opt['out:loss']:
+            assert opt['out:logit'], 'out:logit is False, cannot build loss graph'
+            train_fetch, eval_fetch, loss_nodes = self._build_loss(
+                opt, logit, label_, token_weight_, seq_weight_, nodes, collect_key,
+                collect_kwargs['add_to_collection'], inputs=input_)
+            nodes.update(loss_nodes)
+            graph_args.update(train_fetch=train_fetch, eval_fetch=eval_fetch)
         return nodes, graph_args
 
     def _build_rnn(
@@ -338,7 +333,7 @@ class SeqModel(Model):
         cell_opt = util.dict_with_key_startswith(opt, 'cell:')
         with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
             _reuse = reuse or scope is not None
-            cell_ = tfg.create_cells(reuse=_reuse, input_size=opt['emb:dim'], **cell_opt)
+            cell_ = tfg.create_cells(input_size=opt['emb:dim'], **cell_opt)
             cell_output_, initial_state_, final_state_ = tfg.create_rnn(
                 cell_, lookup, seq_len, initial_state, rnn_fn=opt['rnn:fn'],
                 batch_size=batch_size)
@@ -348,8 +343,7 @@ class SeqModel(Model):
         return cell_, cell_output_, initial_state_, final_state_, {}
 
     def _build_logit(
-            self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output,
-            initial_state=None):
+            self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output, **kwargs):
         # logit
         logit_w_ = emb_vars if opt['share:input_emb_logit'] else None
         logit_opt = util.dict_with_key_startswith(opt, 'logit:')
@@ -370,7 +364,7 @@ class SeqModel(Model):
 
     def _build_loss(
             self, opt, logit, label, weight, seq_weight, nodes, collect_key,
-            add_to_collection, inputs=None, cell_output=None, initial_state=None):
+            add_to_collection, inputs=None, **kwargs):
         if opt['xxx:add_first_token']:
             label = nodes['full_seq']
             weight = tf.concat(
@@ -379,7 +373,7 @@ class SeqModel(Model):
             with tfg.tfph_collection(collect_key, add_to_collection) as get:
                 name = 'train_loss_denom'
                 train_loss_denom_ = get(name, tf.float32, shape=[])
-            mean_loss_, train_loss_, batch_loss_, nll_ = tfg.create_xent_loss(
+            mean_loss_, train_loss_, batch_nll_, nll_ = tfg.create_xent_loss(
                 logit, label, weight, seq_weight, train_loss_denom_)
             if opt['loss:add_entropy']:
                 _sum_minus_ent, minus_avg_ent_ = tfg.create_ent_loss(
@@ -399,7 +393,7 @@ class SeqModel(Model):
             if opt['loss:eval_nll']:
                 eval_fetch['nll'] = nll_
         else:
-            raise ValueError(f'{opt["loss:type"]} is not supported, use (xent or mse)')
+            raise ValueError(f'{opt["loss:type"]} is not supported.')
         nodes = util.dict_with_key_endswith(locals(), '_')
         nodes.update(gns_nodes)
         return train_fetch, eval_fetch, nodes
@@ -741,97 +735,3 @@ class Word2DefModel(Seq2SeqModel):
 
     def _build_dec_attn_logit(self, *args, **kwargs):
         raise ValueError('`dec:attn_enc_output` is not supported in DM.')
-
-
-class AESeqModel(SeqModel):
-
-    @classmethod
-    def default_opt(cls):
-        opt = super().default_opt()
-        opt['rnn:use_bw_state'] = False
-        opt['rnn:bw_is_stochastic'] = False
-        opt['rnn:gmm_path'] = None
-        return opt
-
-    def _qy_graph(self, opt, n_components, inputs):
-        input_dim = inputs.shape[-1]
-        with tf.variable_scope('qy'):
-            h1 = tfdense(inputs, input_dim, activation=tf.nn.relu, name='l1')
-            h2 = tfdense(h1, input_dim, activation=tf.nn.relu, name='l2')
-            qy_logits = tfdense(h2, n_components, name='logits')
-            qy_cat = tfds.RelaxedOneHotCategorical(0.2, logits=qy_logits)
-        return qy_logits, qy_cat.sample()
-
-    def _qz_graph(self, opt, n_components, inputs, y, means=None, scales=None):
-        input_dim = inputs.shape[-1]
-        with tf.variable_scope('qz'):
-            xy = tf.concat((inputs, y), -1)
-            h1 = tfdense(xy, input_dim, activation=tf.nn.relu, name='l1')
-            h2 = tfdense(h1, input_dim, activation=tf.nn.relu, name='l2')
-            qz_mean = tfdense(h2, input_dim, name='mean')
-            qz_scale = tfdense(h2, input_dim, activation=tf.nn.softplus, name='scale')
-            qz = tf.distributions.Normal(qz_mean, qz_scale)
-            # z_mvn = tfds.MultivariateNormalDiag(loc=means, scale_diag=scales)
-            # z_samples = z_mvn.sample(tf.shape(y)[0])
-            # qz_samples = tf.reduce_sum(z_samples * y[:, :, tf.newaxis], axis=-2)
-            # mask = tf.one_hot(indices=y, depth=n_components, dtype=tf.float32)
-            # qz_samples = tf.reduce_sum(
-            #     z_samples * mask[:, :, tf.newaxis], axis=-2)
-        return qz.sample()
-
-    def _qyz_graph(self, opt, bw_final_state):
-        q_inputs = tf.concat(bw_final_state, -1)
-        n_components = 64
-        # with open(opt['rnn:gmm_path'], mode='rb') as f:
-        #     sklearn_gmm = pickle.load(f)
-        # n_components = sklearn_gmm.n_components
-        # dimensions = sklearn_gmm.means_.shape[-1]
-        # weights, means, scales = tfg.create_gaussian_mixture(
-        #     n_components, dimensions, trainable=False,
-        #     init_weights=sklearn_gmm.weights_, init_means=sklearn_gmm.means_,
-        #     init_scales=np.sqrt(sklearn_gmm.covariances_))
-        qy_logits, qy_samples = self._qy_graph(opt, n_components, q_inputs)
-        qz_samples = self._qz_graph(
-            opt, n_components, q_inputs, qy_samples)
-        qz = tuple(tf.split(qz_samples, 2, axis=-1))
-        return qz, 0
-
-    def _build_rnn(
-            self, opt, lookup, seq_len, initial_state, batch_size, reuse_scope, reuse,
-            nodes):
-        cell_opt = util.dict_with_key_startswith(opt, 'cell:')
-        unroll_rnn = partial(tfg.create_rnn, rnn_fn=opt['rnn:fn'], batch_size=batch_size)
-        # Posterior Backward
-        with tf.variable_scope('bw'):
-            seq_lookup = nodes.get('full_lookup', lookup)
-            bw_lookup = tf.reverse_sequence(
-                seq_lookup, seq_len+1, seq_axis=0, batch_axis=1)
-            bw_cell = tfg.create_cells(input_size=opt['emb:dim'], **cell_opt)
-            bw_co, _is, bw_final_state = unroll_rnn(bw_cell, bw_lookup, seq_len, None)
-            if opt['rnn:bw_is_stochastic']:
-                bw_final_state, self._regularizer = self._qyz_graph(opt, bw_final_state)
-        with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
-            _reuse = reuse or scope is not None
-            cell_ = tfg.create_cells(reuse=_reuse, input_size=opt['emb:dim'], **cell_opt)
-            # Prior Forward
-            p_cell_output_, p_initial_state_, p_final_state_ = unroll_rnn(
-                cell_, lookup, seq_len, initial_state)
-            # Posterior Forward
-            q_cell_output_, q_initial_state_, q_final_state_ = unroll_rnn(
-                cell_, lookup, seq_len, bw_final_state)
-        if opt['rnn:use_bw_state']:
-            if not hasattr(self, '_regularizer'):
-                self._regularizer = 0
-            first_token_cell_output = q_initial_state_[-1]
-            cell_output_ = q_cell_output_
-            if not opt['rnn:bw_is_stochastic']:
-                for fw_state, bw_state in zip(p_initial_state_, bw_final_state):
-                    self._regularizer = tf.nn.l2_loss(fw_state - bw_state)
-        else:
-            cell_output_ = p_cell_output_
-            first_token_cell_output = p_initial_state_[-1]
-        if opt['xxx:add_first_token']:
-            cell_output_ = tf.concat(
-                [tf.expand_dims(first_token_cell_output, 0), cell_output_], 0)
-        extra_nodes = {'bw_final_state': bw_final_state}
-        return cell_, cell_output_, p_initial_state_, p_final_state_, extra_nodes

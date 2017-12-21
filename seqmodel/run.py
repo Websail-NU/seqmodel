@@ -26,7 +26,8 @@ def _no_run(*args, **kwargs):
 
 def default_training_opt():
     return {'train:max_epoch': 10, 'train:init_lr': 0.001, 'train:clip_gradients': 10.0,
-            'train:optim_class': 'tensorflow.train.AdamOptimizer', 'lr:min_lr': 1e-6,
+            'train:optim_class': 'tensorflow.train.AdamOptimizer',
+            'train:grad_vars_contain': '', 'lr:min_lr': 1e-6,
             'lr:start_decay_at': 1, 'lr:decay_every': 1, 'lr:decay_factor': 1.0,
             'lr:imp_ratio_threshold': 0.0, 'lr:imp_wait': 2}
 
@@ -278,11 +279,14 @@ def cached_uncond_lm_decode(sess, model, feature_seed, greedy=False, vocabs=None
         yield output, vocabs
 
 
-def describe_variables(variables):
+def describe_variables(variables, grad_vars_contain):
     var_desc = []
     total_params = 0
     for v in variables:
-        var_desc.append(f'- {v.name}, {v.shape}')
+        if grad_vars_contain in v.name:
+            var_desc.append(f'- {v.name}, {v.shape}')
+        else:
+            var_desc.append(f'- {v.name}, {v.shape}, fixed')
         total_params += int(np.prod(v.shape))
     var_desc.append(f'Total parameters: {total_params:5E}')
     return '\n'.join(var_desc)

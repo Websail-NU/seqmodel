@@ -1,5 +1,6 @@
 import six
 import math
+import pickle
 import warnings
 from pydoc import locate
 from functools import partial
@@ -11,6 +12,7 @@ import tensorflow as tf
 from seqmodel import util
 from seqmodel import dstruct
 
+tfdense = tf.layers.dense
 
 __all__ = ['_safe_div', 'tfph_collection', 'create_2d_tensor', 'matmul', 'create_cells',
            'create_rnn', 'select_rnn', 'select_nested_rnn', 'create_tdnn', 'maybe_scope',
@@ -22,9 +24,7 @@ __all__ = ['_safe_div', 'tfph_collection', 'create_2d_tensor', 'matmul', 'create
            'create_pg_train_op', 'seeded_decode_select_fn', 'greedy_decode_select',
            'sampling_decode_select', 'create_gated_layer', 'gather_2d', 'shift',
            'create_global_stat_loss', 'meshgrid3d', 'mat3indices', 'create_neural_cache',
-           'create_cache2logit', 'create_acache2logit', 'create_bidi_rnn',
-           'clipped_lrelu', 'kl_normal_normal', 'sample_normal', 'tensor2gaussian',
-           'create_gaussian_mixture']
+           'create_cache2logit', 'create_acache2logit', 'create_bidi_rnn']
 
 
 _global_collections = {}
@@ -187,7 +187,7 @@ def _tf_shape_of_tensor_or_tuple(inputs, dim=1):
 
 
 def create_cells(
-        num_units, num_layers, cell_class=tf.nn.rnn_cell.BasicLSTMCell, reuse=False,
+        num_units, num_layers, cell_class=tf.nn.rnn_cell.BasicLSTMCell,
         in_keep_prob=1.0, out_keep_prob=1.0, state_keep_prob=1.0, variational=False,
         input_size=None, dropout_last_output=True, **cell_kwargs):
     """return an RNN cell with optionally DropoutWrapper and MultiRNNCell."""
@@ -653,17 +653,19 @@ def sampling_decode_select(_t, logit):
     return idx, score
 
 
+# Attention
+
 def attn_dot(q, k, v, q_len=None, v_len=None, time_major=True):
     q_is_2d = len(q.get_shape()) == 2
     with tf.variable_scope('dot_product_attn'):
         if time_major:
-            k = tf.transpose(k, [1, 0, 2])
-            v = tf.transpose(v, [1, 0, 2])
+            k = tf.transpose(k, [1, 0, 2])  # (b, n, d)
+            v = tf.transpose(v, [1, 0, 2])  # (b, n, d)
             if len(q.get_shape()) == 3:
-                q = tf.transpose(q, [1, 0, 2])
+                q = tf.transpose(q, [1, 0, 2])  # (b, 1, d)
         if q_is_2d:
             q = tf.expand_dims(q, axis=1)
-        logits = tf.matmul(q, k, transpose_b=True)
+        logits = tf.matmul(q, k, transpose_b=True)  # (b, 1, n)
         # TODO: mask logits on the padding (for both q and k)
         scores = tf.nn.softmax(logits)
         attn_context = tf.matmul(scores, v)
@@ -816,9 +818,9 @@ def create_xent_loss(logit, label, weight, seq_weight=None, loss_denom=None):
         training_loss = _safe_div(sum_loss, loss_denom)
     else:
         training_loss = sum_loss
-    batch_loss = tf.reduce_sum(tf.multiply(loss, weight), axis=0)
-    batch_loss = batch_loss / tf.reduce_sum(weight, axis=0)
-    return mean_loss, training_loss, batch_loss, nll
+    batch_nll = tf.reduce_sum(tf.multiply(loss, weight), axis=0)
+    # batch_loss = batch_loss / tf.reduce_sum(weight, axis=0)
+    return mean_loss, training_loss, batch_nll, nll
 
 
 def create_ent_loss(distribution, weight, seq_weight=None):
@@ -982,15 +984,15 @@ def _create_global_stat_loss(
 
 def create_train_op(
         loss, optim_class=tf.train.AdamOptimizer, learning_rate=0.001,
-        clip_gradients=5.0, **optim_kwarg):
+        clip_gradients=5.0, grad_vars_contain='', **optim_kwarg):
     """return train operation graph"""
     if isinstance(optim_class, six.string_types):
         optim_class = locate(optim_class)
     optim = optim_class(learning_rate=learning_rate, **optim_kwarg)
-    var_list = tf.trainable_variables()
+    # var_list = tf.trainable_variables()
     var_list = []
     for v in tf.trainable_variables():
-        if 'bw' in v.name:
+        if grad_vars_contain in v.name:
             var_list.append(v)
     g_v_pairs = optim.compute_gradients(loss, var_list=var_list)
     grads, tvars = [], []
@@ -1006,76 +1008,18 @@ def create_train_op(
 
 def create_pg_train_op(
         nll, return_ph, optim_class=tf.train.AdamOptimizer, learning_rate=0.001,
-        clip_gradients=5.0, **optim_kwarg):
+        clip_gradients=5.0, grad_vars_contain='', **optim_kwarg):
     """return train operation graph"""
     if isinstance(optim_class, six.string_types):
         optim_class = locate(optim_class)
-    variables = tf.trainable_variables()
-    grads = tf.gradients(nll, variables, grad_ys=return_ph)
+    # variables = tf.trainable_variables()
+    # var_list = tf.trainable_variables()
+    var_list = []
+    for v in tf.trainable_variables():
+        if grad_vars_contain in v.name:
+            var_list.append(v)
+    grads = tf.gradients(nll, var_list, grad_ys=return_ph)
     optim = optim_class(learning_rate=learning_rate, **optim_kwarg)
     clipped_grads, _norm = tf.clip_by_global_norm(grads, clip_gradients)
-    train_op = optim.apply_gradients(zip(clipped_grads, variables))
+    train_op = optim.apply_gradients(zip(clipped_grads, var_list))
     return train_op
-
-
-# Bayes
-
-def clipped_lrelu(x, alpha=1/3):
-    return tf.clip_by_value(tf.maximum(x, alpha * x), -3, 3)
-
-
-def tensor2gaussian(
-        tensor, out_dim, residual_mu=None, residual_logvar=None,
-        activation=None, name='gaussian'):
-    if activation is None:
-        activation = tf.nn.tanh
-    # g_hidden = tf.layers.dense(
-    #     tensor, out_dim*2, activation=None, name=f'{name}_hidden')
-    # g_params = tf.layers.dense(
-    #     g_hidden, out_dim*2, activation=None, name=f'{name}_output')
-    g_params = tf.layers.dense(
-        tensor, out_dim*2, activation=None, name=f'{name}_output')
-
-    mu = tf.slice(g_params, [0, 0], [-1, out_dim])
-    if residual_mu is not None:
-        mu += residual_mu
-    logvar = tf.slice(g_params, [0, out_dim], [-1, -1])
-    if residual_logvar is not None:
-        logvar += residual_logvar
-    logvar = tf.log(tf.exp(logvar) + 1e-6)
-    return mu, logvar
-
-
-def sample_normal(mu, logvar):
-    epsilon = tf.random_normal(tf.shape(logvar))
-    std = tf.exp(0.5 * logvar)
-    z = mu + tf.multiply(std, epsilon)
-    return z
-
-
-def kl_normal_normal(mu1, logvar1, mu2, logvar2):
-    kld = 0.5 * logvar2 - 0.5 * logvar1
-    kld += (tf.exp(logvar1) + (mu1 - mu2) ** 2) / (2 * tf.exp(logvar2)) - 0.5
-    return kld
-
-
-def multi_normal_logpdf(x, mu, log_diag_covar):
-    d = int(x.shape[-1])
-    log_pi = d * math.log(2 * math.pi)
-    log_det = tf.reduce_sum(log_diag_covar, axis=-1)
-    distance = tf.reduce_sum(((x - mu)**2) / tf.exp(log_diag_covar), axis=-1)
-    return -0.5 * (log_det + log_pi + distance)
-
-
-def create_gaussian_mixture(
-        num_components, dimensions, trainable=True,
-        init_weights=None, init_means=None, init_scales=None,
-        scope=None):
-    shape = (num_components, dimensions)
-    with tf.variable_scope(scope or 'gm') as scope:
-        weights = create_tensor(
-            (num_components, ), trainable=trainable, init=init_weights, name='weights')
-        means = create_tensor(shape, trainable=trainable, init=init_means, name='means')
-        scales = create_tensor(
-            shape, trainable=trainable, init=init_scales, name='scales')
-    return weights, means, scales

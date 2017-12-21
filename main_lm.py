@@ -24,23 +24,53 @@ if __name__ == '__main__':
     parser.add_argument('--char_data', action='store_true', help=' ')
     parser.add_argument('--seq_len', type=int, default=20, help=' ')
     parser.add_argument('--sentence_level', action='store_true', help=' ')
+    parser.add_argument('--random_seq_len', action='store_true', help=' ')
+    parser.add_argument('--random_seq_len_min', type=int, default=4, help=' ')
+    parser.add_argument('--random_seq_len_max', type=int, default=20, help=' ')
     sq.add_arg_group_defaults(parser, group_default)
     opt, groups = sq.parse_set_args(parser, group_default)
     logger, all_opt = sq.init_exp_opts(opt, groups, group_default)
     opt, model_opt, train_opt, decode_opt = all_opt
 
-    def data_fn():
+    def data_fn(splits=None):
+        if splits is None:
+            load_files = (opt['train_file'], opt['valid_file'], opt['eval_file'])
+        else:
+            load_files = []
+            if 'train' in splits:
+                load_files.append(opt['train_file'])
+            if 'valid' in splits:
+                load_files.append(opt['valid_file'])
+            if 'eval' in splits:
+                load_files.append(opt['eval_file'])
         dpath = partial(os.path.join, opt['data_dir'])
         vocab = sq.Vocabulary.from_vocab_file(dpath('vocab.txt'))
         data_fn = partial(
             sq.read_seq_data, in_vocab=vocab, out_vocab=vocab,
             keep_sentence=opt['sentence_level'], seq_len=opt['seq_len'])
         sep = '' if opt['char_data'] else ' '
-        data = [data_fn(sq.read_lines(dpath(f), token_split=sep))
-                for f in (opt['train_file'], opt['valid_file'], opt['eval_file'])]
-        batch_iter = partial(sq.seq_batch_iter, batch_size=opt['batch_size'],
-                             shuffle=opt['sentence_level'],
-                             keep_sentence=opt['sentence_level'])
+        data = [data_fn(sq.read_lines(dpath(f), token_split=sep)) for f in load_files]
+        # batch_iter = partial(
+        #     sq.seq_batch_iter, batch_size=opt['batch_size'],
+        #     shuffle=opt['sentence_level'], keep_sentence=opt['sentence_level'])
+        batch_iter = partial(
+            sq.seq_batch_iter, batch_size=opt['batch_size'],
+            shuffle=True, keep_sentence=opt['sentence_level'])
+
+        if opt['random_seq_len']:
+
+            def re_chunk_train_data():
+                train_path = os.path.join(opt['data_dir'], opt['train_file'])
+                return sq.read_seq_data(
+                    sq.read_lines(train_path, token_split=sep),
+                    in_vocab=vocab, out_vocab=vocab,
+                    keep_sentence=opt['sentence_level'], seq_len=opt['seq_len'],
+                    random_seq_len=opt['random_seq_len'],
+                    min_random_seq_len=opt['random_seq_len_min'],
+                    max_random_seq_len=opt['random_seq_len_max'])
+
+            data[0] = [re_chunk_train_data, None]
+
         return data, batch_iter, (vocab, vocab)
 
     if opt['command'] == 'decode':
