@@ -593,8 +593,9 @@ class Seq2SeqModel(SeqModel):
             self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output, enc_output,
             full_opt, reuse, initial_state=None):
         with tf.variable_scope('attention', reuse=reuse) as attn_scope:
-            attn_context_, attn_scores_ = tfg.attn_dot(
-                q=cell_output, k=enc_output, v=enc_output, time_major=True)
+            attn_context_, attn_scores_ = tfg.attend_dot(
+                q=cell_output, k=enc_output, v=enc_output,
+                time_major=True, out_q_major=True)
             attn_dec_output_ = tf.concat([cell_output, attn_context_], axis=-1)
             attn_dec_output_ = tf.layers.dense(
                 attn_dec_output_, cell_output.get_shape()[-1],
@@ -606,7 +607,7 @@ class Seq2SeqModel(SeqModel):
 
     def _build_dec_attn_logit(self, cell_output, enc_output, full_opt):
         with tfg.maybe_scope(self._attn_scope):
-            attn_context_, attn_scores_ = tfg.attn_dot(
+            attn_context_, attn_scores_ = tfg.attend_dot(
                 q=cell_output, k=enc_output, v=enc_output, time_major=True)
             attn_dec_output_ = tf.concat([cell_output, attn_context_], axis=-1)
             attn_dec_output_ = tf.layers.dense(

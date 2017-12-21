@@ -20,7 +20,7 @@ __all__ = ['_safe_div', 'tfph_collection', 'create_2d_tensor', 'matmul', 'create
            'get_seq_label_placeholders', 'create_lookup', 'get_logit_layer',
            'select_from_logit', 'create_xent_loss', 'create_ent_loss',
            'create_slow_feature_loss', 'create_l2_loss', 'create_train_op',
-           'empty_tfph_collection', 'scan_rnn_no_mask', 'create_decode',
+           'empty_tfph_collection', 'scan_rnn_no_mask', 'create_decode', 'attend_dot',
            'create_pg_train_op', 'seeded_decode_select_fn', 'greedy_decode_select',
            'sampling_decode_select', 'create_gated_layer', 'gather_2d', 'shift',
            'create_global_stat_loss', 'meshgrid3d', 'mat3indices', 'create_neural_cache',
@@ -519,7 +519,7 @@ def create_acache2logit(
         return ac_output, tf.log(scores) + my_max, is_hit
 
 
-# Update
+# Gated layers
 
 def create_gated_layer(
         carried, extra, carried_keep_prob=1.0, extra_keep_prob=1.0, fine_grain=False):
@@ -655,26 +655,33 @@ def sampling_decode_select(_t, logit):
 
 # Attention
 
-def attn_dot(q, k, v, q_len=None, v_len=None, time_major=True):
+def attend_dot(
+        q, k, v, q_len=None, v_len=None, time_major=True, out_q_major=True,
+        gumbel_sampling=False, gumbel_temperature=1.0):
     q_is_2d = len(q.get_shape()) == 2
     with tf.variable_scope('dot_product_attn'):
-        if time_major:
-            k = tf.transpose(k, [1, 0, 2])  # (b, n, d)
-            v = tf.transpose(v, [1, 0, 2])  # (b, n, d)
+        if time_major:  # need to convert to (b, n, d)
+            k = tf.transpose(k, [1, 0, 2])
+            v = tf.transpose(v, [1, 0, 2])
             if len(q.get_shape()) == 3:
-                q = tf.transpose(q, [1, 0, 2])  # (b, 1, d)
+                q = tf.transpose(q, [1, 0, 2])
         if q_is_2d:
-            q = tf.expand_dims(q, axis=1)
-        logits = tf.matmul(q, k, transpose_b=True)  # (b, 1, n)
+            q = tf.expand_dims(q, axis=1)  # (b, 1, d)
+        logits = tf.matmul(q, k, transpose_b=True)  # (b, m, n)
         # TODO: mask logits on the padding (for both q and k)
-        scores = tf.nn.softmax(logits)
+        if gumbel_sampling:
+            cat = tf.contrib.distributions.RelaxedOneHotCategorical(
+                gumbel_temperature, logits=logits)
+            scores = cat.sample()
+        else:
+            scores = tf.nn.softmax(logits)
         attn_context = tf.matmul(scores, v)
-        if time_major and q_is_2d:
-            attn_context = tf.squeeze(attn_context, axis=1)
-        elif not time_major and q_is_2d:
-            attn_context = tf.squeeze(attn_context, axis=0)
-        elif time_major:
-            attn_context = tf.transpose(attn_context, [1, 0, 2])
+        if q_is_2d:
+            attn_context = tf.squeeze(attn_context, axis=1)  # (b, d)
+            scores = tf.squeeze(scores, axis=1)  # (b, n)
+        if out_q_major and not q_is_2d:
+            attn_context = tf.transpose(attn_context, [1, 0, 2])  # (m, b, d)
+            scores = tf.transpose(scores, [1, 0, 2])  # (m, b, n)
         return attn_context, scores
 
 
