@@ -657,7 +657,7 @@ def sampling_decode_select(_t, logit):
 
 def attend_dot(
         q, k, v, q_len=None, v_len=None, time_major=True, out_q_major=True,
-        gumbel_sampling=False, gumbel_temperature=1.0):
+        gumbel_select=False, gumbel_temperature=1.0):
     q_is_2d = len(q.get_shape()) == 2
     with tf.variable_scope('dot_product_attn'):
         if time_major:  # need to convert to (b, n, d)
@@ -669,7 +669,7 @@ def attend_dot(
             q = tf.expand_dims(q, axis=1)  # (b, 1, d)
         logits = tf.matmul(q, k, transpose_b=True)  # (b, m, n)
         # TODO: mask logits on the padding (for both q and k)
-        if gumbel_sampling:
+        if gumbel_select:
             cat = tf.contrib.distributions.RelaxedOneHotCategorical(
                 gumbel_temperature, logits=logits)
             scores = cat.sample()
