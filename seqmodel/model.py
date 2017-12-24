@@ -13,6 +13,7 @@ import tensorflow as tf
 from seqmodel import util
 from seqmodel import dstruct
 from seqmodel import graph as tfg
+from seqmodel.cells import AttendedInputCellWrapper
 
 tfdense = tf.layers.dense
 
@@ -334,6 +335,7 @@ class SeqModel(Model):
         with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
             _reuse = reuse or scope is not None
             cell_ = tfg.create_cells(input_size=opt['emb:dim'], **cell_opt)
+            cell_ = AttendedInputCellWrapper(cell_, each_input_dim=200)
             cell_output_, initial_state_, final_state_ = tfg.create_rnn(
                 cell_, lookup, seq_len, initial_state, rnn_fn=opt['rnn:fn'],
                 batch_size=batch_size)
@@ -379,8 +381,6 @@ class SeqModel(Model):
                 _sum_minus_ent, minus_avg_ent_ = tfg.create_ent_loss(
                     tf.nn.softmax(logit), tf.abs(weight), tf.abs(seq_weight))
                 train_loss_ = train_loss_ + minus_avg_ent_
-            if hasattr(self, '_regularizer'):
-                train_loss_ += self._regularizer / train_loss_denom_
             # train_loss_ = tf.Print(train_loss_, [train_loss_])
             gns_nodes = {}
             if opt['loss:add_gns']:

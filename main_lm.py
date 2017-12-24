@@ -11,7 +11,7 @@ from _main import decode
 from _decode import decode_lm
 
 
-MODEL_CLASS = sq.AESeqModel
+MODEL_CLASS = sq.SeqModel
 
 
 if __name__ == '__main__':
@@ -50,12 +50,12 @@ if __name__ == '__main__':
             keep_sentence=opt['sentence_level'], seq_len=opt['seq_len'])
         sep = '' if opt['char_data'] else ' '
         data = [data_fn(sq.read_lines(dpath(f), token_split=sep)) for f in load_files]
-        # batch_iter = partial(
-        #     sq.seq_batch_iter, batch_size=opt['batch_size'],
-        #     shuffle=opt['sentence_level'], keep_sentence=opt['sentence_level'])
         batch_iter = partial(
             sq.seq_batch_iter, batch_size=opt['batch_size'],
-            shuffle=True, keep_sentence=opt['sentence_level'])
+            shuffle=opt['sentence_level'], keep_sentence=opt['sentence_level'])
+        # batch_iter = partial(
+        #     sq.seq_batch_iter, batch_size=opt['batch_size'],
+        #     shuffle=True, keep_sentence=opt['sentence_level'])
 
         if opt['random_seq_len']:
 

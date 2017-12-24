@@ -670,9 +670,16 @@ def attend_dot(
         logits = tf.matmul(q, k, transpose_b=True)  # (b, m, n)
         # TODO: mask logits on the padding (for both q and k)
         if gumbel_select:
-            cat = tf.contrib.distributions.RelaxedOneHotCategorical(
-                gumbel_temperature, logits=logits)
-            scores = cat.sample()
+            temp_var = tf.get_variable(
+                'gumbel_temperature', dtype=tf.float32, initializer=gumbel_temperature,
+                trainable=False)
+            update_temp = tf.assign(temp_var, tf.maximum(0.4, temp_var * 0.9998))
+            with tf.control_dependencies([update_temp]):
+                # temp_var = tf.Print(temp_var, [temp_var])
+                cat = tf.contrib.distributions.RelaxedOneHotCategorical(
+                    temp_var, logits=logits)
+                scores = cat.sample()
+            # scores = tf.Print(scores, [scores[0]])
         else:
             scores = tf.nn.softmax(logits)
         attn_context = tf.matmul(scores, v)
