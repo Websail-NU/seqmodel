@@ -2,9 +2,11 @@ import sys
 import os
 import argparse
 import json
+import six
 from collections import ChainMap
 from functools import partial
 import logging as py_logging
+from pydoc import locate
 
 
 import numpy as np
@@ -19,7 +21,7 @@ __all__ = ['dict_with_key_startswith', 'dict_with_key_endswith', 'get_with_dot_k
            'parse_set_args', 'add_arg_group_defaults', 'ensure_dir', 'time_span_str',
            'init_exp_opts', 'save_exp', 'load_exp', 'hstack_with_padding', 'chunks',
            'vstack_with_padding', 'group_data', 'find_first_min_zero',
-           'get_recursive_dict', 'filter_tfvars_in_checkpoint']
+           'get_recursive_dict', 'filter_tfvars_in_checkpoint', 'get_model_class']
 
 
 def chunks(alist, num_chunks):
@@ -324,8 +326,22 @@ def get_common_argparser(prog, usage=None, description=None):
                         help='batch size to run the model.')
     parser.add_argument('--eval_latest', action='store_true',
                         help='load latest model for eval, rather than best model.')
+    parser.add_argument('--model_class', type=str, default='', help=' ')
     # parser.add_argument('--decode_outpath', type=str, default='decode.txt', help=' ')
     return parser
+
+
+def get_sys_argv_after_key(key, default=None):
+    if key in sys.argv:
+        return sys.argv[sys.argv.index(key) + 1]
+    return default
+
+
+def get_model_class(default=None):
+    kls = get_sys_argv_after_key('--model_class', default=default)
+    if isinstance(kls, six.string_types):
+        return locate(kls)
+    return kls
 
 
 def add_arg_group_defaults(parser, group_default):

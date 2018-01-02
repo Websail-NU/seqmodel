@@ -96,7 +96,7 @@ def run_epoch(
             state = None
         if end_step_fn is not None:
             end_step_fn(step_info=info, train_state=train_state)
-        info.update_step(result, batch.num_tokens)
+        info.update_step(result, batch)
     info.end()
     return info
 
@@ -118,7 +118,7 @@ def run_collecting_epoch(
             result, state = result  # ds.OutputStateTuple
         else:
             state = None
-        info.update_step(result, batch.num_tokens)
+        info.update_step(result, batch)
     info.end()
     return info
 
@@ -151,7 +151,7 @@ def run_sampling_epoch(
     elif with_score:
         decode_fn = model.decode_sampling_w_score
     train_result, score = None, None
-    info = ds.RunSamplingInfo()
+    info = ds.RunRewardInfo()
     for batch in batch_iter():
         sample, __ = decode_fn(sess, batch.features)
         if with_score:
@@ -165,7 +165,7 @@ def run_sampling_epoch(
             train_result, __ = model.train(
                 sess, train_batch.features, train_batch.labels, train_op=train_op)
             num_tokens = train_batch.num_tokens
-        info.update_step(avg_reward, num_tokens, train_result)
+        info.update_step(avg_reward, batch, train_result)
     info.end()
     return info
 
@@ -182,10 +182,10 @@ def train(
             begin_epoch_fn(train_state)
         logger.info(train_state.summary(mode='train'))
         state_info = train_run_epoch_fn(train_state=train_state)
-        logger.info(state_info.summary(mode='train'))
+        state_info.log_summary(logger, mode='train')
         if valid_run_epoch_fn is not None:
             valid_info = valid_run_epoch_fn()
-            logger.info(valid_info.summary(mode='valid'))
+            valid_info.log_summary(logger, mode='valid')
             state_info = valid_info
         train_state.update_epoch(state_info)
         if end_epoch_fn is not None:

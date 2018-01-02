@@ -12,4 +12,4 @@ __pycache__
 *.code-workspace
 *.ini
 .vscode
-run_experiment_steve.sh
+run_experiment_*

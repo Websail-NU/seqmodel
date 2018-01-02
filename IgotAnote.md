@@ -56,7 +56,7 @@
 ### Sublime Text Packages
 - jedi - Python autocompletion
 - sublime-rsync-ssh
-- SublimeLinter-pep8
+- SublimeLinter-pydocstyle
 - Git
 - Whitespace
 - Figlet Big ASCII Text

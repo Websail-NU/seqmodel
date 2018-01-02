@@ -9,7 +9,7 @@ import math
 
 __all__ = ['BatchTuple', 'SeqFeatureTuple', 'SeqLabelTuple', 'Seq2SeqFeatureTuple',
            'OutputStateTuple', 'IndexScoreTuple', 'Vocabulary', 'TrainingState',
-           'RunningInfo', 'RunSamplingInfo', 'Word2DefFeatureTuple',
+           'RunningInfo', 'RunRewardInfo', 'Word2DefFeatureTuple',
            'LSeq2SeqFeatureTuple']
 
 
@@ -173,22 +173,27 @@ class RunningInfo(object):
         self._train_loss = train_loss
         self._num_tokens = num_tokens
         self._step = step
+        self._debug_info = collections.defaultdict(float)
+        self._eval_loss_per_token = True
+        self._train_loss_per_token = False
 
     @property
     def eval_loss(self):
-        return self._eval_loss / self._num_tokens
+        if self._eval_loss_per_token:
+            return self._eval_loss / self._num_tokens
+        else:
+            return self._eval_loss / self._step
 
     @property
     def exp_eval_loss_str(self):
-        if self.eval_loss < 15:
-            exp_loss = math.exp(self.eval_loss)
-            return f'{exp_loss:.5f}'
-        else:
-            return '>3.0e+6'
+        return RunningInfo._max_exp(self.eval_loss)
 
     @property
     def train_loss(self):
-        return self._train_loss / self._step
+        if self._train_loss_per_token:
+            return self._train_loss / self._num_tokens
+        else:
+            return self._train_loss / self._step
 
     @ property
     def num_tokens(self):
@@ -209,50 +214,101 @@ class RunningInfo(object):
             end_time = time.time()
         return end_time - self._start_time
 
-    def update_step(self, result, num_tokens):
-        if 'train_loss' in result:
+    @staticmethod
+    def _max_exp(value):
+        if value < 15:
+            exp_value = math.exp(value)
+            return f'{exp_value:.5f}'
+        else:
+            return '>3.0e+6'
+
+    def _update_debug_info(self, info, num_tokens):
+        for key, value in info.items():
+            if key.startswith('avg.tokens::'):
+                _num_tokens = num_tokens
+                num_token_key = key.replace('avg.tokens::', 'num.tokens::')
+                if num_token_key in info:
+                    _num_tokens = info[num_token_key]
+                value = value * _num_tokens
+            self._debug_info[key] += value
+
+    def update_step(self, result, batch):
+        num_tokens = batch.num_tokens
+        if 'avg.tokens::train_loss' in result:
+            self._train_loss += result['avg.tokens::train_loss'] * num_tokens
+            self._train_loss_per_token = True
+        elif 'train_loss' in result:
             self._train_loss += result['train_loss']
-        if 'eval_loss' in result:
-            self._eval_loss += result['eval_loss'] * num_tokens
+            self._train_loss_per_token = False
+        if 'avg.tokens::eval_loss' in result:
+            self._eval_loss += result['avg.tokens::eval_loss'] * num_tokens
+            self._eval_loss_per_token = True
+        elif 'eval_loss' in result:
+            self._eval_loss += result['eval_loss']
+            self._eval_loss_per_token = False
+        if 'debug_info' in result:
+            self._update_debug_info(result['debug_info'], num_tokens)
         self._num_tokens += num_tokens
         self._step += 1
 
     def end(self):
         self._end_time = time.time()
 
+    def log_summary(self, logger, mode='train'):
+        logger.info(self.info_summary(mode=mode))
+        if len(self._debug_info) > 0:
+            logger.debug('      ' + self.debug_summary())
+
     def summary(self, mode='train'):
+        info = self.info_summary(mode=mode)
+        debug = self.debug_summary()
+        return info, debug
+
+    def info_summary(self, mode='train'):
         if mode == 'train':
-            return (f'(T) eval_loss: {self.eval_loss:.5f} ({self.exp_eval_loss_str}), '
-                    f'tr_loss: {self.train_loss:.5f}, '
+            return (f'  (T) eval: {self.eval_loss:.5f}, '
+                    f'loss: {self.train_loss:.5f}, '
                     f'wps: {self.wps:.1f}, {self._step} steps in '
                     f'{self.elapse_time:.2f}s')
         else:
-            return (f'(E) eval_loss: {self.eval_loss:.5f} ({self.exp_eval_loss_str}), '
+            return (f'  (E) eval: {self.eval_loss:.5f}, '
                     f'wps: {self.wps:.1f}, {self._step} steps in '
                     f'{self.elapse_time:.2f}s')
+
+    def debug_summary(self):
+        messages = []
+        for key, value in self._debug_info.items():
+            if key.startswith('num.tokens::'):
+                continue
+            if key.startswith('avg.tokens::'):
+                _num_tokens = self._num_tokens
+                num_token_key = key.replace('avg.tokens::', 'num.tokens::')
+                if num_token_key in self._debug_info:
+                    _num_tokens = self._debug_info[num_token_key]
+                key = key[len('avg.tokens::'):]
+                value = value / _num_tokens
+            else:
+                value = value / self._step
+            if key.endswith('|exp'):
+                key = key[:-len('|exp')]
+                value = RunningInfo._max_exp(value)
+            else:
+                value = f'{value:.5f}'
+            messages.append(f'{key}: {value}')
+        return ', '.join(messages)
 
     def __str__(self):
         return f'{self.__class__.__name__}: {vars(self)}'
 
 
-class RunSamplingInfo(RunningInfo):
+class RunRewardInfo(RunningInfo):
 
     @property
     def eval_loss(self):
         return -1 * self._eval_loss / self._step
 
-    def summary(self, mode='train'):
-        if mode == 'train':
-            return (f'(T) avg_reward: {-1 * self.eval_loss:.5f}, '
-                    f'tr_loss: {self.train_loss:.5f}, '
-                    f'wps: {self.wps:.1f}, {self._step} steps in '
-                    f'{self.elapse_time:.2f}s')
-        else:
-            return (f'(E) avg_reward: {-1 * self.eval_loss:.5f}, '
-                    f'wps: {self.wps:.1f}, {self._step} steps in '
-                    f'{self.elapse_time:.2f}s')
-
-    def update_step(self, avg_reward, num_tokens, train_result=None):
+    def update_step(self, avg_reward, batch, train_result=None):
+        num_tokens = batch.num_tokens
         if train_result is not None and 'train_loss' in train_result:
             self._train_loss += train_result['train_loss']
         self._eval_loss += avg_reward
@@ -260,6 +316,17 @@ class RunSamplingInfo(RunningInfo):
         self._step += 1
         # if self._step % 100 == 0:
         #     print(self.summary())
+
+    def info_summary(self, mode='train'):
+        if mode == 'train':
+            return (f'  (T) avg_reward: {-1 * self.eval_loss:.5f}, '
+                    f'tr_loss: {self.train_loss:.5f}, '
+                    f'wps: {self.wps:.1f}, {self._step} steps in '
+                    f'{self.elapse_time:.2f}s')
+        else:
+            return (f'  (E) avg_reward: {-1 * self.eval_loss:.5f}, '
+                    f'wps: {self.wps:.1f}, {self._step} steps in '
+                    f'{self.elapse_time:.2f}s')
 
     def __str__(self):
         return f'{self.__class__.__name__}: {vars(self)}'

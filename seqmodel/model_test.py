@@ -57,26 +57,28 @@ def _run(obj, model_class, rnn_fn, mode='seq', build_opt={}):
                          output.output, output3)
         # evaluation
         output, __ = m.evaluate(sess, features, (seq, seq, np.ones((3))))
-        obj.assertNotEqual(output['eval_loss'], 0.0,
+        obj.assertNotEqual(output['avg.tokens::eval_loss'], 0.0,
                            'eval_loss is not zero')
         output, __ = m.evaluate(sess, features, (seq, seq, np.zeros((3))))
-        obj.assertEqual(output['eval_loss'], 0.0,
+        obj.assertEqual(output['avg.tokens::eval_loss'], 0.0,
                         'eval_loss is zero if seq_weight is zero')
         output, __ = m.evaluate(sess, features, (seq, np.zeros((4, 3)), np.ones((3))))
-        obj.assertEqual(output['eval_loss'], 0.0,
+        obj.assertEqual(output['avg.tokens::eval_loss'], 0.0,
                         'eval_loss is zero if token_weight is zero')
         # training
         output, __ = m.train(sess, features, (seq, seq, np.ones((3))), m._no_op)
         obj.assertGreaterEqual(
-            output['train_loss'], output['eval_loss'],
+            output['train_loss'], output['avg.tokens::eval_loss'],
             'sum loss is at least larger than mean loss.')
         for i in range(20):
             output2, __ = m.train(sess, features, (seq, seq, np.ones((3))), train_op)
         obj.assertLess(output2['train_loss'], output['train_loss'],
                        'training loss is lower after training')
-        m.set_default_feed(f'{pkn}train_loss_denom', 10)
+        m.set_default_feed(f'{pkn}train_loss_denom', 1)
         output3, __ = m.train(sess, features, (seq, seq, np.ones((3))), m._no_op)
-        obj.assertAlmostEqual(output3['train_loss'], output2['train_loss'] / 10,
+        m.set_default_feed(f'{pkn}train_loss_denom', 10)
+        output4, __ = m.train(sess, features, (seq, seq, np.ones((3))), m._no_op)
+        obj.assertAlmostEqual(output4['train_loss'], output3['train_loss'] / 10,
                               places=1, msg='training loss denom is used')
         # decode
         if mode == 'seq2seq' or mode == 'word2def':

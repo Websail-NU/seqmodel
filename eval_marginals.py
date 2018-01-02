@@ -12,18 +12,21 @@ import tensorflow as tf
 import seqmodel as sq
 
 batch_size = 512
-q_mode = 'gaussian'
+q_mode = sys.argv[1]
 M = 100
 
 data_dir = 'data/tinyshakespeare/'
-eval_file = 'curexp/ts-v/sample_filter.txt'
-count_file = 'curexp/ts-v/sample_filter.count'
-total_tokens = 4000063
+eval_file = f'{data_dir}/train.char.filter.txt'
+count_file = f'{data_dir}/train.char.filter.count'
+total_tokens = 1016242
+# eval_file = 'curexp/ts-v/sample_filter.txt'
+# count_file = 'curexp/ts-v/sample_filter.count'
+# total_tokens = 4000063
 
 gmm_dir = 'curexp/ts-v'
 gmm_file = 'gmm64valid_model.pkl'
 # model_dir = 'curexp/ts-bw-m1'
-model_dir = 'curexp/ts-bw-m2-gauss'
+model_dir = f'curexp/ts-bw-m3-{q_mode}'
 state_sample_file = 'states_sample.npy'
 
 # data
@@ -95,18 +98,23 @@ def compute_nlls(batch):
             result, __ = run_fn(state=get_states(states))
             total_token_probs += np.exp(-result['nll']) * prior
         nlls = -np.log(total_token_probs)
-    elif q_mode == 'point_l2':
+    elif q_mode == 'l2':
         result, extra = run_fn()
         nlls = result['nll']
     elif q_mode == 'gaussian':
-        result, extra = run_fn(extra_fetch=['q_out'])
+        # result, extra = run_fn(extra_fetch=['q_out'])
+        result, extra = run_fn()
         nlls = result['nll']
-        q_out = extra[0]
-        q = q_out[2] + q_out[3]
+        # q_out = extra[0]
+        # q = q_out[2] + q_out[3]
+    elif q_mode == 'gmm':
+        result, extra = run_fn()
+        nlls = result['nll']
     sum_nll = nlls.sum(axis=0)
     if q is not None:
         sum_nll += q
     return sum_nll, nlls, q
+
 
 # eval
 print('evaluating...')
@@ -140,7 +148,7 @@ for batch in batches():
             under_ll += target_ll - predict_ll
     print('.', end='', flush=True)
 total = over_count + under_count + close_count
-print(f'Total n-grams: {total}')
+print(f'\nTotal n-grams: {total}')
 print(f'\item[Close]: {close_count / total:.5f}')
 print(f'\item[Over]: {over_count / total:.5f} ({over_ll / over_count:.5f})')
 print(f'\item[Under]: {under_count / total:.5f} ({under_ll / under_count:.5f})')

@@ -1,7 +1,9 @@
-import time
 import os
-from functools import partial
+import sys
+import time
 import fileinput
+from functools import partial
+
 
 import numpy as np
 
@@ -11,10 +13,8 @@ from _main import decode
 from _decode import decode_lm
 
 
-MODEL_CLASS = sq.SeqModel
-
-
 if __name__ == '__main__':
+    MODEL_CLASS = sq.get_model_class(default=sq.SeqModel)
     start_time = time.time()
     group_default = {
         'model': MODEL_CLASS.default_opt(),

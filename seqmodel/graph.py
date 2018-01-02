@@ -291,6 +291,7 @@ def create_rnn(
     cell_output, final_state = rnn_fn(
         cell=cell, inputs=inputs, sequence_length=sequence_length,
         initial_state=initial_state, time_major=True, dtype=tf.float32)
+    # parallel_iterations=1)
     return cell_output, initial_state, final_state
 
 
@@ -832,9 +833,9 @@ def create_xent_loss(logit, label, weight, seq_weight=None, loss_denom=None):
         training_loss = _safe_div(sum_loss, loss_denom)
     else:
         training_loss = sum_loss
-    batch_nll = tf.reduce_sum(tf.multiply(loss, weight), axis=0)
+    # batch_nll = tf.reduce_sum(tf.multiply(loss, weight), axis=0)
     # batch_loss = batch_loss / tf.reduce_sum(weight, axis=0)
-    return mean_loss, training_loss, batch_nll, nll
+    return mean_loss, training_loss, loss, nll
 
 
 def create_ent_loss(distribution, weight, seq_weight=None):

@@ -9,6 +9,23 @@ from seqmodel import graph as tfg
 StateOutputTuple = namedtuple('StateOutputTuple', 'state output')
 
 
+class StateOutputCellWrapper(tf.nn.rnn_cell.RNNCell):
+    def __init__(self, cell):
+        self._cell = cell
+
+    @property
+    def output_size(self):
+        return StateOutputTuple(self._cell.state_size, self._cell.output_size)
+
+    @property
+    def state_size(self):
+        return self._cell.state_size
+
+    def __call__(self, inputs, state, scope=None):
+        output, new_state = self._cell(inputs, state, scope=scope)
+        return StateOutputTuple(new_state, output), new_state
+
+
 class AttendedInputCellWrapper(tf.nn.rnn_cell.RNNCell):
 
     def __init__(self, cell, each_input_dim=None, attention_fn=None):

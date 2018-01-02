@@ -206,6 +206,7 @@ class SeqModel(Model):
     _RSK_RNN_ = 'rnn'
     _RSK_LOGIT_ = 'logit'
     reuse_scopes = (_RSK_EMB_, _RSK_RNN_, _RSK_LOGIT_)
+    _FULL_SEQ_ = False
 
     @classmethod
     def default_opt(cls):
@@ -223,8 +224,7 @@ class SeqModel(Model):
                'logit:project_act': 'tensorflow.tanh', 'loss:type': 'xent',
                'loss:add_entropy': False, 'loss:add_gns': False, 'loss:eval_nll': False,
                'decode:add_greedy': True, 'decode:add_sampling': True,
-               'share:input_emb_logit': False,
-               'xxx:add_first_token': False, 'xxx:full_seq_lookup': False}
+               'share:input_emb_logit': False}
         return opt
 
     @classmethod
@@ -260,8 +260,8 @@ class SeqModel(Model):
         self._state_fetch = state_fetch
         if train_fetch is not None:
             self._training_loss = train_fetch['train_loss']
-        if 'train_loss_denom' in node_dict:
-            self.set_default_feed('train_loss_denom', 1.0)
+        # if 'train_loss_denom' in node_dict:
+        #     self.set_default_feed('train_loss_denom', 1.0)
         if 'temperature' in node_dict:
             self.set_default_feed('temperature', 1.0)
         if 'decode_max_len' in node_dict:
@@ -284,7 +284,7 @@ class SeqModel(Model):
             _emb_scope = kwargs['global_emb_scope']
         with tfg.maybe_scope(_emb_scope, reuse=True) as scope:
             lookup_, emb_vars_ = tfg.create_lookup(input_, **emb_opt)
-            if opt['xxx:full_seq_lookup']:
+            if self._FULL_SEQ_:
                 full_seq_ = tf.concat([tf.expand_dims(input_[0], 0), label_], 0)
                 full_lookup_, emb_vars_ = tfg.create_lookup(
                     full_seq_, emb_vars_, prefix='full', **emb_opt)
@@ -335,13 +335,10 @@ class SeqModel(Model):
         with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
             _reuse = reuse or scope is not None
             cell_ = tfg.create_cells(input_size=opt['emb:dim'], **cell_opt)
-            cell_ = AttendedInputCellWrapper(cell_, each_input_dim=200)
+            # cell_ = AttendedInputCellWrapper(cell_, each_input_dim=200)
             cell_output_, initial_state_, final_state_ = tfg.create_rnn(
                 cell_, lookup, seq_len, initial_state, rnn_fn=opt['rnn:fn'],
                 batch_size=batch_size)
-        if opt['xxx:add_first_token']:
-            cell_output_ = tf.concat(
-                [tf.expand_dims(initial_state_[-1], 0), cell_output_], 0)
         return cell_, cell_output_, initial_state_, final_state_, {}
 
     def _build_logit(
@@ -367,14 +364,14 @@ class SeqModel(Model):
     def _build_loss(
             self, opt, logit, label, weight, seq_weight, nodes, collect_key,
             add_to_collection, inputs=None, **kwargs):
-        if opt['xxx:add_first_token']:
-            label = nodes['full_seq']
-            weight = tf.concat(
-                [tf.ones((1, self._get_batch_size(weight)), dtype=tf.float32), weight], 0)
+        if seq_weight is not None:
+            train_loss_denom_ = tf.reduce_sum(seq_weight)
+        else:
+            train_loss_denom_ = tf.shape(label, out_type=tf.float32)[1]
+            # with tfg.tfph_collection(collect_key, add_to_collection) as get:
+            #     name = 'train_loss_denom'
+            #     train_loss_denom_ = get(name, tf.float32, shape=[])
         if opt['loss:type'] == 'xent':
-            with tfg.tfph_collection(collect_key, add_to_collection) as get:
-                name = 'train_loss_denom'
-                train_loss_denom_ = get(name, tf.float32, shape=[])
             mean_loss_, train_loss_, batch_nll_, nll_ = tfg.create_xent_loss(
                 logit, label, weight, seq_weight, train_loss_denom_)
             if opt['loss:add_entropy']:
@@ -388,8 +385,12 @@ class SeqModel(Model):
                 gns_loss_, gns_nodes = tfg.create_global_stat_loss(
                     inputs, logit, weight, train_loss_denom_, **gns_opt)
                 train_loss_ += gns_loss_
-            train_fetch = {'train_loss': train_loss_, 'eval_loss': mean_loss_}
-            eval_fetch = {'eval_loss': mean_loss_}
+            debug_info = {'avg.tokens::ppl|exp': mean_loss_}
+            train_fetch = {
+                'train_loss': train_loss_, 'avg.tokens::eval_loss': mean_loss_,
+                'debug_info': debug_info}
+            eval_fetch = {
+                'avg.tokens::eval_loss': mean_loss_, 'debug_info': debug_info}
             if opt['loss:eval_nll']:
                 eval_fetch['nll'] = nll_
         else:
@@ -580,8 +581,8 @@ class Seq2SeqModel(SeqModel):
 
     def set_graph(self, *args, **kwargs):  # just pass along
         super().set_graph(*args, **kwargs)
-        if 'train_loss_denom' in self._nodes['dec']:
-            self.set_default_feed('dec.train_loss_denom', 1.0)
+        # if 'train_loss_denom' in self._nodes['dec']:
+        #     self.set_default_feed('dec.train_loss_denom', 1.0)
         if 'temperature' in self._nodes['dec']:
             self.set_default_feed('dec.temperature', 1.0)
         if 'decode_max_len' in self._nodes['dec']:
@@ -591,7 +592,7 @@ class Seq2SeqModel(SeqModel):
 
     def _build_attn_logit(
             self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output, enc_output,
-            full_opt, reuse, initial_state=None):
+            full_opt, reuse, initial_state=None, **kwargs):
         with tf.variable_scope('attention', reuse=reuse) as attn_scope:
             attn_context_, attn_scores_ = tfg.attend_dot(
                 q=cell_output, k=enc_output, v=enc_output,
@@ -605,7 +606,7 @@ class Seq2SeqModel(SeqModel):
             opt, reuse_scope, collect_kwargs, emb_vars, attn_dec_output_)
         return logit_, predict_fetch, nodes
 
-    def _build_dec_attn_logit(self, cell_output, enc_output, full_opt):
+    def _build_dec_attn_logit(self, cell_output, enc_output, full_opt, **kwargs):
         with tfg.maybe_scope(self._attn_scope):
             attn_context_, attn_scores_ = tfg.attend_dot(
                 q=cell_output, k=enc_output, v=enc_output, time_major=True)
@@ -706,7 +707,7 @@ class Word2DefModel(Seq2SeqModel):
 
     def _build_gated_logit(
             self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output, wbdef,
-            wbdef_scope, wbdef_nodes, full_opt, reuse, initial_state=None):
+            wbdef_scope, wbdef_nodes, full_opt, reuse, initial_state=None, **kwargs):
         wbdef_nodes = {} if wbdef_nodes is None else wbdef_nodes
         # cell_output = tf.slice(cell_output, [0, 0, 100], [-1, -1, -1])
         with tfg.maybe_scope(wbdef_scope, reuse):
@@ -725,7 +726,7 @@ class Word2DefModel(Seq2SeqModel):
             opt, reuse_scope, collect_kwargs, emb_vars, updated_output_)
         return logit_, predict_fetch, nodes
 
-    def _build_dec_gated_logit(self, cell_output, wbdef, wbdef_scope):
+    def _build_dec_gated_logit(self, cell_output, wbdef, wbdef_scope, **kwargs):
         # cell_output = tf.slice(cell_output, [0, 100], [-1, -1])
         with tfg.maybe_scope(wbdef_scope, True):
             updated_output, __ = tfg.create_gru_layer(cell_output, wbdef)

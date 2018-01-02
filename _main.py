@@ -34,7 +34,8 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
         init_lr = train_opt['train:init_lr']
         lr = tf.placeholder(tf.float32, shape=[], name='learning_rate')
         __nodes = train_model.build_graph(model_opt)
-        train_model.set_default_feed('train_loss_denom', opt['batch_size'], set_all=True)
+        # train_model.set_default_feed(
+        #     'train_loss_denom', opt['batch_size'], set_all=True)
         _train_kwargs = {
             'learning_rate': lr,
             'optim_class': train_opt['train:optim_class'],
@@ -126,7 +127,7 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
         else:
             logger.info('Evaluating...')
             info = eval_run_fn(sess, eval_model, eval_batch_iter)
-            logger.info(info.summary('eval'))
+            info.log_summary(logger, mode='eval')
 
 
 def mle(opt, model_opt, train_opt, logger, data_fn, model_class, eval_run_fn=None):
