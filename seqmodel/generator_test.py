@@ -62,17 +62,17 @@ class TestSeq(unittest.TestCase):
         self.num_lines = 1000
         self.num_tokens = 5606
 
-    def test_read_seq_data(self):
-        x, y = generator.read_seq_data(self.gen(), self.vocab, self.vocab,
-                                       keep_sentence=True)
+    def test_read_seq_data_sen(self):
+        x, y = generator.read_seq_data(
+            self.gen(), self.vocab, self.vocab, keep_sentence=True)
         self.assertEqual(len(x), self.num_lines, 'number of sequences')
         self.assertEqual(len(y), self.num_lines, 'number of sequences')
         for x_, y_ in zip(x, y):
             self.assertEqual(x_[1:], y_[:-1], 'output is shifted input')
 
-    def test_read_seq_data_sen(self):
-        x, y = generator.read_seq_data(self.gen(), self.vocab, self.vocab,
-                                       keep_sentence=False, seq_len=20)
+    def test_read_seq_data(self):
+        x, y = generator.read_seq_data(
+            self.gen(), self.vocab, self.vocab, keep_sentence=False, seq_len=20)
         num_seq = (self.num_lines + self.num_tokens) // 20
         if (self.num_lines + self.num_tokens) % 20 > 1:
             num_seq += 1
@@ -81,12 +81,49 @@ class TestSeq(unittest.TestCase):
         for x_, y_ in zip(x, y):
             self.assertEqual(x_[1:], y_[:-1], 'output is shifted input')
 
-    def test_seq_batch_iter(self):
-        data = generator.read_seq_data(self.gen(), self.vocab, self.vocab,
-                                       keep_sentence=False, seq_len=20)
+    def test_read_seq_data_random(self):
+        x, y = generator.read_seq_data(
+            self.gen(), self.vocab, self.vocab, keep_sentence=False, random_seq_len=True)
+        tokens = 0
+        for x_, y_ in zip(x, y):
+            tokens += len(y_)
+            self.assertEqual(x_[1:], y_[:-1], 'output is shifted input')
+        self.assertEqual(tokens, self.num_tokens + self.num_lines, 'number of tokens')
+
+    def test_seq_batch_iter_callable(self):
+        data_fn = partial(
+            generator.read_seq_data,
+            self.gen(), self.vocab, self.vocab, keep_sentence=False, seq_len=20)
+        data = [data_fn, None]
         count = 0
-        for batch in generator.seq_batch_iter(*data, batch_size=13, shuffle=False,
-                                              keep_sentence=False):
+        for batch in generator.seq_batch_iter(
+                *data, batch_size=13, shuffle=False, keep_sentence=False):
+            count += batch.num_tokens
+            self.assertTrue(batch.keep_state, 'keep_state is True')
+            self.assertEqual(batch.num_tokens, sum(batch.features.seq_len),
+                             'num_tokens is sum of seq_len')
+        self.assertEqual(count, self.num_lines + self.num_tokens,
+                         'number of tokens (including eos symbol)')
+
+    def test_seq_batch_iter(self):
+        data = generator.read_seq_data(
+            self.gen(), self.vocab, self.vocab, keep_sentence=False, seq_len=20)
+        count = 0
+        for batch in generator.seq_batch_iter(
+                *data, batch_size=13, shuffle=False, keep_sentence=False):
+            count += batch.num_tokens
+            self.assertTrue(batch.keep_state, 'keep_state is True')
+            self.assertEqual(batch.num_tokens, sum(batch.features.seq_len),
+                             'num_tokens is sum of seq_len')
+        self.assertEqual(count, self.num_lines + self.num_tokens,
+                         'number of tokens (including eos symbol)')
+
+    def test_seq_batch_iter_random(self):
+        data = generator.read_seq_data(
+            self.gen(), self.vocab, self.vocab, keep_sentence=False, random_seq_len=True)
+        count = 0
+        for batch in generator.seq_batch_iter(
+                *data, batch_size=13, shuffle=False, keep_sentence=False):
             count += batch.num_tokens
             self.assertTrue(batch.keep_state, 'keep_state is True')
             self.assertEqual(batch.num_tokens, sum(batch.features.seq_len),
@@ -137,7 +174,7 @@ class TestWord2Def(unittest.TestCase):
         self.num_tokens = 5465
 
     def test_read_word2def_data(self):
-        x, w, c, y, sw = generator.read_word2def_data(
+        x, w, c, m, y, sw = generator.read_word2def_data(
             self.gen(), self.enc_vocab, self.dec_vocab, self.char_vocab)
         self.assertEqual(len(x), self.num_lines, 'number of sequences')
         self.assertEqual(len(y), self.num_lines, 'number of sequences')
@@ -153,7 +190,7 @@ class TestWord2Def(unittest.TestCase):
             self.assertEqual(sw_, 1, 'seq weight is set to 1')
 
     def test_read_word2def_data_freq_weight(self):
-        x, w, c, y, sw = generator.read_word2def_data(
+        x, w, c, m, y, sw = generator.read_word2def_data(
             self.gen(), self.enc_vocab, self.dec_vocab, self.char_vocab,
             freq_down_weight=True)
         for w_, sw_ in zip(w, sw):

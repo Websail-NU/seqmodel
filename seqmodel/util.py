@@ -2,12 +2,16 @@ import sys
 import os
 import argparse
 import json
+import six
 from collections import ChainMap
 from functools import partial
 import logging as py_logging
-from nltk.translate import bleu_score
+from pydoc import locate
+
 
 import numpy as np
+from tensorflow.python.pywrap_tensorflow import NewCheckpointReader as TFCheckpointReader
+from nltk.translate import bleu_score
 
 from seqmodel import dstruct as ds
 
@@ -15,8 +19,17 @@ from seqmodel import dstruct as ds
 __all__ = ['dict_with_key_startswith', 'dict_with_key_endswith', 'get_with_dot_key',
            'hstack_list', 'masked_full_like', 'get_logger', 'get_common_argparser',
            'parse_set_args', 'add_arg_group_defaults', 'ensure_dir', 'time_span_str',
-           'init_exp_opts', 'save_exp', 'load_exp', 'hstack_with_padding',
-           'vstack_with_padding', 'group_data', 'find_first_min_zero']
+           'init_exp_opts', 'save_exp', 'load_exp', 'hstack_with_padding', 'chunks',
+           'vstack_with_padding', 'group_data', 'find_first_min_zero',
+           'get_recursive_dict', 'filter_tfvars_in_checkpoint', 'get_model_class']
+
+
+def chunks(alist, num_chunks):
+    """Yield successive n-sized chunks from l."""
+    idx = np.array_split(range(0, len(alist)), num_chunks)
+    for r in idx:
+        if len(r) > 0:
+            yield alist[r[0]:r[-1]+1]
 
 
 def time_span_str(seconds):
@@ -101,6 +114,16 @@ def dict_with_key_endswith(d, suffix):
     return {k[:-len(suffix)]: v for k, v in d.items() if k.endswith(suffix)}
 
 
+def get_recursive_dict(d, key):
+    values = []
+    for k, v in d.items():
+        if k == key:
+            values.append(v)
+        elif isinstance(v, dict):
+            values.extend(get_recursive_dict(v, key))
+    return values
+
+
 def get_with_dot_key(d, key):
     if '.' in key:
         keys = key.split('.')
@@ -144,16 +167,16 @@ def group_data(data_iter, key=None, entry=None, first_entry=None):
 
 
 def hstack_with_padding(x, y, pad_with=0):
-    z = np.full((max(x.shape[0], y.shape[0]), x.shape[1] + y.shape[1]),
-                pad_with, dtype=x.dtype)
+    z = np.full(
+        (max(x.shape[0], y.shape[0]), x.shape[1] + y.shape[1]), pad_with, dtype=x.dtype)
     z[:x.shape[0], :x.shape[1]] = x
     z[:y.shape[0], x.shape[1]:] = y
     return z
 
 
 def vstack_with_padding(x, y, pad_with=0):
-    z = np.full((x.shape[0] + y.shape[0], (max(x.shape[1], y.shape[1]))),
-                pad_with, dtype=x.dtype)
+    z = np.full(
+        (x.shape[0] + y.shape[0], (max(x.shape[1], y.shape[1]))), pad_with, dtype=x.dtype)
     z[:x.shape[0], :x.shape[1]] = x
     z[x.shape[0]:, :y.shape[1]] = y
     return z
@@ -184,6 +207,17 @@ def masked_full_like(np_data, value, num_non_padding=None, padding=0, dtype=np.f
         # is there a way to avoid this for loop?
         for i, last in enumerate(num_non_padding):
             arr[last:, i] = 0
+    return arr, total_non_pad
+
+
+def masked_last_like(np_data, value, num_non_padding=None, padding=0, dtype=np.float32):
+    arr = np.full_like(np_data, 0, dtype=dtype)
+    total_non_pad = 0
+    if num_non_padding is not None and total_non_pad < np_data.size:
+        # is there a way to avoid this for loop?
+        for i, last in enumerate(num_non_padding):
+            arr[last - 1, i] = value
+            total_non_pad += 1
     return arr, total_non_pad
 
 
@@ -281,6 +315,9 @@ def get_common_argparser(prog, usage=None, description=None):
         '--load_checkpoint', type=str,
         help=('Directory of TF checkpoint files to load from. This is separate from '
               'checkpoint directory under experiment_dir.'))
+    parser.add_argument(
+        '--relax_ckp_restore', action='store_true',
+        help='[USE WITH CAUTION] Only restore variables existed in the checkpoint.')
     parser.add_argument('--load_model_opt', type=str,
                         help='A json file specifying model options.')
     parser.add_argument('--load_train_opt', type=str,
@@ -289,8 +326,22 @@ def get_common_argparser(prog, usage=None, description=None):
                         help='batch size to run the model.')
     parser.add_argument('--eval_latest', action='store_true',
                         help='load latest model for eval, rather than best model.')
+    parser.add_argument('--model_class', type=str, default='', help=' ')
     # parser.add_argument('--decode_outpath', type=str, default='decode.txt', help=' ')
     return parser
+
+
+def get_sys_argv_after_key(key, default=None):
+    if key in sys.argv:
+        return sys.argv[sys.argv.index(key) + 1]
+    return default
+
+
+def get_model_class(default=None):
+    kls = get_sys_argv_after_key('--model_class', default=default)
+    if isinstance(kls, six.string_types):
+        return locate(kls)
+    return kls
 
 
 def add_arg_group_defaults(parser, group_default):
@@ -352,6 +403,9 @@ def init_exp_opts(opt, groups, group_default):
     if 'pg' in groups:
         pg_opt = ChainMap(groups['pg'], group_default['pg'])
         all_opt.append(pg_opt)
+    if 'gns' in groups:
+        gns_opt = ChainMap(groups['gns'], group_default['gns'])
+        all_opt.append(gns_opt)
 
     epath = partial(os.path.join, opt['exp_dir'])
     init_only = opt['command'] == 'init'
@@ -363,6 +417,9 @@ def init_exp_opts(opt, groups, group_default):
         json.dump(dict(model_opt), ofp, indent=2, sort_keys=True)
     with open(epath('train_opt.json'), 'w') as ofp:
         json.dump(dict(train_opt), ofp, indent=2, sort_keys=True)
+    if 'gns' in groups:
+        with open(epath('gns_opt.json'), 'w') as ofp:
+            json.dump(dict(gns_opt), ofp, indent=2, sort_keys=True)
 
     logger = get_logger(epath(opt['log_file']), 'exp_log', opt['log_level'])
 
@@ -380,7 +437,7 @@ def save_exp(sess, saver, exp_dir, train_state):
         json.dump(vars(train_state), ofp, indent=2, sort_keys=True)
 
 
-def load_exp(sess, saver, exp_dir, latest=False, checkpoint=None):
+def load_exp(sess, saver, exp_dir, latest=False, checkpoint=None, logger=None):
     restore_success = False
     if checkpoint is not None:
         saver.restore(sess, checkpoint)
@@ -394,4 +451,18 @@ def load_exp(sess, saver, exp_dir, latest=False, checkpoint=None):
         if not restore_success:
             saver.restore(sess, checkpoint)
             restore_success = True
+    if logger is not None:
+        if restore_success:
+            logger.info('Loaded model from checkpoint.')
+        if train_state is None:
+            logger.info('No experiment to resume.')
+        else:
+            logger.info('Resume experiment.')
     return restore_success, train_state
+
+
+def filter_tfvars_in_checkpoint(tfvars, checkpoint):
+    reader = TFCheckpointReader(checkpoint)
+    var2shape_map = reader.get_variable_to_shape_map()
+    output_map = tuple(v for v in tfvars if v.name[:-2] in var2shape_map)
+    return output_map
