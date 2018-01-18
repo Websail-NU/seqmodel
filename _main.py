@@ -32,12 +32,12 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
         valid_batch_iter = partial(batch_iter, *data[1])
         train_model = model_class()
         init_lr = train_opt['train:init_lr']
-        train_model.build_graph(model_opt)
+        lr = tf.placeholder(tf.float32, shape=[], name='learning_rate')
+        __nodes = train_model.build_graph(model_opt)
         if model_class == sq.SeqModel:
             train_model.set_default_feed('train_loss_denom', opt['batch_size'])
         else:
             train_model.set_default_feed('dec.train_loss_denom', opt['batch_size'])
-        lr = tf.placeholder(tf.float32, shape=[], name='learning_rate')
         if pg:
             return_ph = tf.placeholder(tf.float32, shape=(None, None), name='return')
             train_op = sq.create_pg_train_op(
@@ -51,7 +51,7 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
 
     eval_batch_iter = partial(batch_iter, *data[-1])
     eval_model = model_class()
-    eval_model.build_graph(model_opt, reuse=is_training, no_dropout=True)
+    nodes = eval_model.build_graph(model_opt, reuse=is_training, no_dropout=True)
 
     logger.debug('Trainable Variables:')
     for v in tf.trainable_variables():
@@ -64,7 +64,7 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
 
     with tf.Session(config=sess_config) as sess:
         sess.run(tf.global_variables_initializer())
-        saver = tf.train.Saver()
+        saver = tf.train.Saver(tf.trainable_variables())
         if is_training:
             logger.info('Training...')
             success, train_state = sq.load_exp(sess, saver, opt['exp_dir'], latest=True,
@@ -91,7 +91,19 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
 
             def end_epoch_fn(train_state):
                 sq.save_exp(sess, saver, opt['exp_dir'], train_state)
-                return sq.is_done_training_early(train_state, train_opt['lr:imp_wait'])
+                return sq.is_done_training_early(train_state, train_opt['lr:imp_wait'],
+                                                 train_opt['lr:min_lr'])
+
+            # import numpy as np
+            # for v in tf.trainable_variables():
+            #     if 'AC_e' in v.name:
+            #         np.save('tmp', sess.run(v))
+            #     if 'mem_wrapper' in v.name:
+            #         name = 'kernel' if 'kernel' in v.name else 'bias'
+            #         np.save(name, sess.run(v))
+            #     if 'embedding' in v.name:
+            #         np.save('emb', sess.run(v))
+            # return
 
             sq.train(train_fn, logger, max_epoch=train_opt['train:max_epoch'],
                      train_state=train_state, init_lr=init_lr,

@@ -6,8 +6,8 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 
 ## Requirements:
 - python 3.6
-- tensorflow 1.1
-- numpy 1.12
+- tensorflow 1.2
+- numpy 1.13
 - nltk 3.2.4
 - six 1.10
 
@@ -21,7 +21,15 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 
 ## TODO
 
+- [ ] Clean up experimental code (XXX: SoXC)
+
 ### Model
+- [x] Fix scan_rnn to support tuple input and output
+- [x] Implement dot attention
+- [ ] Use LSTMBlockFusedCell
+- [ ] Implement Bahdanau attention
+- [ ] Beam search decoding
+- [ ] Decode with initial state
 - [ ] Value Network and A2C
 
 ### Run
@@ -33,6 +41,7 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 
 ### Scripts
 - [ ] Option to select reward function from CLI
+- [ ] Fix a bug where --__: options are not saved!
 
 ### TensorFlow
 - [ ] Take advantage of tf.Session.make_callable (need benchmark)

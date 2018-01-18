@@ -9,7 +9,8 @@ import math
 
 __all__ = ['BatchTuple', 'SeqFeatureTuple', 'SeqLabelTuple', 'Seq2SeqFeatureTuple',
            'OutputStateTuple', 'IndexScoreTuple', 'Vocabulary', 'TrainingState',
-           'RunningInfo', 'RunSamplingInfo', 'Word2DefFeatureTuple']
+           'RunningInfo', 'RunSamplingInfo', 'Word2DefFeatureTuple',
+           'LSeq2SeqFeatureTuple']
 
 ########################################################
 #    ######## ##     ## ########  ##       ########    #
@@ -33,9 +34,13 @@ SeqLabelTuple = collections.namedtuple(
 Seq2SeqFeatureTuple = collections.namedtuple(
     'Seq2SeqFeatureTuple', ('enc_inputs', 'enc_seq_len', 'dec_inputs', 'dec_seq_len'))
 
+LSeq2SeqFeatureTuple = collections.namedtuple(
+    'LSeq2SeqFeatureTuple', ('enc_inputs', 'enc_seq_len',
+                             'dec_inputs', 'dec_seq_len', 'label', 'mask'))
+
 Word2DefFeatureTuple = collections.namedtuple(
     'Word2DefFeatureTuple', ('enc_inputs', 'enc_seq_len', 'words', 'chars', 'char_len',
-                             'dec_inputs', 'dec_seq_len'))
+                             'word_masks', 'dec_inputs', 'dec_seq_len'))
 
 OutputStateTuple = collections.namedtuple('OutputStateTuple', ('output', 'state'))
 
@@ -54,14 +59,23 @@ IndexScoreTuple = collections.namedtuple('IndexScoreTuple', ('index', 'score'))
 
 class Vocabulary(object):
 
-    special_symbols = {'end_seq': '</s>', 'start_seq': '<s>',
-                       'end_encode': '</enc>', 'unknown': '<unk>'}
+    special_symbols = {
+        'end_seq': '</s>', 'start_seq': '<s>', 'end_encode': '</enc>',
+        'unknown': '<unk>'}
 
     def __init__(self):
         self._w2i = {}
         self._i2w = []
         self._i2freq = {}
         self._vocab_size = 0
+
+    def __getitem__(self, arg):
+        if isinstance(arg, six.string_types):
+            return self._w2i[arg]
+        elif isinstance(arg, int):
+            return self._i2w[arg]
+        else:
+            raise ValueError('Only support either integer or string')
 
     @property
     def vocab_size(self):
@@ -73,10 +87,11 @@ class Vocabulary(object):
         self._i2freq[self._vocab_size] = count
         self._vocab_size += 1
 
-    def w2i(self, word):
+    def w2i(self, word, unk_id=None):
         if isinstance(word, six.string_types):
-            if self.special_symbols['unknown'] in self._w2i:
+            if unk_id is None and self.special_symbols['unknown'] in self._w2i:
                 unk_id = self._w2i[self.special_symbols['unknown']]
+            if unk_id is not None:
                 return self._w2i.get(word, unk_id)
             else:
                 return self._w2i[word]
@@ -94,6 +109,9 @@ class Vocabulary(object):
 
     def word_set(self):
         return set(self._w2i.keys())
+
+    def __len__(self):
+        return self.vocab_size
 
     @staticmethod
     def from_vocab_file(filepath):
@@ -147,10 +165,10 @@ class Vocabulary(object):
 
 
 class TrainingState(object):
-    def __init__(self, learning_rate=1e-4, cur_epoch=0,
-                 cur_eval=float('inf'), last_imp_eval=float('inf'),
-                 best_eval=float('inf'), best_epoch=-1, last_imp_epoch=-1,
-                 imp_wait=0, best_checkpoint_epoch=-1):
+    def __init__(
+            self, learning_rate=1e-4, cur_epoch=0, cur_eval=float('inf'),
+            last_imp_eval=float('inf'), best_eval=float('inf'), best_epoch=-1,
+            last_imp_epoch=-1, imp_wait=0, best_checkpoint_epoch=-1):
         self.learning_rate = learning_rate
         self.cur_epoch = cur_epoch
         self.cur_eval = cur_eval
@@ -177,9 +195,9 @@ class TrainingState(object):
 
 
 class RunningInfo(object):
-    def __init__(self, start_time=None, end_time=None,
-                 eval_loss=0.0, train_loss=0.0,
-                 num_tokens=0, step=0):
+    def __init__(
+            self, start_time=None, end_time=None, eval_loss=0.0, train_loss=0.0,
+            num_tokens=0, step=0):
         self._start_time = start_time or time.time()
         self._end_time = end_time
         self._eval_loss = eval_loss

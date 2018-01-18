@@ -137,7 +137,7 @@ class TestWord2Def(unittest.TestCase):
         self.num_tokens = 5465
 
     def test_read_word2def_data(self):
-        x, w, c, y, sw = generator.read_word2def_data(
+        x, w, c, m, y, sw = generator.read_word2def_data(
             self.gen(), self.enc_vocab, self.dec_vocab, self.char_vocab)
         self.assertEqual(len(x), self.num_lines, 'number of sequences')
         self.assertEqual(len(y), self.num_lines, 'number of sequences')
@@ -153,7 +153,7 @@ class TestWord2Def(unittest.TestCase):
             self.assertEqual(sw_, 1, 'seq weight is set to 1')
 
     def test_read_word2def_data_freq_weight(self):
-        x, w, c, y, sw = generator.read_word2def_data(
+        x, w, c, m, y, sw = generator.read_word2def_data(
             self.gen(), self.enc_vocab, self.dec_vocab, self.char_vocab,
             freq_down_weight=True)
         for w_, sw_ in zip(w, sw):

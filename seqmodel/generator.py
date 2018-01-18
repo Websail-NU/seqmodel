@@ -20,7 +20,8 @@ __all__ = ['open_files', 'read_lines', 'read_seq_data', 'read_seq2seq_data',
            'get_batch_data', 'reward_match_label', 'read_word2def_data', 'count_ngrams',
            'word2def_batch_iter', 'reward_ngram_lm', 'concat_word2def_batch',
            'make_ngrams', 'reward_constant', 'reward_progressive_match_label',
-           'reward_bleu']
+           'reward_bleu', 'lseq2seq_batch_iter', 'read_lseq2seq_data',
+           'concat_seq_batch']
 
 ##################################################
 #    ######## #### ##       ########  ######     #
@@ -40,7 +41,7 @@ def open_files(filepaths, open_fn=open, mode='r', encoding=None):
         filepaths = [filepaths]
     fds = [open_fn(filepath, mode=mode, encoding=encoding)
            for filepath in filepaths]
-    yield zip(*fds)
+    yield fds
     for fd in fds:
         fd.close()
 
@@ -54,7 +55,8 @@ def read_lines(filepaths, token_split=None, part_split=None, part_indices=None):
             line = [line.strip()]
         return line
 
-    with open_files(filepaths, codecs.open, 'r', 'utf-8') as ifp:
+    with open_files(filepaths, codecs.open, 'r', 'utf-8') as ifps:
+        ifp = zip(*ifps)
         for line in ifp:
             line = [maybe_split(line_, part_split) for line_ in line]
             line = [item for line_ in line for item in line_]  # flatten list of list
@@ -67,13 +69,19 @@ def read_seq_data(tokenized_lines, in_vocab, out_vocab, keep_sentence=True, seq_
     """read data in format of [[['tk1_seq1', 'tk2_seq1']], [['tk1_seq2', 'tk2_seq2']]].
     Add start sequence and end sequence symbol.
     If keep_sentence is False, chunk sequence in length of seq_len (except last one)"""
-    sos_sym = ds.Vocabulary.special_symbols['start_seq']
+    # sos_sym = ds.Vocabulary.special_symbols['start_seq']
+    sos_sym = ds.Vocabulary.special_symbols['end_seq']
     eos_sym = ds.Vocabulary.special_symbols['end_seq']
     in_data, out_data = [], []
     for line in tokenized_lines:
-        line = line[0] + [eos_sym]  # assume many parts, but only take first
+        if len(line[0][0]) == 0:  # empty line
+            line = [eos_sym]
+        else:
+            line = line[0] + [eos_sym]  # assume many parts, but only take first
         if keep_sentence:
             line.insert(0, sos_sym)
+            # if len(line) < 5:
+            #     line = line + [eos_sym]
             in_data.append(in_vocab.w2i(line[:-1]))
             out_data.append(out_vocab.w2i(line[1:]))
         else:
@@ -107,8 +115,24 @@ def read_seq2seq_data(tokenized_lines, in_vocab, out_vocab):
     return enc_data, dec_data
 
 
-def read_word2def_data(tokenized_lines, in_vocab, out_vocab, char_vocab,
-                       freq_down_weight=False, init_seq_weight=1.0):
+def read_lseq2seq_data(tokenized_lines, in_vocab, out_vocab, l_vocab):
+    """this is a copy of read_seq2seq_data with label data"""
+    eoe_sym = ds.Vocabulary.special_symbols['end_encode']
+    sod_sym = ds.Vocabulary.special_symbols['start_seq']
+    eod_sym = ds.Vocabulary.special_symbols['end_seq']
+    enc_data, dec_data, label_data, mask_data = [], [], [], []
+    for part in tokenized_lines:
+        enc_, dec_, label_ = part[:3]
+        enc_data.append(in_vocab.w2i(enc_ + [eoe_sym]))
+        dec_data.append(out_vocab.w2i([sod_sym] + dec_ + [eod_sym]))
+        label_data.append(l_vocab.w2i(' '.join(label_)))
+        mask_data.append(out_vocab.w2i(' '.join(label_), unk_id=2))
+    return enc_data, dec_data, label_data, mask_data
+
+
+def read_word2def_data(
+        tokenized_lines, in_vocab, out_vocab, char_vocab, freq_down_weight=False,
+        init_seq_weight=1.0):
     """this is a copy of read_seq2seq_data with character data"""
 
     def tokens2chars(tokens):
@@ -120,10 +144,11 @@ def read_word2def_data(tokenized_lines, in_vocab, out_vocab, char_vocab,
     eoe_sym = ds.Vocabulary.special_symbols['end_encode']
     sod_sym = ds.Vocabulary.special_symbols['start_seq']
     eod_sym = ds.Vocabulary.special_symbols['end_seq']
-    enc_data, char_data, word_data, dec_data = [], [], [], []
+    enc_data, char_data, word_data, dec_data, mask_data = [], [], [], [], []
     freq = defaultdict(int)
     for part in tokenized_lines:
         enc_, dec_ = part[:2]
+        mask_ = out_vocab.w2i(enc_[0], unk_id=-1)
         enc_ = in_vocab.w2i(enc_ + [eoe_sym])
         if dec_ == ['']:
             dec_ = []
@@ -135,11 +160,12 @@ def read_word2def_data(tokenized_lines, in_vocab, out_vocab, char_vocab,
         dec_data.append(dec_)
         char_data.append(char_)
         word_data.append(word_)
+        mask_data.append(mask_)
     if freq_down_weight:
         seq_weight_data = [init_seq_weight / freq[w] for w in word_data]
     else:
         seq_weight_data = [init_seq_weight for __ in range(len(enc_data))]
-    return enc_data, word_data, char_data, dec_data, seq_weight_data
+    return enc_data, word_data, char_data, mask_data, dec_data, seq_weight_data
 
 
 #########################################################
@@ -181,8 +207,9 @@ def batch_iter(batch_size, shuffle, data, *more_data, pad=[[]]):
                    for d_ in all_data)
 
 
-def position_batch_iter(data_len, labels=(), batch_size=1, shuffle=True,
-                        num_tokens=None, keep_state=False):
+def position_batch_iter(
+        data_len, labels=(), batch_size=1, shuffle=True, num_tokens=None,
+        keep_state=False):
     """wrapper of batch_iter to generate batch of position"""
     num_tokens = batch_size if num_tokens is None else num_tokens
     if isinstance(num_tokens, np.ndarray):
@@ -196,8 +223,9 @@ def position_batch_iter(data_len, labels=(), batch_size=1, shuffle=True,
         yield fill_data(pos)
 
 
-def get_batch_data(batch, y_arr, unmasked_token_weight=None, unmasked_seq_weight=None,
-                   start_id=1, seq_len_idx=1, input_key='inputs', seq_len_key='seq_len'):
+def get_batch_data(
+        batch, y_arr, unmasked_token_weight=None, unmasked_seq_weight=None, start_id=1,
+        seq_len_idx=1, input_key='inputs', seq_len_key='seq_len'):
     y_len = np.argmin(y_arr, axis=0) + 1
     y_len[batch.features[seq_len_idx] <= 0] = 0
     seq_weight = np.where(y_len > 0, 1, 0).astype(np.float32)
@@ -212,6 +240,20 @@ def get_batch_data(batch, y_arr, unmasked_token_weight=None, unmasked_seq_weight
     labels = ds.SeqLabelTuple(y_arr, token_weight, seq_weight)
     batch = ds.BatchTuple(features, labels, num_tokens, batch.keep_state)
     return batch
+
+
+def concat_seq_batch(batch1, batch2):
+    _f1, _l1, _n1, _k1 = batch1
+    _f2, _l2, _n2, _k2 = batch2
+    inputs = util.hstack_with_padding(_f1.inputs, _f2.inputs)
+    seq_len = np.concatenate((_f1.seq_len, _f2.seq_len))
+    f = ds.SeqFeatureTuple(inputs, seq_len)
+    label = util.hstack_with_padding(_l1.label, _l2.label)
+    label_weight = util.hstack_with_padding(_l1.label_weight, _l2.label_weight)
+    _l2.seq_weight[:] = 0
+    seq_weight = np.concatenate((_l1.seq_weight, _l2.seq_weight))
+    l = ds.SeqLabelTuple(label, label_weight, seq_weight)
+    return ds.BatchTuple(f, l, _n1 + _n2, _k1)
 
 
 def concat_word2def_batch(batch1, batch2):
@@ -264,19 +306,42 @@ def seq2seq_batch_iter(enc_data, dec_data, batch_size=1, shuffle=True):
         yield ds.BatchTuple(features, labels, num_tokens, False)
 
 
-def word2def_batch_iter(enc_data, word_data, char_data, dec_data, seq_weight_data,
-                        batch_size=1, shuffle=True):
-    """same as seq2seq_batch_iter, just add more info"""
-    for x, w, c, y, sw in batch_iter(batch_size, shuffle, enc_data, word_data,
-                                     char_data, dec_data, seq_weight_data,
-                                     pad=[[], 0, [], [], 0]):
-        yield _format_word2def(x, w, c, y, sw)
+def lseq2seq_batch_iter(
+        enc_data, dec_data, label_data, mask_data, batch_size=1, shuffle=True):
+    """same as seq2seq_batch_iter, just add label"""
+    data_tuple = (enc_data, dec_data, label_data, mask_data)
+    for x, y, L, M in batch_iter(batch_size, shuffle, *data_tuple, pad=[[], [], 0, 2]):
+        enc, enc_len = util.hstack_list(x)
+        dec, dec_len = util.hstack_list(y)
+        label = np.array(L, dtype=np.int32)
+        mask = np.array(M, dtype=np.int32)
+        in_dec = dec[:-1, :]
+        out_dec = dec[1:, :]
+        seq_weight = np.where(dec_len > 0, 1, 0)
+        dec_len -= seq_weight
+        token_weight, num_tokens = util.masked_full_like(
+            out_dec, 1, num_non_padding=dec_len)
+        seq_weight = seq_weight.astype(np.float32)
+        features = ds.LSeq2SeqFeatureTuple(enc, enc_len, in_dec, dec_len, label, mask)
+        labels = ds.SeqLabelTuple(out_dec, token_weight, seq_weight)
+        yield ds.BatchTuple(features, labels, num_tokens, False)
 
 
-def _format_word2def(x, w, c, y, sw):
+def word2def_batch_iter(
+        enc_data, word_data, char_data, mask_data, dec_data, seq_weight_data,
+        batch_size=1, shuffle=True):
+    """same as seq2seq_batch_iter, just add word and character"""
+    for x, w, c, m, y, sw in batch_iter(batch_size, shuffle, enc_data, word_data,
+                                        char_data, mask_data, dec_data, seq_weight_data,
+                                        pad=[[], 0, [], -1, [], 0]):
+        yield _format_word2def(x, w, c, m, y, sw)
+
+
+def _format_word2def(x, w, c, m, y, sw):
     enc, enc_len = util.hstack_list(x)
     dec, dec_len = util.hstack_list(y)
     word = np.array(w, dtype=np.int32)
+    mask = np.array(m, dtype=np.int32)
     char, char_len = util.vstack_list(c)
     in_dec = dec[:-1, :]
     out_dec = dec[1:, :]
@@ -286,7 +351,7 @@ def _format_word2def(x, w, c, y, sw):
         out_dec, 1, num_non_padding=dec_len)
     seq_weight = seq_weight.astype(np.float32)
     features = ds.Word2DefFeatureTuple(enc, enc_len, word, char, char_len,
-                                       in_dec, dec_len)
+                                       mask, in_dec, dec_len)
     labels = ds.SeqLabelTuple(out_dec, token_weight, seq_weight)
     return ds.BatchTuple(features, labels, num_tokens, False)
 
@@ -449,8 +514,9 @@ def count_ngrams(tokenized_lines, n, token_vocab=None, left_pad='<s>', right_pad
     return counter
 
 
-def reward_global_ngram_stat(sample, batch, global_count, current_count, update_fn,
-                             ngram_fn, sample_score=None):
+def reward_global_ngram_stat(
+        sample, batch, global_count, current_count, update_fn, ngram_fn,
+        sample_score=None):
     seq_len = util.find_first_min_zero(sample)
     scores = np.zeros_like(sample, dtype=np.float32)
     batch_ngrams = []

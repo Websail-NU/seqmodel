@@ -17,7 +17,8 @@ __all__ = ['_safe_div', 'tfph_collection', 'create_2d_tensor', 'matmul', 'create
            'select_from_logit', 'create_xent_loss', 'create_ent_loss',
            'create_slow_feature_loss', 'create_l2_loss', 'create_train_op',
            'empty_tfph_collection', 'scan_rnn_no_mask', 'create_decode',
-           'create_pg_train_op', 'NGramCell']
+           'create_pg_train_op', 'seeded_decode_select_fn', 'greedy_decode_select',
+           'sampling_decode_select', 'create_gated_layer', 'gather_2d', 'shift']
 
 
 _global_collections = {}
@@ -111,40 +112,25 @@ def matmul(mat, mat2d, transpose_b=False):
 # Most of below functions assume time major input and output, unless specified
 
 
-class NGramCell(tf.nn.rnn_cell.RNNCell):
-    def __init__(self, num_units, input_size=None, order=4, reuse=None):
-        super(NGramCell, self).__init__(_reuse=reuse)
-        self._num_units = num_units
-        self._input_size = num_units if input_size is None else input_size
-        self._order = order
-        self._reuse = reuse
-
-    @property
-    def state_size(self):
-        return (self._input_size, ) * self._order
-
-    @property
-    def output_size(self):
-        return self._num_units
-
-    def call(self, inputs, state):
-        state = (*state[1:], inputs)
-        h = tf.concat(state, axis=-1)
-        output = tf.layers.dense(h, self._num_units, activation=tf.tanh, use_bias=True,
-                                 reuse=self._reuse)
-        return output, state
+def _tf_shape_of_tensor_or_tuple(inputs, dim=1):
+    if isinstance(inputs, tuple):
+        batch_size = tf.shape(inputs[0])[dim]  # time major
+    else:
+        batch_size = tf.shape(inputs)[dim]  # time major
+    return batch_size
 
 
-def create_cells(num_units, num_layers, cell_class=tf.nn.rnn_cell.BasicLSTMCell,
-                 reuse=False, in_keep_prob=1.0, out_keep_prob=1.0, state_keep_prob=1.0,
-                 variational=False, input_size=None, dropout_last_output=True,
-                 **cell_kwargs):
+def create_cells(
+        num_units, num_layers, cell_class=tf.nn.rnn_cell.BasicLSTMCell, reuse=False,
+        in_keep_prob=1.0, out_keep_prob=1.0, state_keep_prob=1.0, variational=False,
+        input_size=None, dropout_last_output=True, **cell_kwargs):
     """return an RNN cell with optionally DropoutWrapper and MultiRNNCell."""
     cells = []
     for layer in range(num_layers):
         if isinstance(cell_class, six.string_types):
             cell_class = locate(cell_class)
-        cell = cell_class(num_units, reuse=reuse, **cell_kwargs)
+        # cell = cell_class(num_units, reuse=reuse, **cell_kwargs)
+        cell = cell_class(num_units, **cell_kwargs)
         if layer == num_layers - 1 and not dropout_last_output:
             out_keep_prob = 1.0
         any_drop = any(kp < 1.0 for kp in [in_keep_prob, out_keep_prob, state_keep_prob])
@@ -163,8 +149,9 @@ def create_cells(num_units, num_layers, cell_class=tf.nn.rnn_cell.BasicLSTMCell,
     return final_cell
 
 
-def scan_rnn(cell, inputs, sequence_length, initial_state=None, dtype=tf.float32,
-             scope='rnn', mask_output=True, **_kwargs):
+def scan_rnn(
+        cell, inputs, sequence_length, initial_state=None, dtype=tf.float32, scope='rnn',
+        mask_output=True, **_kwargs):
     """dynamically unroll cell to max(len(inputs)), and select last relevant state.
     IMPORTANT sequence_length shoule be at least 1, otherwise this function will return
     the first state even thought it is not relevant."""
@@ -174,15 +161,25 @@ def scan_rnn(cell, inputs, sequence_length, initial_state=None, dtype=tf.float32
         return output, state
 
     with tf.variable_scope(scope):
-        batch_size = tf.shape(inputs)[1]  # time major
+
+        batch_size = _tf_shape_of_tensor_or_tuple(inputs)
+        if isinstance(cell.output_size, tuple):
+            # XXX: does not support nested structure
+            output_init = []
+            for size in cell.output_size:
+                output_init.append(
+                    tf.zeros((batch_size, size), dtype=dtype, name='scan_rnn_init'))
+            init = (tuple(output_init), initial_state)
+        else:
+            init = (
+                tf.zeros(
+                    (batch_size, cell.output_size), dtype=dtype, name='scan_rnn_init'),
+                initial_state)
         output, states = tf.scan(
-            step, inputs, name='scan_rnn',
-            initializer=(tf.zeros((batch_size, cell.output_size),
-                                  dtype=dtype, name='scan_rnn_init'),
-                         initial_state))
+            step, inputs, name='scan_rnn', initializer=init)
         final_state = select_nested_rnn(states, tf.nn.relu(sequence_length - 1))
         if mask_output:
-            max_len = tf.shape(inputs)[0]
+            max_len = _tf_shape_of_tensor_or_tuple(inputs, dim=0)
             mask = tf.expand_dims(
                 tf.sequence_mask(sequence_length, max_len, tf.float32), -1)
             output = tf.multiply(output, tf.transpose(mask, (1, 0, 2)))
@@ -192,13 +189,15 @@ def scan_rnn(cell, inputs, sequence_length, initial_state=None, dtype=tf.float32
 scan_rnn_no_mask = partial(scan_rnn, mask_output=False)
 
 
-def create_rnn(cell, inputs, sequence_length=None, initial_state=None,
-               rnn_fn=tf.nn.dynamic_rnn):
+def create_rnn(
+        cell, inputs, sequence_length=None, initial_state=None, rnn_fn=tf.nn.dynamic_rnn,
+        batch_size=None):
     """return output (all time steps), initial state, and final state in time major."""
     if isinstance(rnn_fn, six.string_types):
         rnn_fn = locate(rnn_fn)
     if initial_state is None:
-        batch_size = tf.shape(inputs)[1]  # time major
+        if batch_size is None:
+            batch_size = _tf_shape_of_tensor_or_tuple(inputs)
         initial_state = cell.zero_state(batch_size, tf.float32)
     cell_output, final_state = rnn_fn(
         cell=cell, inputs=inputs, sequence_length=sequence_length,
@@ -220,14 +219,13 @@ def select_nested_rnn(maybe_tuple, time_step):
 def select_rnn(tensor, time_step):
     """return tensor at the time_step (time major). This is similar to numpy
     tensor[time_step, :, :] where time_step can be 1D array."""
-    time_step = tf.expand_dims(time_step, axis=-1)
-    range_ = tf.expand_dims(tf.range(start=0, limit=tf.shape(tensor)[1]), axis=-1)
-    idx = tf.concat([time_step, range_], axis=-1)
+    idx = tf.stack([time_step, tf.range(start=0, limit=tf.shape(tensor)[1])], axis=-1)
     return tf.gather_nd(tensor, idx)
 
 
-def create_tdnn(inputs, sequence_length=None, filter_widths=[2, 3, 4, 5, 6],
-                num_filters=[10, 30, 40, 40, 40], activation_fn=tf.tanh):
+def create_tdnn(
+        inputs, sequence_length=None, filter_widths=[2, 3, 4, 5, 6],
+        num_filters=[10, 30, 40, 40, 40], activation_fn=tf.tanh):
     """return time-delayed network as a tensor of [batch, sum num_filters].
     This function expects batch major input."""
     if isinstance(activation_fn, six.string_types):
@@ -251,6 +249,31 @@ def create_tdnn(inputs, sequence_length=None, filter_widths=[2, 3, 4, 5, 6],
     return tf.concat(layers, axis=1) if len(layers) > 1 else layers[0]
 
 
+###################################################################
+#    ##     ## ########  ########     ###    ######## ########    #
+#    ##     ## ##     ## ##     ##   ## ##      ##    ##          #
+#    ##     ## ##     ## ##     ##  ##   ##     ##    ##          #
+#    ##     ## ########  ##     ## ##     ##    ##    ######      #
+#    ##     ## ##        ##     ## #########    ##    ##          #
+#    ##     ## ##        ##     ## ##     ##    ##    ##          #
+#     #######  ##        ########  ##     ##    ##    ########    #
+###################################################################
+
+
+def create_gated_layer(
+        carried, extra, carried_keep_prob=1.0, extra_keep_prob=1.0, fine_grain=False):
+    out_size = int(carried.get_shape()[-1]) if fine_grain else 1
+    _carried, _extra = carried, extra
+    if carried_keep_prob < 1.0:
+        _carried = tf.nn.dropout(carried, carried_keep_prob)
+    if extra_keep_prob < 1.0:
+        _extra = tf.nn.dropout(extra, extra_keep_prob)
+    z = tf.layers.dense(
+        tf.concat([_carried, _extra], -1), out_size, activation=tf.sigmoid,
+        name='gate')
+    return tf.multiply(extra - carried, z) + carried, z
+
+
 def create_highway_layer(transform, extra, carried):
     """return updated carried using Highway-like update function.
     (https://arxiv.org/abs/1505.00387)"""
@@ -263,54 +286,62 @@ def create_highway_layer(transform, extra, carried):
     gate_w = tf.get_variable('gate_w', [in_size, out_size])
     _arr = np.zeros((out_size))
     _arr[:] = -1
-    gate_b = tf.get_variable('gate_b', initializer=tf.constant(
-        _arr, dtype=tf.float32))
+    gate_b = tf.get_variable(
+        'gate_b', initializer=tf.constant(_arr, dtype=tf.float32))
     z = matmul(tf.concat([transform, extra], -1), gate_w) + gate_b
     t = tf.sigmoid(tf.slice(z, [0, 0, 0], [-1, -1, carried_dim]))
     h = tf.tanh(tf.slice(z, [0, 0, carried_dim], [-1, -1, -1]))
     return tf.multiply(h - carried, t) + carried, t
 
 
-def create_gru_layer(transform, extra, carried):
+def create_gru_layer(carried, extra, carried_keep_prob=1.0, extra_keep_prob=1.0):
     """return updated carried using GRU-like update function.
     (https://arxiv.org/abs/1612.00394)"""
-    transform_dim = int(transform.get_shape()[-1])
-    carried_dim = int(carried.get_shape()[-1])
-    extra_dim = int(extra.get_shape()[-1])
-    assert transform_dim == carried_dim, 'transform and carried must have the same size'
-    in_size = transform_dim + extra_dim
-    out_size = carried_dim + extra_dim
-    zr_w = tf.get_variable('gate_zr_w', [in_size, out_size])
-    zr_b = tf.get_variable('gate_zr_b', [out_size])
-    zr = tf.sigmoid(matmul(tf.concat([extra, transform], -1), zr_w) + zr_b)
-    if len(transform.get_shape()) == 2:
-        z = tf.slice(zr, [0, 0], [-1, carried_dim])
-        r = tf.slice(zr, [0, carried_dim], [-1, -1])
-    else:
-        z = tf.slice(zr, [0, 0, 0], [-1, -1, carried_dim])
-        r = tf.slice(zr, [0, 0, carried_dim], [-1, -1, -1])
-    h_w = tf.get_variable('h_w', [in_size, carried_dim])
-    h_b = tf.get_variable('h_b', [carried_dim])
-    scaled_extra = tf.multiply(r, extra)
-    h = tf.tanh(matmul(tf.concat([scaled_extra, transform], -1), h_w) + h_b)
+    _carried, _extra = carried, extra
+    if carried_keep_prob < 1.0:
+        _carried = tf.nn.dropout(carried, carried_keep_prob)
+    if extra_keep_prob < 1.0:
+        _extra = tf.nn.dropout(extra, extra_keep_prob)
+    c_dim = int(carried.get_shape()[-1])
+    x_dim = int(extra.get_shape()[-1])
+    out_size = c_dim + x_dim
+    zr = tf.layers.dense(
+        tf.concat(
+            [_carried, _extra], -1), out_size, activation=tf.sigmoid, name='gate_zr')
+    _begin = [0] * (len(carried.get_shape()) - 1)
+    _size = [-1] * (len(carried.get_shape()) - 1)
+    z = tf.slice(zr, _begin + [0], _size + [c_dim])
+    r = tf.slice(zr, _begin + [c_dim], _size + [-1])
+    _scaled_extra = tf.multiply(r, _extra)
+    h = tf.layers.dense(
+        tf.concat([_scaled_extra, _carried], -1), c_dim, activation=tf.tanh,
+        name='transform')
     return tf.multiply(h - carried, z) + carried, zr
 
 
-def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial_finish,
-                  logit_b=None, logit_temperature=None, min_len=1, max_len=40, end_id=0,
-                  cell_scope=None, reuse_cell=True, back_prop=False, select_fn=None,
-                  late_attn_fn=None):
-    if select_fn is None:
-        def select_fn(logit):
-            idx = tf.argmax(logit, axis=-1)
-            score = tf.reduce_max(tf.nn.log_softmax(logit), axis=-1)
-            return tf.cast(idx, tf.int32), score
+##################################################################
+#    ########  ########  ######   #######  ########  ########    #
+#    ##     ## ##       ##    ## ##     ## ##     ## ##          #
+#    ##     ## ##       ##       ##     ## ##     ## ##          #
+#    ##     ## ######   ##       ##     ## ##     ## ######      #
+#    ##     ## ##       ##       ##     ## ##     ## ##          #
+#    ##     ## ##       ##    ## ##     ## ##     ## ##          #
+#    ########  ########  ######   #######  ########  ########    #
+##################################################################
 
+
+def create_decode(
+        emb_var, cell, logit_w, initial_state, initial_inputs, initial_finish,
+        logit_b=None, logit_temperature=None, min_len=1, max_len=40, end_id=0,
+        cell_scope=None, reuse_cell=True, back_prop=False, select_fn=None,
+        late_attn_fn=None):
+    select_fn = select_fn or greedy_decode_select
     gen_ta = tf.TensorArray(dtype=tf.int32, size=min_len, dynamic_size=True)
     logp_ta = tf.TensorArray(dtype=tf.float32, size=min_len, dynamic_size=True)
     len_ta = tf.TensorArray(dtype=tf.int32, size=min_len, dynamic_size=True)
-    init_values = (tf.constant(0), initial_inputs, initial_state, gen_ta, logp_ta,
-                   len_ta, initial_finish)
+    init_values = (
+        tf.constant(0), initial_inputs, initial_state, gen_ta, logp_ta, len_ta,
+        initial_finish)
 
     def cond(t, _inputs, _state, _out_ta, _score_ta, _end_ta, finished):
         return tf.logical_and(t < max_len, tf.logical_not(tf.reduce_all(finished)))
@@ -325,9 +356,14 @@ def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial
         logit = tf.matmul(output, logit_w, transpose_b=True)
         if logit_b is not None:
             logit = logit + logit_b
+
+        # mask = np.zeros((10000, ), dtype=np.float32)
+        # mask[2] = 1e5
+        # logit = logit - tf.constant(mask, dtype=tf.float32)
+
         if logit_temperature is not None:
             logit = logit / logit_temperature
-        next_token, score = select_fn(logit)
+        next_token, score = select_fn(t, logit)
         out_ta = out_ta.write(t, next_token)
         score_ta = score_ta.write(t, score)
         end_ta = end_ta.write(t, tf.cast(tf.not_equal(next_token, end_id), tf.int32))
@@ -338,6 +374,64 @@ def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial
         cond, step, init_values, back_prop=back_prop, parallel_iterations=10)
     # parallel_iterations does not matter much here.
     return result.stack(), score.stack(), tf.reduce_sum(seq_len.stack(), axis=0) + 1
+
+
+def seeded_decode_select_fn(seed, seed_len, after_seed_fn, seed_offset=0):
+    def select_fn(t, logit):
+        i = t + seed_offset
+        return tf.cond(t < seed_len,
+                       lambda: (seed[i], tf.constant(1.0, dtype=tf.float32)),
+                       lambda: after_seed_fn(t, logit))
+    return select_fn
+
+
+def greedy_decode_select(_t, logit):
+    idx = tf.argmax(logit, axis=-1)
+    score = tf.reduce_max(tf.nn.log_softmax(logit), axis=-1)
+    return tf.cast(idx, tf.int32), score
+
+
+def sampling_decode_select(_t, logit):
+    idx = tf.cast(tf.multinomial(logit, 1), tf.int32)
+    gather_idx = tf.expand_dims(
+        tf.range(start=0, limit=tf.shape(idx)[0]), axis=-1)
+    gather_idx = tf.concat([gather_idx, idx], axis=-1)
+    score = tf.gather_nd(tf.nn.log_softmax(logit), gather_idx)
+    idx = tf.squeeze(idx, axis=(1, ))
+    return idx, score
+
+
+##############################################
+#       ###    ######## ######## ##    ##    #
+#      ## ##      ##       ##    ###   ##    #
+#     ##   ##     ##       ##    ####  ##    #
+#    ##     ##    ##       ##    ## ## ##    #
+#    #########    ##       ##    ##  ####    #
+#    ##     ##    ##       ##    ##   ###    #
+#    ##     ##    ##       ##    ##    ##    #
+##############################################
+
+
+def attn_dot(q, k, v, time_major=True):
+    q_is_2d = len(q.get_shape()) == 2
+    with tf.variable_scope('dot_product_attn'):
+        if time_major:
+            k = tf.transpose(k, [1, 0, 2])
+            v = tf.transpose(v, [1, 0, 2])
+            if len(q.get_shape()) == 3:
+                q = tf.transpose(q, [1, 0, 2])
+        if q_is_2d:
+            q = tf.expand_dims(q, axis=1)
+        logits = tf.matmul(q, k, transpose_b=True)
+        scores = tf.nn.softmax(logits)
+        attn_context = tf.matmul(scores, v)
+        if time_major and q_is_2d:
+            attn_context = tf.squeeze(attn_context, axis=1)
+        elif not time_major and q_is_2d:
+            attn_context = tf.squeeze(attn_context, axis=0)
+        elif time_major:
+            attn_context = tf.transpose(attn_context, [1, 0, 2])
+        return attn_context, scores
 
 
 #######################################
@@ -354,8 +448,8 @@ def create_decode(emb_var, cell, logit_w, initial_state, initial_inputs, initial
 # global collection
 
 
-def get_seq_input_placeholders(prefix='decoder', add_to_collection=True,
-                               collect_key='model_inputs'):
+def get_seq_input_placeholders(
+        prefix='decoder', add_to_collection=True, collect_key='model_inputs'):
     """return input and sequence length placeholders,
     create if not existed in collection. If add_to_collection is True, this function
     adds placeholders to tensorflow collection."""
@@ -368,8 +462,9 @@ def get_seq_input_placeholders(prefix='decoder', add_to_collection=True,
     return input_, seq_len_
 
 
-def get_seq_label_placeholders(label_dtype=tf.int32, prefix='decoder',
-                               add_to_collection=True, collect_key='model_inputs'):
+def get_seq_label_placeholders(
+        label_dtype=tf.int32, prefix='decoder', add_to_collection=True,
+        collect_key='model_inputs'):
     """return label, token weight, and sequence weight placeholders,
     create if not existed in collection. If add_to_collection is True, this function
     adds placeholders to tensorflow collection."""
@@ -383,9 +478,10 @@ def get_seq_label_placeholders(label_dtype=tf.int32, prefix='decoder',
     return label, tk_w, seq_w
 
 
-def create_lookup(inputs, emb_vars=None, onehot=False, vocab_size=None, dim=None,
-                  add_project=False, project_size=-1, project_act=tf.tanh,
-                  trainable=True, init=None, prefix='input', emb_name='embedding'):
+def create_lookup(
+        inputs, emb_vars=None, onehot=False, vocab_size=None, dim=None, add_project=False,
+        project_size=-1, project_act=tf.tanh, trainable=True, init=None, prefix='input',
+        emb_name='embedding'):
     """return lookup, and embedding variable (None if onehot)"""
     if onehot:
         assert vocab_size is not None, 'onehot needs vocab_size to be set.'
@@ -411,20 +507,21 @@ def create_lookup(inputs, emb_vars=None, onehot=False, vocab_size=None, dim=None
     return lookup, emb_vars
 
 
-def get_logit_layer(inputs, logit_w=None, logit_b=None, output_size=None,
-                    use_bias=True, temperature=None, trainable=True,
-                    init=None, add_project=False, project_size=-1, project_act=tf.tanh,
-                    prefix='output', add_to_collection=True, collect_key='model_inputs'):
+def get_logit_layer(
+        inputs, logit_w=None, logit_b=None, output_size=None, use_bias=True,
+        temperature=None, trainable=True, init=None, add_project=False, project_size=-1,
+        project_act=tf.tanh, prefix='output', add_to_collection=True,
+        collect_key='model_inputs'):
     """return logit with temperature layer and variables"""
     if logit_w is None:
         input_dim = int(inputs.get_shape()[-1])
-        logit_w = create_2d_tensor(output_size, input_dim, trainable, init=init,
-                                   name=f'logit_w')
+        logit_w = create_2d_tensor(
+            output_size, input_dim, trainable, init=init, name=f'logit_w')
     if add_project:
         logit_dim = logit_w.get_shape()[-1]
         project_size = project_size if project_size > 0 else logit_dim
-        proj_w = tf.get_variable(f'logit_proj', shape=(logit_dim, project_size),
-                                 dtype=tf.float32)
+        proj_w = tf.get_variable(
+            f'logit_proj', shape=(logit_dim, project_size), dtype=tf.float32)
         logit_w = tf.matmul(logit_w, proj_w)
         if isinstance(project_act, six.string_types):
             project_act = locate(project_act)
@@ -433,8 +530,8 @@ def get_logit_layer(inputs, logit_w=None, logit_b=None, output_size=None,
     logit = matmul(inputs, logit_w, transpose_b=True)
     if use_bias:
         if logit_b is None:
-            logit_b = tf.get_variable(f'logit_b', [output_size],
-                                      dtype=tf.float32)
+            logit_b = tf.get_variable(
+                f'logit_b', [output_size], dtype=tf.float32)
         logit = logit + logit_b
     if temperature is None:
         with tfph_collection(collect_key, add_to_collection) as get:
@@ -445,6 +542,9 @@ def get_logit_layer(inputs, logit_w=None, logit_b=None, output_size=None,
 
 
 def select_from_logit(logit, distribution=None):
+    # mask = np.zeros((10000, ), dtype=np.float32)
+    # mask[2] = 1e5
+    # logit = logit - tf.constant(mask, dtype=tf.float32)
     if distribution is None:
         distribution = tf.nn.softmax(logit)
     max_idx = tf.argmax(logit, axis=-1)
@@ -463,6 +563,43 @@ def select_from_logit(logit, distribution=None):
     max_tuple = dstruct.IndexScoreTuple(max_idx, max_prob)
     sample_tuple = dstruct.IndexScoreTuple(sample_idx, sample_prob)
     return distribution, max_tuple, sample_tuple
+
+
+def gather_2d(tensor3d, idx2d, reshape_back=True):
+    tensor2d = tf.reshape(tensor3d, (-1, tf.shape(tensor3d)[-1]))
+    idx1d = tf.reshape(idx2d, (-1, 1))
+    gather_idx = tf.expand_dims(
+        tf.range(start=0, limit=tf.shape(idx1d)[0]), axis=-1)
+    gather_idx = tf.concat([gather_idx, idx1d], axis=-1)
+    out1d = tf.gather_nd(tensor2d, gather_idx)
+    if reshape_back:
+        return tf.reshape(out1d, tf.shape(idx2d))
+    else:
+        return out1d
+
+
+def shift(tensor, k, axis=0, fill=0):
+    assert k != 0, 'k must not be zero.'
+    rank = len(tensor.get_shape())
+    paddings = np.zeros((rank, 2), dtype=np.int32)
+    direction = 0 if k > 0 else 1
+    paddings[axis, direction] = abs(k)
+    padded = tf.pad(tensor, paddings, mode="CONSTANT", constant_values=fill)
+    slice_begin = tf.zeros((rank, ), dtype=tf.int32)
+    if direction == 0:
+        slice_end = tf.shape(tensor, out_type=tf.int32)
+        slice_end_offset = np.zeros((rank, ), dtype=np.int32)
+        slice_end_mask = np.ones((rank, ), dtype=np.int32)
+        slice_end_offset[axis] = -k
+        slice_end_mask[axis] = 0
+        slice_end = slice_end * slice_end_mask + slice_end_offset
+    else:
+        slice_end = tf.shape(padded, out_type=tf.int32)
+        slice_begin_offset = np.zeros((rank, ), dtype=np.int32)
+        slice_begin_offset[axis] = -k
+        slice_begin = slice_begin + slice_begin_offset
+    sliced = tf.strided_slice(padded, slice_begin, slice_end, None)
+    return sliced
 
 
 ##############################################
@@ -515,7 +652,7 @@ def create_ent_loss(distribution, weight, seq_weight=None):
     return sum_loss, mean_loss
 
 
-def create_slow_feature_loss(feature, weight, delta=1.0):
+def create_slow_feature_loss(feature, weight=None, delta=0.0):
     """return a constrastive slow feature analysis loss
     Args:
         feature: A tensor of shape [batch, time, dim]
@@ -527,17 +664,21 @@ def create_slow_feature_loss(feature, weight, delta=1.0):
         loss: A tensor of shape [batch, time, time]
         batch_loss: sum loss, averaged by batch size"""
     r = tf.expand_dims(tf.reduce_sum(feature * feature, -1), axis=-1)
-    D = r - 2 * tf.matmul(A, tf.transpose(A, perm=[0, 2, 1]))
-    D = D + tf.transpose(r, perm=[0, 2, 1])
-    R2 = tf.multiply(D, weight)
-    if delta > 0:
+    D = r - 2 * tf.matmul(feature, tf.transpose(feature, perm=[0, 2, 1]))
+    R2 = D + tf.transpose(r, perm=[0, 2, 1])
+    if weight is not None:
+        R2 = tf.multiply(R2, weight)
+    if delta > 0 and weight is not None:
         n_weight = 1 - weight
         n_weight = tf.matrix_band_part(n_weight, 0, -1)
         n_weight = n_weight - tf.matrix_band_part(n_weight, 0, 0)
         R2_n = tf.multiply(tf.nn.relu(delta - D), n_weight)
         R2 = R2 + R2_n
-    batch_size = tf.shape(feature)[0]
-    return R2, tf.reduce_sum(R2) / tf.cast(batch_size, tf.float32)
+    if weight is not None:
+        avg_R2 = _safe_div(tf.reduce_sum(R2), tf.reduce_sum(weight))
+    else:
+        avg_R2 = tf.reduce_mean(R2)
+    return R2, avg_R2
 
 
 def create_l2_loss(var_list):
@@ -547,8 +688,9 @@ def create_l2_loss(var_list):
     return l2_loss
 
 
-def create_train_op(loss, optim_class=tf.train.AdamOptimizer, learning_rate=0.001,
-                    clip_gradients=5.0, **optim_kwarg):
+def create_train_op(
+        loss, optim_class=tf.train.AdamOptimizer, learning_rate=0.001,
+        clip_gradients=5.0, **optim_kwarg):
     """return train operation graph"""
     if isinstance(optim_class, six.string_types):
         optim_class = locate(optim_class)
@@ -565,8 +707,9 @@ def create_train_op(loss, optim_class=tf.train.AdamOptimizer, learning_rate=0.00
     return train_op
 
 
-def create_pg_train_op(nll, return_ph, optim_class=tf.train.AdamOptimizer,
-                       learning_rate=0.001, clip_gradients=5.0, **optim_kwarg):
+def create_pg_train_op(
+        nll, return_ph, optim_class=tf.train.AdamOptimizer, learning_rate=0.001,
+        clip_gradients=5.0, **optim_kwarg):
     """return train operation graph"""
     if isinstance(optim_class, six.string_types):
         optim_class = locate(optim_class)
