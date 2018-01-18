@@ -1,4 +1,4 @@
-# Sequence Model (Work-In-Progress)
+# Sequence Modeling
 
 A code base for creating and running sequence models of language. Including
 language modeling, definition modeling, and common encoder-decoder stuffs.
@@ -7,10 +7,11 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 ## Requirements
 
 - python 3.6
-- tensorflow 1.2
+- tensorflow 1.4
 - numpy 1.13
 - nltk 3.2.4
 - six 1.10
+- kenlm
 
 ## Overview
 
@@ -20,47 +21,43 @@ language modeling, definition modeling, and common encoder-decoder stuffs.
 - model.py: runnable models from configuration
 - run.py: functions to train and evaluate model (data + model -> result)
 - util.py: utility functions (dictionary, array, logging, and cmd arguments)
+- ngram_stat.py and ngram_stats.py: various functions for computing global statatistics
 
 ## Under development
 
-- ngram_stat.py and ngram_stats.py: various functions for computing global statatistics
-- contrib.py: a collection of codes that are likely to move or change
+- cells.py
+- marignal.py
+- scrap.py
+
+## Usage
+
+
+### Preprocessing data
+
+By default, this code needs a vocabulary file(s), and text data split into 3 files:
+`train.txt`, `valid.txt`, and `test.txt`. There are a few scripts to download and
+preprocess datasets in `script/data`. You can use them as an example.
+
+### A test run
+
+To train and evaluate a language model on a test data, run the following command:
+```
+# Train an RNNLM with defaul configuration
+python main_lm.py train test_data/tiny_single/ exp_dir --log_level debug
+
+# Evaluate the same model (in exp_dir)
+python main_lm.py eval test_data/tiny_single/ exp_dir --log_level debug
+```
+
+You can add `--help` to list all options.
 
 ## TODO
 
-### Model
-
-- [x] Fix scan_rnn to support tuple input and output
-- [x] Implement dot attention
-- [ ] Use LSTMBlockFusedCell
 - [ ] Implement Bahdanau attention
 - [ ] Beam search decoding
-- [ ] Decode with initial state
-- [ ] Value Network and A2C
-
-### Run
-
-- [ ] TD(lambda)
-- [ ] Bootstrap last state if not terminal
-
-### Generator
-
-- [ ] Option to randomly select sequences of the same encode input
-
-### Scripts
-
-- [ ] Option to select reward function from CLI
-- [ ] Fix a bug where `--\_\_:` options are not saved!
-
-### TensorFlow
-
-- [ ] Take advantage of tf.Session.make_callable (need benchmark)
-
-### Bucket list
-
-- [ ] Compile my own TensorFlow
-- [ ] Use tf.summary for tensorboard.
-- [ ] It would be nice if we do not need to fecth state and feed it back in when
-      training a langauge model (sentence dependent).
 - [ ] Ensure the indices of `</s>` and `<s>` are 0 and 1,
       and index of `_` is 0 for char-level data
+- [ ] Option to randomly select sequences of the same encode input
+- [ ] Value Network and A2C
+- [ ] Use tf.summary for tensorboard.
+
