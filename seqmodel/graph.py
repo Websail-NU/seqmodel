@@ -11,6 +11,7 @@ import tensorflow as tf
 
 from seqmodel import util
 from seqmodel import dstruct
+from seqmodel import cells as custom_cells
 
 tfdense = tf.layers.dense
 
@@ -71,9 +72,12 @@ def empty_tfph_collection(collect_key):
 
 
 @contextmanager
-def maybe_scope(scope=None, reuse=False):
+def maybe_scope(scope=None, reuse=False, name=None):
     if scope is not None:
         with tf.variable_scope(scope, reuse=reuse) as _scope:
+            yield _scope
+    elif name is not None:
+        with tf.variable_scope(name) as _scope:
             yield _scope
     else:
         yield None
@@ -189,7 +193,9 @@ def _tf_shape_of_tensor_or_tuple(inputs, dim=1):
 def create_cells(
         num_units, num_layers, cell_class=tf.nn.rnn_cell.BasicLSTMCell,
         in_keep_prob=1.0, out_keep_prob=1.0, state_keep_prob=1.0, variational=False,
-        input_size=None, dropout_last_output=True, **cell_kwargs):
+        input_size=None, dropout_last_output=True, cell_wrapper=None,
+        init_state_trainable=False, reset_state_prob=0.0,
+        final_cell_wrapper=None, **cell_kwargs):
     """return an RNN cell with optionally DropoutWrapper and MultiRNNCell."""
     cells = []
     for layer in range(num_layers):
@@ -203,14 +209,23 @@ def create_cells(
             cell = tf.nn.rnn_cell.DropoutWrapper(
                 cell, in_keep_prob, out_keep_prob, state_keep_prob, variational,
                 input_size, tf.float32)
+        if cell_wrapper is not None:
+            cell = cell_wrapper(cell)
         input_size = cell.output_size
         if not variational:
             in_keep_prob = 1.0  # remove double dropout when stacking cells
         cells.append(cell)
-    if num_layers == 1:
-        final_cell = cells[0]
-    else:
-        final_cell = tf.nn.rnn_cell.MultiRNNCell(cells)
+    # if num_layers == 1:
+    #     final_cell = cells[0]
+    # else:
+    final_cell = tf.nn.rnn_cell.MultiRNNCell(cells)
+    if init_state_trainable or reset_state_prob > 0.0:
+        final_cell = custom_cells.InitStateCellWrapper(
+            final_cell, actvn=tf.nn.tanh,
+            trainable=init_state_trainable,
+            state_reset_prob=reset_state_prob)
+    if final_cell_wrapper is not None:
+        final_cell = final_cell_wrapper(final_cell)
     return final_cell
 
 
@@ -290,8 +305,8 @@ def create_rnn(
         initial_state = cell.zero_state(batch_size, tf.float32)
     cell_output, final_state = rnn_fn(
         cell=cell, inputs=inputs, sequence_length=sequence_length,
-        initial_state=initial_state, time_major=True, dtype=tf.float32)
-    # parallel_iterations=1)
+        initial_state=initial_state, time_major=True, dtype=tf.float32,
+        parallel_iterations=1)
     return cell_output, initial_state, final_state
 
 
@@ -387,7 +402,7 @@ def create_neural_cache(
         scores = tf.TensorArray(tf.float32, size=steps, dynamic_size=False)
 
         def body(t, ltimes, lindices, lscores):
-            # XXX: force dependency
+            # op trick to force dependency
             _t = time_pointer * 1
             _v = cached_v * 1
             _k = cached_k * 1
@@ -587,7 +602,7 @@ def create_decode(
         emb_var, cell, logit_w, initial_state, initial_inputs, initial_finish,
         logit_b=None, logit_temperature=None, min_len=1, max_len=40, end_id=0,
         cell_scope=None, reuse_cell=True, back_prop=False, select_fn=None,
-        late_attn_fn=None):
+        late_attn_fn=None, vocab_size=None):
     select_fn = select_fn or greedy_decode_select
     gen_ta = tf.TensorArray(dtype=tf.int32, size=min_len, dynamic_size=True)
     logp_ta = tf.TensorArray(dtype=tf.float32, size=min_len, dynamic_size=True)
@@ -600,7 +615,11 @@ def create_decode(
         return tf.logical_and(t < max_len, tf.logical_not(tf.reduce_all(finished)))
 
     def step(t, inputs, state, out_ta, score_ta, end_ta, finished):
-        input_emb = tf.nn.embedding_lookup(emb_var, inputs)
+        if emb_var is None:
+            input_emb = tf.one_hot(
+                inputs, vocab_size, axis=-1, dtype=tf.float32)
+        else:
+            input_emb = tf.nn.embedding_lookup(emb_var, inputs)
         with maybe_scope(cell_scope, reuse=reuse_cell):
             with tf.variable_scope('rnn', reuse=True):
                 output, new_state = cell(input_emb, state)
@@ -658,19 +677,19 @@ def sampling_decode_select(_t, logit):
 
 def attend_dot(
         q, k, v, q_len=None, v_len=None, time_major=True, out_q_major=True,
-        gumbel_select=False, gumbel_temperature=1.0):
+        gumbel=False, gumbel_temperature=1.0, gumbel_max=False):
     q_is_2d = len(q.get_shape()) == 2
     with tf.variable_scope('dot_product_attn'):
-        if time_major:  # need to convert to (b, n, d)
-            k = tf.transpose(k, [1, 0, 2])
+        if time_major:  # need to convert to (b, ?, d)
+            k = tf.transpose(k, [1, 0, 2])  # (b, n, d)
             v = tf.transpose(v, [1, 0, 2])
             if len(q.get_shape()) == 3:
-                q = tf.transpose(q, [1, 0, 2])
+                q = tf.transpose(q, [1, 0, 2])  # (b, m, d)
         if q_is_2d:
-            q = tf.expand_dims(q, axis=1)  # (b, 1, d)
+            q = tf.expand_dims(q, axis=1)  # m = 1
         logits = tf.matmul(q, k, transpose_b=True)  # (b, m, n)
         # TODO: mask logits on the padding (for both q and k)
-        if gumbel_select:
+        if gumbel:
             temp_var = tf.get_variable(
                 'gumbel_temperature', dtype=tf.float32, initializer=gumbel_temperature,
                 trainable=False)
@@ -680,6 +699,11 @@ def attend_dot(
                 cat = tf.contrib.distributions.RelaxedOneHotCategorical(
                     temp_var, logits=logits)
                 scores = cat.sample()
+                if gumbel_max:  # straight-through trick
+                    score_max = tf.cast(
+                        tf.equal(scores, tf.reduce_max(scores, -1, keep_dims=True)),
+                        scores.dtype)
+                    scores = tf.stop_gradient(score_max - scores) + scores
             # scores = tf.Print(scores, [scores[0]])
         else:
             scores = tf.nn.softmax(logits)
@@ -736,8 +760,8 @@ def create_lookup(
     """return lookup, and embedding variable (None if onehot)"""
     if onehot:
         assert vocab_size is not None, 'onehot needs vocab_size to be set.'
-        lookup = tf.one_hot(inputs, vocab_size, axis=-1, dtype=tf.float32,
-                            name=f'{prefix}_lookup')
+        lookup = tf.one_hot(
+            inputs, vocab_size, axis=-1, dtype=tf.float32, name=f'{prefix}_lookup')
         return lookup, None  # RETURN IS HERE TOO!
     if emb_vars is None:
         size_is_not_none = vocab_size is not None and dim is not None
@@ -761,32 +785,66 @@ def create_lookup(
 def get_logit_layer(
         inputs, logit_w=None, logit_b=None, output_size=None, use_bias=True,
         temperature=None, trainable=True, init=None, add_project=False, project_size=-1,
-        project_act=tf.tanh, prefix='output', add_to_collection=True,
-        collect_key='model_inputs'):
+        project_act=None, project_keep_prob=1.0, rbf_kernel=False,
+        prefix='logit', add_to_collection=True, collect_key='model_inputs'):
     """return logit with temperature layer and variables"""
+    if prefix is not None or prefix != '':
+        prefix = f'{prefix}_'
     if logit_w is None:
         input_dim = int(inputs.get_shape()[-1])
+        logit_dim = input_dim
+        if project_size > 0:
+            logit_dim = project_size
         logit_w = create_2d_tensor(
-            output_size, input_dim, trainable, init=init, name=f'logit_w')
+            output_size, logit_dim, trainable, init=init, name=f'{prefix}kernel')
     if add_project:
         logit_dim = logit_w.get_shape()[-1]
         project_size = project_size if project_size > 0 else logit_dim
-        proj_w = tf.get_variable(
-            f'logit_proj', shape=(logit_dim, project_size), dtype=tf.float32)
-        logit_w = tf.matmul(logit_w, proj_w)
-        if isinstance(project_act, six.string_types):
+        if project_act is not None and isinstance(project_act, six.string_types):
             project_act = locate(project_act)
-        if project_act is not None:
-            logit_w = project_act(logit_w)
+        for i in range(1):
+            h = tf.layers.dense(
+                inputs, inputs.shape[-1], activation=tf.nn.elu,
+                name=f'{prefix}proj_{i}')
+            if project_keep_prob < 1.0:
+                h = tf.nn.dropout(h, project_keep_prob)
+            inputs = h
+        inputs = tf.layers.dense(
+            inputs, project_size, activation=project_act, name=f'{prefix}proj')
+        if project_keep_prob < 1.0:
+            inputs = tf.nn.dropout(inputs, project_keep_prob)
     logit = matmul(inputs, logit_w, transpose_b=True)
+    if rbf_kernel:
+        # var = tf.get_variable(
+        #     'logit_rbf_var', dtype=tf.float32, initializer=1.0,
+        #     trainable=False)
+        # update_var = tf.assign(var, tf.maximum(0.001, var * 0.9999))
+        # with tf.control_dependencies([update_var]):
+        #     inputs = inputs + tf.random_normal(
+        #         tf.shape(inputs), mean=0.0, stddev=tf.sqrt(var))
+        D = int(logit_w.shape[-1])
+        logit_scale = tf.get_variable(
+            f'{prefix}scale', dtype=tf.float32,
+            initializer=np.ones((output_size, ), dtype=np.float32) / np.sqrt(D))
+        z = 2 * D * tf.square(logit_scale)
+        dot_product = matmul(inputs, logit_w, transpose_b=True)
+        norm_input = tf.expand_dims(tf.reduce_sum(inputs, axis=-1), -1)
+        norm_w = tf.expand_dims(tf.reduce_sum(logit_w, axis=-1), 0)
+        if len(inputs.shape) == 3:
+            norm_w = tf.expand_dims(norm_w, 0)
+        logit = - (norm_input + norm_w - 2 * logit) / z
     if use_bias:
         if logit_b is None:
+            # logit_b = tf.get_variable(
+            #     f'{prefix}bias', [output_size], dtype=tf.float32, trainable=trainable,
+            #     initializer=tf.zeros_initializer())
             logit_b = tf.get_variable(
-                f'logit_b', [output_size], dtype=tf.float32, trainable=trainable)
+                f'logit_b', [output_size], dtype=tf.float32, trainable=trainable,
+                initializer=tf.zeros_initializer())
         logit = logit + logit_b
     if temperature is None:
         with tfph_collection(collect_key, add_to_collection) as get:
-            temp_key = f'{prefix}_logit_temperature'
+            temp_key = f'{prefix}_temperature'
             temperature = get(temp_key, tf.float32, shape=[])
     logit = logit / temperature
     return logit, temperature, logit_w, logit_b
@@ -1009,6 +1067,7 @@ def create_train_op(
     for v in tf.trainable_variables():
         if grad_vars_contain in v.name:
             var_list.append(v)
+    # loss += create_l2_loss(var_list)
     g_v_pairs = optim.compute_gradients(loss, var_list=var_list)
     grads, tvars = [], []
     for g, v in g_v_pairs:

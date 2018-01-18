@@ -41,7 +41,9 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
             'optim_class': train_opt['train:optim_class'],
             'grad_vars_contain': train_opt['train:grad_vars_contain'],
             'clip_gradients': train_opt['train:clip_gradients']}
-        if pg:
+        if hasattr(train_model, 'create_train_op'):
+            train_op = train_model.create_train_op(**_train_kwargs)
+        elif pg:
             return_ph = tf.placeholder(tf.float32, shape=(None, None), name='return')
             train_op = sq.create_pg_train_op(train_model.nll, return_ph, **_train_kwargs)
         else:
@@ -72,17 +74,20 @@ def _main(opt, model_class, model_opt, data_fn, run_fn, logger, train_opt=None,
             success, train_state = sq.load_exp(
                 sess, res_saver, opt['exp_dir'], latest=True,
                 checkpoint=opt['load_checkpoint'], logger=logger)
+
+            reset_prob = opt['reset_state_prob'] if 'reset_state_prob' in opt else 0.0
             if pg:
                 return_feed_fn = partial(train_model.set_default_feed, return_ph)
                 train_fn = partial(
                     run_fn, sess, train_model, train_batch_iter, train_op,
-                    return_feed_fn=return_feed_fn)
+                    return_feed_fn=return_feed_fn, reset_state_prob=reset_prob)
                 valid_fn = partial(
                     run_fn, sess, eval_model, valid_batch_iter, greedy=True)
                 eval_run_fn = partial(eval_run_fn, greedy=True)
             else:
                 train_fn = partial(
-                    run_fn, sess, train_model, train_batch_iter, train_op)
+                    run_fn, sess, train_model, train_batch_iter, train_op,
+                    reset_state_prob=reset_prob)
                 valid_fn = partial(run_fn, sess, eval_model, valid_batch_iter)
 
             def begin_epoch_fn(train_state):
@@ -153,6 +158,7 @@ def decode(opt, model_opt, decode_opt, decode_batch_fn, logger, data_fn, model_c
     _main(
         opt, model_class, model_opt, data_fn, sq.run_epoch, logger,
         decode_opt=decode_opt, decode_batch_fn=decode_batch_fn)
+
 
 if __name__ == '__main__':
     import warnings

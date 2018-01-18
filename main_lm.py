@@ -23,10 +23,13 @@ if __name__ == '__main__':
     parser = sq.get_common_argparser('main_lm.py')
     parser.add_argument('--char_data', action='store_true', help=' ')
     parser.add_argument('--seq_len', type=int, default=20, help=' ')
+    parser.add_argument('--reset_state_prob', type=float, default=0.0, help='NO GOOD!')
     parser.add_argument('--sentence_level', action='store_true', help=' ')
     parser.add_argument('--random_seq_len', action='store_true', help=' ')
     parser.add_argument('--random_seq_len_min', type=int, default=4, help=' ')
     parser.add_argument('--random_seq_len_max', type=int, default=20, help=' ')
+    parser.add_argument('--trace_state_filename', type=str, default=None, help=' ')
+    parser.add_argument('--trace_nll_filename', type=str, default=None, help=' ')
     sq.add_arg_group_defaults(parser, group_default)
     opt, groups = sq.parse_set_args(parser, group_default)
     logger, all_opt = sq.init_exp_opts(opt, groups, group_default)
@@ -80,6 +83,7 @@ if __name__ == '__main__':
         opath = decode_opt['decode:outpath']
         tmp_paths = [f'{opath}.{i}' for i in range(_b)]
         max_tokens = 887521 + 42068
+        # max_tokens = max_tokens * 50
         if 'wikitext' in opt['data_dir']:
             max_tokens = 2051910 + 36718
         if opt['char_data']:
@@ -111,35 +115,48 @@ if __name__ == '__main__':
             os.remove(fpath)
     else:
         eval_run_fn = None
-        # vocab = sq.Vocabulary.from_vocab_file(os.path.join(
-        #   opt['data_dir'], 'vocab.txt'))
-        # with open('tmp.txt', mode='w') as ofp:
-        #     def collect_fn(batch, collect):
-        #         labels = vocab.i2w(batch.labels.label[:, 0])
-        #         nlls = collect[0][:, 0]
-        #         for label, nll in zip(labels, nlls):
-        #             ofp.write(f'{label}\t{nll}\n')
+        if (opt['trace_nll_filename'] is not None and
+                opt['trace_state_filename'] is not None):
+            raise ValueError(
+                'trace_nll_filename and trace_nll_filename cannot be used together.')
 
-        #     eval_run_fn = partial(sq.run_collecting_epoch, collect_keys=['nll'],
-        #                           collect_fn=collect_fn)
-        #     mle(opt, model_opt, train_opt, logger, data_fn, MODEL_CLASS,
-        #         eval_run_fn=eval_run_fn)
+        if opt['trace_nll_filename'] is not None:
+            vocab = sq.Vocabulary.from_vocab_file(os.path.join(
+              opt['data_dir'], 'vocab.txt'))
 
-        # states = []
+            nll_file = open(
+                os.path.join(opt['exp_dir'], opt['trace_nll_filename']), mode='w')
 
-        # def collect_fn(batch, collect):
-        #     state = collect[0]
-        #     state = np.concatenate(state, -1)
-        #     state = np.reshape(state, (-1, state.shape[-1]))
-        #     states.append(state)
+            def collect_fn(batch, collect):
+                labels = vocab.i2w(batch.labels.label[:, 0])
+                nlls = collect[0][:, 0]
+                for label, nll in zip(labels, nlls):
+                    nll_file.write(f'{label}\t{nll}\n')
 
-        # eval_run_fn = partial(
-        #     sq.run_collecting_epoch,
-        #     collect_keys=['final_state'], collect_fn=collect_fn)
+            eval_run_fn = partial(sq.run_collecting_epoch, collect_keys=['token_nll'],
+                                  collect_fn=collect_fn)
+
+        if opt['trace_state_filename'] is not None:
+            states = []
+
+            def collect_fn(batch, collect):
+                state = collect[0]
+                state = np.concatenate(state, -1) * np.expand_dims(collect[1], -1)
+                # state = np.reshape(state, (-1, state.shape[-1]))
+                states.append(state)
+
+            eval_run_fn = partial(
+                sq.run_collecting_epoch,
+                collect_keys=['final_state', 'seq_weight'], collect_fn=collect_fn)
 
         mle(opt, model_opt, train_opt, logger, data_fn, MODEL_CLASS,
             eval_run_fn=eval_run_fn)
 
-        # if eval_run_fn is not None:
-        #     np.save('states', np.concatenate(states, 0))
+        if opt['trace_nll_filename'] is not None:
+            nll_file.close()
+        if opt['trace_state_filename'] is not None:
+            np.save(
+                os.path.join(opt['exp_dir'], opt['trace_state_filename']),
+                np.stack(states, 0))
+
     logger.info(f'Total time: {sq.time_span_str(time.time() - start_time)}')

@@ -78,7 +78,7 @@ def is_done_training_early(train_state, imp_wait=2, min_lr=1e-04):
 
 def run_epoch(
         sess, model, batch_iter, train_op=None, train_state=None, begin_step_fn=None,
-        end_step_fn=None):
+        end_step_fn=None, reset_state_prob=0.0):
     info = ds.RunningInfo()
     if train_op:
         run_fn = partial(model.train, sess, train_op=train_op)
@@ -92,6 +92,8 @@ def run_epoch(
             batch.features, batch.labels, state=state, fetch_state=batch.keep_state)
         if batch.keep_state:
             result, state = result  # ds.OutputStateTuple
+            if reset_state_prob > 0.0 and np.random.rand() < reset_state_prob:
+                state = None
         else:
             state = None
         if end_step_fn is not None:
@@ -217,6 +219,7 @@ def uncond_lm_decode(sess, model, feature_seed, greedy=False, vocabs=None):
         result, __ = model.predict(
             sess, feature, predict_key=dec_mode, fetch_state=True, state=state)
         output, state = result
+        # print(output.shape)
         feature = feature._replace(inputs=output[[-1], :])
         feature.seq_len[:] = 1
         yield output, vocabs

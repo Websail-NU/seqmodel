@@ -13,7 +13,7 @@ import tensorflow as tf
 from seqmodel import util
 from seqmodel import dstruct
 from seqmodel import graph as tfg
-from seqmodel.cells import AttendedInputCellWrapper
+from seqmodel import cells as custom_cells
 
 tfdense = tf.layers.dense
 
@@ -217,13 +217,16 @@ class SeqModel(Model):
                'cell:cell_class': 'tensorflow.nn.rnn_cell.BasicLSTMCell',
                'cell:in_keep_prob': 1.0, 'cell:out_keep_prob': 1.0,
                'cell:state_keep_prob': 1.0, 'cell:variational': False,
+               'cell:init_state_trainable': False, 'cell:reset_state_prob': 0.0,
                'rnn:fn': 'tensorflow.nn.dynamic_rnn',
                'out:logit': True, 'out:loss': True, 'out:decode': False,
+               'out:token_nll': False, 'out:eval_first_token': False,
                'logit:output_size': 15, 'logit:use_bias': True, 'logit:trainable': True,
                'logit:init': None, 'logit:add_project': False, 'logit:project_size': -1,
-               'logit:project_act': 'tensorflow.tanh', 'loss:type': 'xent',
-               'loss:add_entropy': False, 'loss:add_gns': False, 'loss:eval_nll': False,
-               'decode:add_greedy': True, 'decode:add_sampling': True,
+               'logit:project_act': None, 'logit:project_keep_prob': 1.0,
+               'logit:rbf_kernel': False,
+               'loss:type': 'xent', 'loss:add_entropy': False, 'loss:add_gns': False,
+               'decode:add_greedy': False, 'decode:add_sampling': False,
                'share:input_emb_logit': False}
         return opt
 
@@ -239,7 +242,10 @@ class SeqModel(Model):
         opt = opt if opt else {}
         chain_opt = ChainMap(kwargs, opt, self.default_opt())
         if no_dropout:
-            chain_opt = ChainMap(self._all_keep_prob_shall_be_one(chain_opt), chain_opt)
+            chain_opt = ChainMap(
+                {'cell:reset_state_prob': 0.0},
+                self._all_keep_prob_shall_be_one(chain_opt),
+                chain_opt)
         reuse_scope = {} if reuse_scope is None else reuse_scope
         reuse_scope = defaultdict(lambda: None, **reuse_scope)
         self._name = name
@@ -284,7 +290,7 @@ class SeqModel(Model):
             _emb_scope = kwargs['global_emb_scope']
         with tfg.maybe_scope(_emb_scope, reuse=True) as scope:
             lookup_, emb_vars_ = tfg.create_lookup(input_, **emb_opt)
-            if self._FULL_SEQ_:
+            if self._FULL_SEQ_ or opt['out:eval_first_token']:
                 full_seq_ = tf.concat([tf.expand_dims(input_[0], 0), label_], 0)
                 full_lookup_, emb_vars_ = tfg.create_lookup(
                     full_seq_, emb_vars_, prefix='full', **emb_opt)
@@ -315,7 +321,7 @@ class SeqModel(Model):
                 'Need either decode:add_greedy and decode:add_sampling for out:decode.'
             decode_result, decode_nodes = self._build_decoder(
                 opt, nodes, reuse_scope[self._RSK_RNN_], collect_key,
-                collect_kwargs['add_to_collection'])
+                collect_kwargs['add_to_collection'], start_id=0)
             predict_fetch.update(decode_result)
             nodes.update(decode_nodes)
         # loss
@@ -339,6 +345,12 @@ class SeqModel(Model):
             cell_output_, initial_state_, final_state_ = tfg.create_rnn(
                 cell_, lookup, seq_len, initial_state, rnn_fn=opt['rnn:fn'],
                 batch_size=batch_size)
+            if opt['out:eval_first_token']:
+                first_output = initial_state_[-1]
+                if isinstance(first_output, tf.nn.rnn_cell.LSTMStateTuple):
+                    first_output = first_output.h
+                cell_output_ = tf.concat(
+                    (tf.expand_dims(first_output, 0), cell_output_), 0)
         return cell_, cell_output_, initial_state_, final_state_, {}
 
     def _build_logit(
@@ -349,15 +361,12 @@ class SeqModel(Model):
         with tfg.maybe_scope(reuse_scope[self._RSK_LOGIT_]) as scope:
             logit_, temperature_, logit_w_, logit_b_ = tfg.get_logit_layer(
                 cell_output, logit_w=logit_w_, **logit_opt, **collect_kwargs)
-            # if hasattr(self, '_logit_mask'):
-            #     logit_ = logit_ + self._logit_mask
-        dist_, dec_max_, dec_sample_ = tfg.select_from_logit(logit_)
         # format
+        dist_, dec_max_, dec_sample_ = tfg.select_from_logit(logit_)
         predict_fetch = {
             'logit': logit_, 'dist': dist_, 'dec_max': dec_max_,
             'dec_max_id': dec_max_.index, 'dec_sample': dec_sample_,
             'dec_sample_id': dec_sample_.index}
-
         nodes = util.dict_with_key_endswith(locals(), '_')
         return logit_, predict_fetch, nodes
 
@@ -368,11 +377,12 @@ class SeqModel(Model):
             train_loss_denom_ = tf.reduce_sum(seq_weight)
         else:
             train_loss_denom_ = tf.shape(label, out_type=tf.float32)[1]
-            # with tfg.tfph_collection(collect_key, add_to_collection) as get:
-            #     name = 'train_loss_denom'
-            #     train_loss_denom_ = get(name, tf.float32, shape=[])
+        if opt['out:eval_first_token']:
+            label = nodes['full_seq']
+            init_w_shape = (1, self._get_batch_size(weight))
+            weight = tf.concat([tf.ones(init_w_shape, dtype=tf.float32), weight], 0)
         if opt['loss:type'] == 'xent':
-            mean_loss_, train_loss_, batch_nll_, nll_ = tfg.create_xent_loss(
+            mean_loss_, train_loss_, raw_nll_, token_nll_ = tfg.create_xent_loss(
                 logit, label, weight, seq_weight, train_loss_denom_)
             if opt['loss:add_entropy']:
                 _sum_minus_ent, minus_avg_ent_ = tfg.create_ent_loss(
@@ -391,8 +401,8 @@ class SeqModel(Model):
                 'debug_info': debug_info}
             eval_fetch = {
                 'avg.tokens::eval_loss': mean_loss_, 'debug_info': debug_info}
-            if opt['loss:eval_nll']:
-                eval_fetch['nll'] = nll_
+            if opt['out:token_nll']:
+                eval_fetch['token_nll'] = token_nll_
         else:
             raise ValueError(f'{opt["loss:type"]} is not supported.')
         nodes = util.dict_with_key_endswith(locals(), '_')
@@ -413,9 +423,10 @@ class SeqModel(Model):
         decode_fn = partial(
             build_decode_fn,
             nodes['emb_vars'], nodes['cell'], nodes['logit_w'], nodes['initial_state'],
-            tf.tile((1, ), (batch_size, )), tf.tile([False], (batch_size, )),
+            tf.tile((start_id, ), (batch_size, )), tf.tile([False], (batch_size, )),
             logit_b=nodes['logit_b'], logit_temperature=nodes['temperature'],
-            max_len=decode_max_len_, cell_scope=cell_scope, late_attn_fn=late_attn_fn)
+            max_len=decode_max_len_, cell_scope=cell_scope, late_attn_fn=late_attn_fn,
+            vocab_size=opt['emb:vocab_size'])
         if opt['decode:add_greedy']:
             decode_greedy_, decode_greedy_score_, decode_greedy_len_ = decode_fn(
                 select_fn=tfg.greedy_decode_select)

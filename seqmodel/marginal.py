@@ -1,4 +1,7 @@
+import six
 import pickle
+from pydoc import locate
+from itertools import chain
 from functools import partial
 from collections import namedtuple
 
@@ -10,9 +13,13 @@ from seqmodel import graph as tfg
 from seqmodel import cells as tfcell
 from seqmodel import model as _sqm
 
-tfdense = tf.layers.dense
 
-__all__ = ['AESeqModel']
+__all__ = [
+    'AESeqModel', 'GaussianSeqModel', 'VAESeqModel',
+    'UnigramSeqModel', 'UnigramSeqModelH']
+
+NONE = tf.no_op()
+tfdense = tf.layers.dense
 
 
 def sample_normal(mu, scale):
@@ -31,8 +38,8 @@ def log_sum_exp(x, axis=-1, keep_dims=False):
 
 
 def kl_normal(mu0, scale0, mu1, scale1):
-    v0 = scale0 ** 2
-    v1 = scale1 ** 2
+    v0 = (scale0 ** 2) + 1e-6
+    v1 = (scale1 ** 2) + 1e-6
     l2 = (mu1 - mu0) ** 2
     return 0.5 * ((v0 + l2) / v1 + tf.log(v1) - tf.log(v0) - 1)
 
@@ -134,7 +141,7 @@ class DiagGaussianMixture(object):
 
 
 def categorical_graph(
-        K, inputs, temperature=0.2, activation=tf.nn.tanh, keep_prob=1.0, scope=None):
+        K, inputs, temperature=1.0, activation=tf.nn.relu, keep_prob=1.0, scope=None):
     input_dim = inputs.shape[-1]
     with tf.variable_scope(scope or 'categorical', reuse=tf.AUTO_REUSE):
         _inputs = inputs
@@ -143,23 +150,24 @@ def categorical_graph(
         h1 = tfdense(_inputs, input_dim, activation=activation, name='l1')
         if keep_prob < 1.0:
             h1 = tf.nn.dropout(h1, keep_prob)
-        h2 = tfdense(h1, input_dim, activation=activation, name='l2')
+        h2 = h1 + _inputs
+        # h2 = tfdense(h1, input_dim, activation=activation, name='l2')
         if keep_prob < 1.0:
             h2 = tf.nn.dropout(h2, keep_prob)
         logits = tfdense(h2, K, name='logits')
-        # temp_var = tf.get_variable(
-        #     'gumbel_temperature', dtype=tf.float32, initializer=temperature,
-        #     trainable=False)
-        # update_temp = tf.assign(temp_var, tf.maximum(0.1, temp_var * 0.9999))
-        # with tf.control_dependencies([update_temp]):
-        #     gumbel = tf.contrib.distributions.RelaxedOneHotCategorical(
-        #         temp_var, logits=logits)
-        #     sample = gumbel.sample()
-        #     return logits, sample
-        gumbel = tf.contrib.distributions.RelaxedOneHotCategorical(
-                temperature, logits=logits)
-        sample = gumbel.sample()
-        return logits, sample
+        temp_var = tf.get_variable(
+            'gumbel_temperature', dtype=tf.float32, initializer=temperature,
+            trainable=False)
+        update_temp = tf.assign(temp_var, tf.maximum(0.5, temp_var * 0.99995))
+        with tf.control_dependencies([update_temp]):
+            gumbel = tf.contrib.distributions.RelaxedOneHotCategorical(
+                temp_var, logits=logits)
+            sample = gumbel.sample()
+            return logits, sample
+        # gumbel = tf.contrib.distributions.RelaxedOneHotCategorical(
+        #         temperature, logits=logits)
+        # sample = gumbel.sample()
+        # return logits, sample
 
 
 def gaussian_graph(
@@ -250,7 +258,310 @@ def IAF_graph(T, out_dim, inputs, activation=tf.nn.tanh, scope=None):
     return z, log_pdf
 
 
-QTuple = namedtuple('QTuple', 'state loss')
+class UnigramSeqModel(_sqm.SeqModel):
+
+    def _build_rnn(
+            self, opt, lookup, seq_len, initial_state, batch_size, reuse_scope, reuse,
+            nodes):
+        cell_opt = util.dict_with_key_startswith(opt, 'cell:')
+        batch_size = self._get_batch_size(lookup)
+        input_dim = lookup.shape[-1]
+        if opt['out:eval_first_token']:
+            lookup = tf.concat((tf.zeros((1, batch_size, input_dim)), lookup), axis=0)
+            seq_len += 1
+        max_num_tokens = tf.shape(lookup)[0]
+        with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
+            _reuse = reuse or scope is not None
+            cell_ = tfg.create_cells(input_size=opt['emb:dim'], **cell_opt)
+            cell_output_, initial_state_, final_state_ = tfg.create_rnn(
+                cell_, lookup, seq_len, initial_state, rnn_fn=opt['rnn:fn'],
+                batch_size=batch_size)
+
+            wildcard_lookup = tf.zeros((1, input_dim))
+            wildcard_states = tfcell.nested_map(
+                lambda state: tf.zeros((1, state.shape[-1])), initial_state_)
+            x = wildcard_lookup
+            for i, (cell, z) in enumerate(zip(cell_._cells, wildcard_states)):
+                with tf.variable_scope(f'rnn/multi_rnn_cell/cell_{i}', reuse=True):
+                    x, __ = cell(x, z)
+            x = tf.tile(x[tf.newaxis, :, :], [max_num_tokens, batch_size, 1])
+            extra_nodes = {'unigram_features': x}
+        return cell_, cell_output_, initial_state_, final_state_, extra_nodes
+
+    def _build_logit(
+            self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output,
+            nodes=None, **kwargs):
+        unigram_features = nodes['unigram_features']
+        # logit
+        logit_w_ = emb_vars if opt['share:input_emb_logit'] else None
+        logit_opt = util.dict_with_key_startswith(opt, 'logit:')
+        with tfg.maybe_scope(
+                reuse_scope[self._RSK_LOGIT_], name='logit') as scope:
+            logit_, temperature_, logit_w_, logit_b_ = tfg.get_logit_layer(
+                cell_output, logit_w=logit_w_, **logit_opt, **collect_kwargs)
+            scope.reuse_variables()
+            unigram_logit_, temperature_, logit_w_, logit_b_ = tfg.get_logit_layer(
+                unigram_features, logit_w=logit_w_, logit_b=logit_b_,
+                temperature=temperature_, **logit_opt, **collect_kwargs)
+        # generation
+        dist_, dec_max_, dec_sample_ = tfg.select_from_logit(logit_)
+        # formating output
+        predict_fetch = {
+            'logit': logit_, 'dist': dist_, 'dec_max': dec_max_,
+            'dec_max_id': dec_max_.index, 'dec_sample': dec_sample_,
+            'dec_sample_id': dec_sample_.index}
+        nodes = util.dict_with_key_endswith(locals(), '_')
+        return logit_, predict_fetch, nodes
+
+    def _build_loss(
+            self, opt, logit, label, weight, seq_weight, nodes, collect_key,
+            add_to_collection, inputs=None, **kwargs):
+        weight = tf.multiply(weight, seq_weight)
+        if opt['out:eval_first_token']:
+            label = nodes['full_seq']
+            init_w_shape = (1, self._get_batch_size(weight))
+            weight = tf.concat([tf.ones(init_w_shape, dtype=tf.float32), weight], 0)
+        num_sequences = tf.reduce_sum(seq_weight)
+        num_tokens = tf.reduce_sum(weight)
+
+        # likelihood
+        c_token_nll = tf.nn.sparse_softmax_cross_entropy_with_logits(
+            logits=logit, labels=label) * weight
+        u_token_nll = tf.nn.sparse_softmax_cross_entropy_with_logits(
+            logits=nodes['unigram_logit'], labels=label) * weight
+
+        # combine everything
+        loss = c_token_nll + u_token_nll
+        loss = tf.reduce_sum(loss) / num_sequences
+
+        # Format output info
+        debug_info = {
+            'avg.tokens::c_ppl|exp': tf.reduce_sum(c_token_nll) / num_tokens,
+            'num.tokens::c_ppl|exp': num_tokens,
+            'avg.tokens::u_ppl|exp': tf.reduce_sum(u_token_nll) / num_tokens,
+            'num.tokens::u_ppl|exp': num_tokens}
+        train_fetch = {'train_loss': loss, 'debug_info': debug_info}
+        eval_fetch = {'eval_loss': loss, 'debug_info': debug_info}
+        if opt['out:token_nll']:
+            eval_fetch['token_nll'] = c_token_nll
+        return train_fetch, eval_fetch, {}
+
+
+class UnigramSeqModelH(UnigramSeqModel):
+    def _build_rnn(
+            self, opt, lookup, seq_len, initial_state, batch_size, reuse_scope, reuse,
+            nodes):
+        cell_opt = util.dict_with_key_startswith(opt, 'cell:')
+        batch_size = self._get_batch_size(lookup)
+        input_dim = lookup.shape[-1]
+        max_num_tokens = tf.shape(lookup)[0]
+        if opt['out:eval_first_token']:
+            max_num_tokens += 1
+        with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
+            _reuse = reuse or scope is not None
+            cell_ = tfg.create_cells(input_size=opt['emb:dim'], **cell_opt)
+            cell_output_, initial_state_, final_state_ = tfg.create_rnn(
+                cell_, lookup, seq_len, initial_state, rnn_fn=opt['rnn:fn'],
+                batch_size=batch_size)
+
+            h0_states = cell_._init_vars[-1]
+            x = h0_states[tf.newaxis, tf.newaxis, :]
+            u_out = tf.tile(x, [max_num_tokens, batch_size, 1])
+            extra_nodes = {'unigram_features': u_out}
+            if opt['out:eval_first_token']:
+                cell_output_ = tf.concat([x, cell_output_], axis=0)
+        return cell_, cell_output_, initial_state_, final_state_, extra_nodes
+
+
+class GaussianSeqModel(_sqm.SeqModel):
+
+    def _build_rnn(
+            self, opt, lookup, seq_len, initial_state, batch_size, reuse_scope, reuse,
+            nodes):
+        cell_opt = util.dict_with_key_startswith(opt, 'cell:')
+        with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True) as scope:
+            _reuse = reuse or scope is not None
+            gauss_wrapper = partial(
+                tfcell.GaussianCellWrapper,
+                num_hidden_layers=1, hidden_actvn=tf.nn.elu,
+                mean_actvn=None, scale_actvn=tf.nn.softplus)
+            cell_ = tfg.create_cells(
+                input_size=opt['emb:dim'], cell_wrapper=gauss_wrapper, **cell_opt)
+            cell_ = tfcell.StateOutputCellWrapper(cell_)
+            # cell_ = AttendedInputCellWrapper(cell_, each_input_dim=200)
+            (cell_output_, all_states_), initial_state_, final_state_ = tfg.create_rnn(
+                cell_, lookup, seq_len, initial_state, rnn_fn=opt['rnn:fn'],
+                batch_size=batch_size)
+        extra_nodes = {'all_states': all_states_}
+        return cell_, cell_output_, initial_state_, final_state_, extra_nodes
+
+    def _build_loss(
+            self, opt, logit, label, weight, seq_weight, nodes, collect_key,
+            add_to_collection, inputs=None, **kwargs):
+        train_fetch, eval_fetch, loss_nodes = super()._build_loss(
+            opt, logit, label, weight, seq_weight, nodes, collect_key,
+            add_to_collection, inputs=inputs, **kwargs)
+        # add l2 of mean
+        seq_nll = loss_nodes['train_loss']
+        train_loss_denom = loss_nodes['train_loss_denom']
+        loss = seq_nll
+
+        all_states = nodes['all_states']
+        for states in all_states:
+            loss += tf.reduce_sum(
+                tf.reduce_mean(tf.square(states.mean)/2, axis=-1)) / train_loss_denom
+        loss_nodes['train_loss'] = loss
+        train_fetch['train_loss'] = loss
+        return train_fetch, eval_fetch, loss_nodes
+
+
+class VAESeqModel(_sqm.SeqModel):
+
+    _FULL_SEQ_ = True
+
+    def _create_cell(self, opt, get_states=False):
+        cell_opt = util.dict_with_key_startswith(opt, 'cell:')
+        gauss_wrapper = partial(
+            tfcell.GaussianCellWrapper,
+            num_hidden_layers=0,
+            hidden_actvn=tf.nn.relu,
+            scale_actvn=tf.nn.softplus,
+            mean_actvn=None)
+        cell = tfg.create_cells(
+            input_size=opt['emb:dim'], cell_wrapper=gauss_wrapper, **cell_opt)
+        if get_states:
+            cell = tfcell.StateOutputCellWrapper(cell)
+        return cell
+
+    def _build_rnn(
+            self, opt, lookup, seq_len, initial_state, batch_size,
+            reuse_scope, reuse, nodes):
+        # TODO: added variable for null word_0 and null state (z_0) to predict
+        #       unigram distributions (every token)
+        concat0 = partial(tf.concat, axis=0)
+        new0axis = partial(tf.expand_dims, axis=0)
+        unroll_rnn = partial(tfg.create_rnn, rnn_fn=opt['rnn:fn'], batch_size=batch_size)
+        rnn_nodes = {}
+        full_seq_lookup = nodes.get('full_lookup', lookup)
+        # if initial_state is None:
+        #     initial_state = tuple((None, None))
+        # Inference Network
+        with tf.variable_scope('inference') as scope:
+            q_cell = self._create_cell(opt, get_states=True)
+            (q_out_, q_all_h_), q_init_h, q_final_h = unroll_rnn(
+                q_cell, full_seq_lookup[1:], seq_len, initial_state)
+        # Generative Network
+        with tf.variable_scope('generative'):
+            # g_cell = self._create_cell(opt, get_states=True)
+            # (g_out_, g_all_h_), g_init_h, g_final_h = unroll_rnn(
+            #     g_cell, full_seq_lookup[:-1], seq_len, initial_state)
+            g_cell = self._create_cell(opt)
+            reshape3d = partial(tf.reshape, shape=tf.shape(q_out_))
+            g_all_h_ = []
+            input_dim = full_seq_lookup[:-1].shape[-1]
+            x = tf.reshape(full_seq_lookup[:-1], (-1, input_dim))
+            loop_data = zip(g_cell._cells, q_init_h, q_all_h_)
+            for i, (cell, init_h, all_h) in enumerate(loop_data):
+                with tf.variable_scope(f'rnn/multi_rnn_cell/cell_{i}'):
+                    cell_dim = init_h.sample.shape[-1]
+                    z = concat0((new0axis(init_h.sample), all_h.sample[:-1]))
+                    z = tf.reshape(z, (-1, cell_dim))
+                    x, g_h = cell(x, z)
+                    g_h = tfcell.GaussianState(*(reshape3d(h) for h in g_h))
+                    g_all_h_.append(g_h)
+            g_all_h_ = tuple(g_all_h_)
+            g_out_ = reshape3d(x)
+        rnn_nodes.update(util.dict_with_key_endswith(locals(), '_'))
+        initial_state = q_init_h
+        final_state = q_final_h
+        # initial_state = tuple((q_init_h, g_init_h))
+        # final_state = tuple((q_final_h, g_final_h))
+        return q_cell, q_out_, initial_state, final_state, rnn_nodes
+
+    def _build_logit(
+            self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output,
+            nodes=None, **kwargs):
+        g_out, q_out = nodes['g_out'], nodes['q_out']
+        # logit
+        logit_w_ = emb_vars if opt['share:input_emb_logit'] else None
+        logit_opt = util.dict_with_key_startswith(opt, 'logit:')
+        with tfg.maybe_scope(
+                reuse_scope[self._RSK_LOGIT_], name='logit') as scope:
+            g_logit_, temperature_, logit_w_, logit_b_ = tfg.get_logit_layer(
+                g_out, logit_w=logit_w_, **logit_opt, **collect_kwargs)
+            scope.reuse_variables()
+            q_logit_, temperature_, logit_w_, logit_b_ = tfg.get_logit_layer(
+                q_out, logit_w=logit_w_, logit_b=logit_b_,
+                temperature=temperature_, **logit_opt, **collect_kwargs)
+        # generation
+        dist_, dec_max_, dec_sample_ = tfg.select_from_logit(g_logit_)
+        # formating output
+        predict_fetch = {
+            'logit': g_logit_, 'dist': dist_, 'dec_max': dec_max_,
+            'dec_max_id': dec_max_.index, 'dec_sample': dec_sample_,
+            'dec_sample_id': dec_sample_.index}
+        nodes = util.dict_with_key_endswith(locals(), '_')
+        return g_logit_, predict_fetch, nodes
+
+    def _build_loss(
+            self, opt, logit, label, weight, seq_weight, nodes, collect_key,
+            add_to_collection, inputs=None, **kwargs):
+        g_states, q_states = nodes['g_all_h'], nodes['q_all_h']
+        g_logit, q_logit = nodes['g_logit'], nodes['q_logit']
+
+        weight = tf.multiply(weight, seq_weight)
+        num_sequences = tf.reduce_sum(seq_weight)
+        num_tokens = tf.reduce_sum(weight)
+
+        # conditional likelihood
+        g_token_nll = tf.nn.sparse_softmax_cross_entropy_with_logits(
+            logits=g_logit, labels=label) * weight
+        q_token_nll = tf.nn.sparse_softmax_cross_entropy_with_logits(
+            logits=q_logit, labels=label) * weight
+
+        # TODO: unigram likelihood
+
+        # regularizers: norm of means, and divergence
+        # TODO: something to regularize variances to prevent singularity
+        g_token_norm = q_token_norm = gq_token_div = gprior_token_div = 0
+        for i, (g_h, q_h) in enumerate(zip(g_states, q_states)):
+            g_token_norm += tf.reduce_sum(tf.square(g_h.mean)/2, axis=-1) * weight
+            q_token_norm += tf.reduce_sum(tf.square(q_h.mean)/2, axis=-1) * weight
+            # gq_token_div += tf.reduce_sum(
+            #     tf.square(g_h.mean - q_h.mean)/2, axis=-1) * weight
+            gprior_token_div += kl_mvn_diag(
+                g_h.mean, g_h.scale,
+                tf.stop_gradient(g_h.mean),
+                tf.stop_gradient(tf.maximum(g_h.scale, 1 / 200))) * weight
+            gq_token_div += kl_mvn_diag(
+                q_h.mean, q_h.scale,
+                tf.stop_gradient(g_h.mean), tf.stop_gradient(g_h.scale)) * weight
+
+        # combine everything
+        norm_regularizers = g_token_norm + q_token_norm
+        loss = g_token_nll + gprior_token_div
+        loss += q_token_nll + gq_token_div
+        loss += (1/200) * norm_regularizers
+        loss = tf.reduce_sum(loss) / num_sequences
+        # loss = tf.Print(
+        #     loss,
+        #     [tf.reduce_mean(x) for x in [g_token_norm, q_token_norm]])
+        # loss = tf.Print(
+        #     loss,
+        #     [tf.reduce_mean(x) for x in [g_token_nll, q_token_nll, gq_token_div]])
+
+        # Format output info
+        debug_info = {
+            'avg.tokens::g_ppl|exp': tf.reduce_sum(g_token_nll) / num_tokens,
+            'num.tokens::g_ppl|exp': num_tokens,
+            'avg.tokens::q_ppl|exp': tf.reduce_sum(q_token_nll) / num_tokens,
+            'num.tokens::q_ppl|exp': num_tokens}
+        train_fetch = {'train_loss': loss, 'debug_info': debug_info}
+        eval_fetch = {'eval_loss': loss, 'debug_info': debug_info}
+        return train_fetch, eval_fetch, {}
+
+
+QTuple = namedtuple('QTuple', 'state loss alpha k_states')
 
 
 class AESeqModel(_sqm.SeqModel):
@@ -260,63 +571,70 @@ class AESeqModel(_sqm.SeqModel):
     @classmethod
     def default_opt(cls):
         opt = super().default_opt()
-        opt['rnn:use_bw_state'] = False
-        opt['rnn:q_mode'] = 'l2'
+        opt['rnn:q_mode'] = 'direct'
         opt['rnn:gmm_path'] = None
         opt['rnn:q_keep_prob'] = 1.0
-        opt['loss:eval_first_token'] = False
-        opt['loss:reg_type'] = None
+        opt['out:eval_first_token'] = False
+        opt['loss:reg_type'] = ''
+        opt['loss:freeze_lm'] = False
+        opt['out:q_token_nll'] = False
+        opt['out:no_debug'] = False
         # opt['rnn:num_components'] = 64
         return opt
 
     @staticmethod
-    def _l2(opt, eh, gh):
-        L2 = tf.reduce_sum(tf.squared_difference(eh, gh) / 2, axis=-1)
-        return QTuple(eh, L2)
+    def _direct(opt, eh, gh):
+        for i in range(1):
+            eh_hidden = tfdense(eh, eh.shape[-1], activation=tf.nn.elu, name=f'h_{i}')
+            eh = eh + eh_hidden
+        eh1 = tfdense(eh, eh.shape[-1], activation=tf.nn.tanh, name=f'state_1')
+        eh2 = tfdense(
+            tf.concat([eh, eh1], -1), eh.shape[-1],
+            activation=tf.nn.tanh, name=f'state_2')
+        eh = tf.concat([eh1, eh2], -1)
+        loss = tf.reduce_sum(tf.squared_difference(eh, gh) / 2, axis=-1)
+        return QTuple(eh, loss, NONE, NONE)
 
     @staticmethod
-    def _gaussian(opt, eh, gh):
-        mu, scale, sample = gaussian_graph(
-            eh.shape[-1], eh, residual=False, keep_prob=opt['rnn:q_keep_prob'],
-            activation=tf.nn.tanh, mu_activation=tf.nn.tanh,
-            scale_activation=tf.nn.sigmoid)
-        log_pdf = log_pdf_mvn_diag(gh, mu, scale)
-        kld = kl_mvn_diag(mu, scale, tf.zeros_like(mu), tf.ones_like(scale))
-        return QTuple(sample, -log_pdf + kld)
+    def _kmean(opt, eh, gh):
+        # scale = tf.constant(
+        #     np.sqrt(np.load('curexp/ptb-v/sample_states-variances.npy')),
+        #     dtype=tf.float32)
+        # var = 1.0
+        K = 3
+        cat_logit, cat_sample = categorical_graph(K, eh, temperature=1.0)
+        cat_dist = tf.nn.softmax(cat_logit)
+        cat_logdist = tf.nn.log_softmax(cat_logit)
+        # cat_dist = tf.Print(
+        #     cat_dist,
+        #     [tf.reduce_mean(tf.reduce_mean(cat_dist, axis=0), axis=0)],
+        #     message='a')
+        # cat_dist = tf.Print(cat_dist, [cat_dist[0, 0, :]], message='e')
+        nent = tf.reduce_sum(cat_dist * cat_logdist, axis=-1)
+        with tf.variable_scope('k_mean'):
+            eh1 = tf.layers.dense(eh, eh.shape[-1], activation=tf.nn.relu)
+            # eh2 = tf.layers.dense(eh1, eh.shape[-1], activation=tf.nn.tanh)
+            eh2 = eh1 + eh
+            ehs = tf.layers.dense(eh2, gh.shape[-1] * K, activation=tf.nn.tanh)
+            ehs = tf.stack(tf.split(ehs, K, axis=-1), axis=-2)
+            gh = tf.expand_dims(gh, axis=-2)
+            # loss = tf.reduce_sum(tf.squared_difference(ehs, gh) / var, axis=-1)
+            loss = -log_pdf_mvn_diag(ehs, gh, scale=1.0)
+            # loss = tf.reduce_sum(tf.nn.softmax(cat_logit) * loss, axis=-1) + nent
+            loss = tf.reduce_sum(cat_dist * loss, axis=-1)
+            loss += (1/K) * nent
+            cat_sample = tf.expand_dims(cat_sample, axis=-1)
+            eh = tf.reduce_sum(ehs * cat_sample, axis=-2)
+        return QTuple(eh, loss, cat_logit, ehs)
 
-    @staticmethod
-    def _gmm(opt, eh, gh):
-        K = 10
-        cat_logit, cat_sample = categorical_graph(
-            K, eh, temperature=0.1, activation=tf.nn.tanh,
-            keep_prob=opt['rnn:q_keep_prob'])
-        log_pcat = tf.nn.log_softmax(cat_logit)
-        fixed_cat = tf.eye(K, dtype=tf.float32)
-        log_pdfs = []
-        samples = []
-        for k in range(K):
-            cat_k = fixed_cat[k][tf.newaxis, tf.newaxis, :]
-            e_shape = tf.shape(eh)
-            cat_k = tf.tile(cat_k, [e_shape[0], e_shape[1], 1])
-            mu, scale, sample = gaussian_graph_cat(
-                eh.shape[-1], eh, cat_k,
-                residual=False, keep_prob=opt['rnn:q_keep_prob'],
-                activation=tf.nn.tanh, mu_activation=tf.nn.tanh,
-                scale_activation=tf.nn.sigmoid)
-            log_pdfs.append(log_pdf_mvn_diag(gh, mu, scale))
-            samples.append(sample)
-        log_pdfs = tf.stack(log_pdfs, axis=-1)
-        samples = tf.stack(samples, axis=-1)
-        log_pdf = log_sum_exp(log_pcat + log_pdfs, axis=-1, keep_dims=False)
-        samples = tf.reduce_sum(samples * cat_sample[:, :, tf.newaxis, :], axis=-1)
-        return QTuple(samples, -log_pdf)
-
-    def _q_graph(self, opt, e_all_h, g_init_h):
+    def _q_graph(self, opt, e_enc_out, g_all_h):
         # assume h is multilayer, but not a tuple (i.e. not LSTM state)
-        eh = tf.concat(e_all_h, -1)
-        g_init_h = tf.expand_dims(tf.concat(g_init_h, -1), 0)
+        # eh = tf.concat(eh, -1)
+        # gh = tf.concat(gh, -1)
+        # if len(gh.shape) == 2:
+        #     gh = tf.expand_dims(tf.concat(gh, -1), 0)
         mode = opt['rnn:q_mode']
-        q_out = getattr(AESeqModel, f'_{mode}')(opt, eh, g_init_h)
+        q_out = getattr(AESeqModel, f'_{mode}')(opt, e_enc_out, g_all_h)
         q_out = q_out._replace(state=tuple(tf.split(q_out.state, 2, axis=-1)))
         return q_out
 
@@ -330,7 +648,6 @@ class AESeqModel(_sqm.SeqModel):
     def _build_rnn(
             self, opt, lookup, seq_len, initial_state, batch_size,
             reuse_scope, reuse, nodes):
-        # lookup = tf.Print(lookup, [tf.reduce_max(seq_len)])
         concat0 = partial(tf.concat, axis=0)
         new0axis = partial(tf.expand_dims, axis=0)
         # full_reverse0 = partial(
@@ -339,80 +656,188 @@ class AESeqModel(_sqm.SeqModel):
         extra_nodes = {}
         # Prior x
         with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True):
-            dec_cell = self._create_cell(opt)
-            g_dec_out, g_init_h, g_final_h = unroll_rnn(
+            dec_cell = self._create_cell(opt, get_states=True)
+            (g_dec_out, g_all_h), g_init_h, g_final_h = unroll_rnn(
                 dec_cell, lookup, seq_len, initial_state)
-            if opt['loss:eval_first_token']:
+            if opt['out:eval_first_token']:
                 g_dec_out = concat0([new0axis(g_init_h[-1]), g_dec_out])
+            extra_nodes['g_states'] = tf.concat(g_all_h, -1)
         # Posterior z
         with tf.variable_scope('encoder'):
             # full_seq_lookup = full_reverse0(nodes.get('full_lookup', lookup))
             full_seq_lookup = nodes.get('full_lookup', lookup)
             enc_cell = self._create_cell(opt, get_states=True)
-            (e_all_h, __), __, __ = unroll_rnn(
+            (e_enc_out, e_all_h), __, e_final_h = unroll_rnn(
                 enc_cell, full_seq_lookup, seq_len+1, None)
-            # g_all_h = tuple((
-            #     concat0([new0axis(l_ih), l_h]) for l_ih, l_h in zip(g_init_h, g_all_h)))
+            g_all_h = tf.concat(
+                tuple((concat0(
+                    [new0axis(l_ih), l_h]) for l_ih, l_h in zip(g_init_h, g_all_h))),
+                axis=-1)
             # e_all_h = tuple((full_reverse0(l_h) for l_h in e_all_h))
-            q_out = self._q_graph(opt, e_all_h, g_init_h)
-            q_init_h = tfg.select_nested_rnn(q_out.state, seq_len)
+            # q_out = self._q_graph(opt, e_all_h, g_init_h)
+            q_out = self._q_graph(opt, e_enc_out, g_all_h)
+            q_init_h = e_final_h
+            # q_init_h = tfg.select_nested_rnn(q_out.state, seq_len)
             # q_init_h = tuple((q_out.state[0][0], q_out.state[1][0]))
-            extra_nodes['q_out'] = q_out
         # Posterior x
-        with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True):
-            q_dec_out, __, __ = unroll_rnn(dec_cell, lookup, seq_len, q_init_h)
-            if opt['loss:eval_first_token']:
-                q_dec_out = concat0([new0axis(q_init_h[-1]), q_dec_out])
-        gq_dec_out = tf.concat([g_dec_out, q_dec_out], axis=1)  # concat batch size
-        return dec_cell, gq_dec_out, g_init_h, g_final_h, extra_nodes
+        # with tfg.maybe_scope(reuse_scope[self._RSK_RNN_], reuse=True):
+        #     (q_dec_out, __), __, __ = unroll_rnn(dec_cell, lookup, seq_len, q_init_h)
+        #     if opt['out:eval_first_token']:
+        #         q_dec_out = concat0([new0axis(q_init_h[-1]), q_dec_out])
+        self._q_out = q_out
+        q_dec_out = q_out.state[-1]
+        extra_nodes['q_out'] = q_out
+        extra_nodes['q_states'] = tf.concat(q_out.state, -1)
+        extra_nodes['g_states'] = tf.concat(g_all_h, -1)
+        extra_nodes['q_cell_output'] = q_dec_out
+        return dec_cell, g_dec_out, g_init_h, g_final_h, extra_nodes
+
+    def _build_logit(
+            self, opt, reuse_scope, collect_kwargs, emb_vars, cell_output,
+            nodes=None, **kwargs):
+        # logit
+        logit_w_ = emb_vars if opt['share:input_emb_logit'] else None
+        logit_opt = util.dict_with_key_startswith(opt, 'logit:')
+        with tfg.maybe_scope(reuse_scope[self._RSK_LOGIT_]) as scope:
+            logit_, temperature_, logit_w_, logit_b_ = tfg.get_logit_layer(
+                cell_output, logit_w=logit_w_, **logit_opt, **collect_kwargs)
+            q_logit_, temperature_, logit_w_, logit_b_ = tfg.get_logit_layer(
+                nodes['q_cell_output'], logit_w=logit_w_, logit_b=logit_b_,
+                temperature=temperature_, **logit_opt, **collect_kwargs)
+
+        dist_, dec_max_, dec_sample_ = tfg.select_from_logit(logit_)
+        # format
+        predict_fetch = {
+            'logit': logit_, 'dist': dist_, 'dec_max': dec_max_,
+            'dec_max_id': dec_max_.index, 'dec_sample': dec_sample_,
+            'dec_sample_id': dec_sample_.index}
+
+        nodes = util.dict_with_key_endswith(locals(), '_')
+        return logit_, predict_fetch, nodes
 
     def _build_loss(
             self, opt, logit, label, weight, seq_weight, nodes, collect_key,
             add_to_collection, inputs=None):
         q_out = nodes['q_out']
+
+        # NLL
         train_loss_denom_ = tf.reduce_sum(seq_weight)
         g_weight = q_weight = weight
-        if opt['loss:eval_first_token']:
+        if opt['out:eval_first_token']:
             label = nodes['full_seq']
             init_w_shape = (1, self._get_batch_size(weight))
-            # XXX: do not train on first token twice
             g_weight = tf.concat([tf.zeros(init_w_shape, dtype=tf.float32), weight], 0)
             q_weight = tf.concat([tf.ones(init_w_shape, dtype=tf.float32), weight], 0)
         xent = partial(
             tfg.create_xent_loss,
             label=label, seq_weight=seq_weight, loss_denom=train_loss_denom_)
-        g_logit, q_logit = tf.split(logit, 2, axis=1)
-        g_mean_nll_, g_seq_nll_, g_raw_nll_, g_nll_ = xent(g_logit, weight=g_weight)
-        q_mean_nll_, q_seq_nll_, q_raw_nll_, q_nll_ = xent(q_logit, weight=q_weight)
+        g_logit = logit
+        q_logit = nodes['q_logit']
+        g_mean_nll_, g_seq_nll_, g_raw_nll_, g_token_nll_ = xent(g_logit, weight=g_weight)
+        q_mean_nll_, q_seq_nll_, q_raw_nll_, q_token_nll_ = xent(q_logit, weight=q_weight)
         q_num_tokens = tf.reduce_sum(q_weight)
-        if opt['loss:reg_type'] == 'hinge':
-            reg = (q_out.loss + tf.maximum(0.0, g_raw_nll_ - q_raw_nll_)) * q_weight
-        elif opt['loss:reg_type'] == 'kld':
-            kld = tf.reduce_sum(
-                tf.nn.softmax(g_logit) * (
-                    tf.nn.log_softmax(g_logit) - tf.nn.log_softmax(q_logit)), -1)
-            reg = (q_out.loss + kld) * q_weight
+
+        # Regularizer
+        if len(q_out.loss.shape) == 1:
+            reg_weight = seq_weight
         else:
-            reg = q_out.loss * q_weight
+            reg_weight = q_weight
+        if opt['loss:reg_type'] == 'hinge':
+            reg = (q_out.loss + tf.maximum(0.0, g_raw_nll_ - q_raw_nll_)) * reg_weight
+        elif 'kld' in opt['loss:reg_type']:
+            _g_logit = tf.stop_gradient(g_logit)
+            kld = tf.reduce_sum(
+                tf.nn.softmax(_g_logit) * (
+                    tf.nn.log_softmax(_g_logit) - tf.nn.log_softmax(q_logit)), -1)
+            if opt['loss:reg_type'] == 'only_kld':
+                reg = kld * reg_weight
+            else:
+                reg = (q_out.loss + kld) * reg_weight
+        else:
+            reg = q_out.loss * reg_weight
         sum_reg = tf.reduce_sum(reg)
         seq_reg = sum_reg / train_loss_denom_
         avg_reg = sum_reg / q_num_tokens
-        eval_loss_ = g_seq_nll_ + q_seq_nll_
-        train_loss_ = g_seq_nll_ + q_seq_nll_ + seq_reg
-        # train_loss_ = tf.Print(
-        #     train_loss_,
-        #     [g_mean_nll_,
-        #      q_mean_nll_,
-        #      avg_reg])
+
+        # Customize train op, to separate gradient
+        def create_train_op(
+                optim_class=tf.train.AdamOptimizer, learning_rate=0.001,
+                clip_gradients=5.0, grad_vars_contain='', **optim_kwarg):
+            print('USE MODEL TRAIN OP')
+            if isinstance(optim_class, six.string_types):
+                optim_class = locate(optim_class)
+            optim = optim_class(learning_rate=learning_rate, **optim_kwarg)
+            enc_var_list = []
+            enc_not_rnn_var_list = []
+            lm_var_list = []
+            for v in tf.trainable_variables():
+                if 'encoder' in v.name:
+                    enc_var_list.append(v)
+                    if 'rnn' not in v.name:
+                        enc_not_rnn_var_list.append(v)
+                else:
+                    lm_var_list.append(v)
+            if opt['loss:freeze_lm']:
+                lm_g_v_pairs = []
+            else:
+                lm_g_v_pairs = optim.compute_gradients(g_seq_nll_, var_list=lm_var_list)
+            # enc_loss = avg_reg + 0.05 * tfg.create_l2_loss(enc_var_list)
+            enc_loss = avg_reg
+            if opt['loss:reg_type'] != 'only_native':
+                enc_loss += q_mean_nll_
+            enc_g_v_pairs = optim.compute_gradients(
+                enc_loss, var_list=enc_var_list)
+            grads, tvars = [], []
+            for g, v in chain(lm_g_v_pairs, enc_g_v_pairs):
+                if g is None:
+                    continue
+                tvars.append(v)
+                grads.append(g)
+            clipped_grads, _norm = tf.clip_by_global_norm(grads, clip_gradients)
+            train_op = optim.apply_gradients(zip(clipped_grads, tvars))
+            return train_op
+        self.create_train_op = create_train_op
+
+        # Format output info
+        train_loss_ = seq_reg
+        eval_loss_ = avg_reg
         debug_info = {
-            'avg.tokens::g_ppl|exp': g_mean_nll_,
-            'num.tokens::g_ppl|exp': tf.reduce_sum(g_weight),
-            'avg.tokens::q_ppl|exp': q_mean_nll_,
-            'num.tokens::q_ppl|exp': q_num_tokens,
             'avg.tokens::reg': avg_reg,
             'num.tokens::reg': q_num_tokens}
-        train_fetch = {
-            'train_loss': train_loss_, 'eval_loss': eval_loss_, 'debug_info': debug_info}
-        eval_fetch = {'eval_loss': eval_loss_, 'debug_info': debug_info}
+        if not opt['loss:freeze_lm']:
+            train_loss_ += g_seq_nll_
+            eval_loss_ = g_seq_nll_
+            debug_info.update({
+                'avg.tokens::g_ppl|exp': g_mean_nll_,
+                'num.tokens::g_ppl|exp': tf.reduce_sum(g_weight)})
+        if opt['loss:reg_type'] != 'only_native':
+            train_loss_ += q_seq_nll_
+            eval_loss_ += q_seq_nll_
+            debug_info.update({
+                'avg.tokens::q_ppl|exp': q_mean_nll_,
+                'num.tokens::q_ppl|exp': q_num_tokens})
+        # train_loss_ = tf.Print(train_loss_, [g_mean_nll_, q_mean_nll_, avg_reg])
+
+        train_fetch = {'train_loss': train_loss_, 'eval_loss': eval_loss_}
+        eval_fetch = {'eval_loss': eval_loss_}
+        if not opt['out:no_debug']:
+            train_fetch['debug_info'] = debug_info
+            eval_fetch['debug_info'] = debug_info
+
+        if opt['out:token_nll']:
+            if opt['out:q_token_nll']:
+                eval_fetch['token_nll'] = q_raw_nll_ * q_weight
+            else:
+                eval_fetch['token_nll'] = g_raw_nll_ * q_weight
+        # eval_fetch = {'token_nll': g_raw_nll_ * q_weight}
         loss_nodes = util.dict_with_key_endswith(locals(), '_')
         return train_fetch, eval_fetch, loss_nodes
+
+    def _get_feed_lite(
+            self, mode, features, labels=None, state=None, q_states=None, **kwargs):
+        feed_dict = super()._get_feed_lite(mode, features, labels, **kwargs)
+        if state is not None:
+            self._feed_state(feed_dict, self._state_feed, state)
+        if q_states is not None:
+            self._feed_state(feed_dict, self._q_out.state, q_states)
+        return feed_dict

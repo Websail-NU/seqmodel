@@ -464,4 +464,5 @@ def load_exp(sess, saver, exp_dir, latest=False, checkpoint=None, logger=None):
 def filter_tfvars_in_checkpoint(tfvars, checkpoint):
     reader = TFCheckpointReader(checkpoint)
     var2shape_map = reader.get_variable_to_shape_map()
-    return tuple(v for v in tfvars if v.name[:-2] in var2shape_map)
+    output_map = tuple(v for v in tfvars if v.name[:-2] in var2shape_map)
+    return output_map

@@ -2,7 +2,6 @@
 *.pyc
 __pycache__
 .remote-sync.json
-/experiments/
 /data/
 /script/data/_cached
 /script/bin/experiment
@@ -12,4 +11,5 @@ __pycache__
 *.code-workspace
 *.ini
 .vscode
-run_experiment_*
+*_steve.*
+*_thor.*
